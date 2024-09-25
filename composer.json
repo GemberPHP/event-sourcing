@@ -3,18 +3,62 @@
     "description": "Let go of the Aggregate - EventSourcing in PHP with DCB (Dynamic Consistency Boundary)",
     "license": "MIT",
     "type": "library",
+    "keywords": [
+        "gember",
+        "event-sourcing",
+        "domain-driven-design",
+        "ddd",
+        "dynamic-consistency-boundary",
+        "dcb"
+    ],
     "authors": [
         {
             "name": "Jeroen de Graaf",
-            "email": "gember@jero.work"
+            "email": "gember@jero.work",
+            "homepage": "https://jero.work"
         }
     ],
     "require": {
         "php": "^8.3"
     },
+    "require-dev": {
+        "captainhook/captainhook": "^5.23",
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phpstan/phpstan": "^1.12",
+        "phpunit/phpunit": "^11.3",
+        "rector/rector": "^1.2",
+        "rregeer/phpunit-coverage-check": "^0.3.1",
+        "shipmonk/composer-dependency-analyser": "^1.7"
+    },
     "autoload": {
         "psr-4": {
             "Gember\\EventSourcing\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Gember\\EventSourcing\\Test\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "coverage": "vendor/bin/coverage-check var/coverage/clover.xml 95",
+        "cs": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php",
+        "cs:dry-run": "vendor/bin/php-cs-fixer fix --diff --dry-run --config=.php-cs-fixer.php",
+        "dependency-analyser": "vendor/bin/composer-dependency-analyser",
+        "phpstan": "vendor/bin/phpstan analyse -c phpstan.neon",
+        "phpunit": "XDEBUG_MODE=coverage vendor/bin/phpunit",
+        "rector": "vendor/bin/rector process --ansi",
+        "rector:dry-run": "vendor/bin/rector process --ansi --dry-run",
+        "test": [
+            "@rector:dry-run",
+            "@cs:dry-run",
+            "@phpstan",
+            "@dependency-analyser",
+            "@phpunit",
+            "@coverage"
+        ]
     }
 }
