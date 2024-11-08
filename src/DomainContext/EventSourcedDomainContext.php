@@ -6,9 +6,6 @@ namespace Gember\EventSourcing\DomainContext;
 
 use Stringable;
 
-/**
- * @template-covariant T of EventSourcedDomainContext
- */
 interface EventSourcedDomainContext
 {
     /**
@@ -23,8 +20,5 @@ interface EventSourcedDomainContext
      */
     public function getAppliedEvents(): array;
 
-    /**
-     * @return T
-     */
-    public static function reconstitute(DomainEventEnvelope ...$envelopes): EventSourcedDomainContext;
+    public static function reconstitute(DomainEventEnvelope ...$envelopes): self;
 }

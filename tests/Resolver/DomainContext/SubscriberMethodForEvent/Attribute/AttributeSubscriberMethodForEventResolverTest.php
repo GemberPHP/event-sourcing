@@ -18,7 +18,7 @@ use stdClass;
  */
 final class AttributeSubscriberMethodForEventResolverTest extends TestCase
 {
-    private AttributeSubscriberMethodForEventResolver $resolver; // @phpstan-ignore-line
+    private AttributeSubscriberMethodForEventResolver $resolver;
 
     #[Override]
     protected function setUp(): void

@@ -18,7 +18,7 @@ use Override;
  */
 final class AttributeSubscribedEventsResolverTest extends TestCase
 {
-    private AttributeSubscribedEventsResolver $resolver; // @phpstan-ignore-line
+    private AttributeSubscribedEventsResolver $resolver;
 
     #[Override]
     protected function setUp(): void

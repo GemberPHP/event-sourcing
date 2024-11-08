@@ -9,14 +9,8 @@ use Gember\EventSourcing\DomainContext\Attribute\DomainId;
 use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
 use Gember\EventSourcing\DomainContext\EventSourcedDomainContextBehaviorTrait;
 
-/**
- * @implements EventSourcedDomainContext<TestDomainContext>
- */
 final class TestDomainContext implements EventSourcedDomainContext
 {
-    /**
-     * @use EventSourcedDomainContextBehaviorTrait<TestDomainContext>
-     */
     use EventSourcedDomainContextBehaviorTrait;
 
     #[DomainId]

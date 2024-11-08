@@ -12,15 +12,13 @@ use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
  *
  * When loading all events required for a certain domain context from the event store,
  * all events subscribed on should be filtered on, to be able te reconstitute the domain context.
- *
- * @template T of EventSourcedDomainContext
  */
 interface SubscribedEventsResolver
 {
     /**
      * Returns a list of subscribed domain events (FQCN) inside a domain context.
      *
-     * @param class-string<EventSourcedDomainContext<T>> $domainContextClassName
+     * @param class-string<EventSourcedDomainContext> $domainContextClassName
      *
      * @return list<class-string>
      */

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\DomainContext;
 
 /**
- * @template T of EventSourcedDomainContext
- *
  * @phpstan-require-implements EventSourcedDomainContext
  */
 trait EventSourcedDomainContextBehaviorTrait
@@ -46,10 +44,7 @@ trait EventSourcedDomainContextBehaviorTrait
         return $appliedEvents;
     }
 
-    /**
-     * @return T
-     */
-    public static function reconstitute(DomainEventEnvelope ...$envelopes): EventSourcedDomainContext
+    public static function reconstitute(DomainEventEnvelope ...$envelopes): self
     {
         $domainContext = new self();
 

@@ -5,16 +5,10 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Resolver\DomainContext\SubscribedEvents\Attribute;
 
 use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
 use Gember\EventSourcing\Resolver\DomainContext\SubscribedEvents\SubscribedEventsResolver;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
 
-/**
- * @template T of EventSourcedDomainContext
- *
- * @implements SubscribedEventsResolver<T>
- */
 final readonly class AttributeSubscribedEventsResolver implements SubscribedEventsResolver
 {
     public function __construct(

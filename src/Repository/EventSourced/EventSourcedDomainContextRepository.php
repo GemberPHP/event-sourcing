@@ -18,16 +18,8 @@ use Override;
 use Stringable;
 use Throwable;
 
-/**
- * @template T of EventSourcedDomainContext
- *
- * @implements DomainContextRepository<EventSourcedDomainContext<T>>
- */
 final readonly class EventSourcedDomainContextRepository implements DomainContextRepository
 {
-    /**
-     * @param SubscribedEventsResolver<T> $eventsInDomainContextResolver
-     */
     public function __construct(
         private EventStore $eventStore,
         private DomainEventEnvelopeFactory $domainEventEnvelopeFactory,
@@ -35,6 +27,16 @@ final readonly class EventSourcedDomainContextRepository implements DomainContex
         private EventBus $eventBus,
     ) {}
 
+    /**
+     * @template T of EventSourcedDomainContext
+     *
+     * @param class-string<T> $domainContextClassName
+     *
+     * @throws DomainContextNotFoundException
+     * @throws DomainContextRepositoryFailedException
+     *
+     * @return T
+     */
     #[Override]
     public function get(string $domainContextClassName, string|Stringable ...$domainId): EventSourcedDomainContext
     {
@@ -44,7 +46,7 @@ final readonly class EventSourcedDomainContextRepository implements DomainContex
                 $this->eventsInDomainContextResolver->resolve($domainContextClassName),
             ));
 
-            return $domainContextClassName::reconstitute(...$eventEnvelopes);
+            return $domainContextClassName::reconstitute(...$eventEnvelopes); // @phpstan-ignore-line
         } catch (NoEventsForDomainIdsException) {
             throw DomainContextNotFoundException::create();
         } catch (Throwable $exception) {
@@ -52,6 +54,13 @@ final readonly class EventSourcedDomainContextRepository implements DomainContex
         }
     }
 
+    /**
+     * @template T of EventSourcedDomainContext
+     *
+     * @param class-string<T> $domainContextClassName
+     *
+     * @throws DomainContextRepositoryFailedException
+     */
     #[Override]
     public function has(string $domainContextClassName, string|Stringable ...$domainId): bool
     {

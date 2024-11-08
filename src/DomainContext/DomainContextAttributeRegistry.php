@@ -8,25 +8,11 @@ use Gember\EventSourcing\Resolver\DomainContext\SubscriberMethodForEvent\Subscri
 use Gember\EventSourcing\Resolver\DomainContext\DomainIdProperties\DomainIdPropertiesResolver;
 use Gember\EventSourcing\Resolver\DomainContext\DomainIdProperties\UnresolvableDomainIdPropertiesException;
 
-/**
- * @template T of EventSourcedDomainContext
- */
 final class DomainContextAttributeRegistry
 {
-    /**
-     * @var DomainIdPropertiesResolver<T>
-     */
     private static DomainIdPropertiesResolver $domainIdsResolver;
-
-    /**
-     * @var SubscriberMethodForEventResolver<T>
-     */
     private static SubscriberMethodForEventResolver $subscriberMethodsResolver;
 
-    /**
-     * @param DomainIdPropertiesResolver<T> $domainIdsResolver
-     * @param SubscriberMethodForEventResolver<T> $subscriberMethodsResolver
-     */
     public static function initialize(
         DomainIdPropertiesResolver $domainIdsResolver,
         SubscriberMethodForEventResolver $subscriberMethodsResolver,
@@ -36,7 +22,7 @@ final class DomainContextAttributeRegistry
     }
 
     /**
-     * @param class-string<EventSourcedDomainContext<T>> $domainContextClassName
+     * @param class-string<EventSourcedDomainContext> $domainContextClassName
      *
      * @throws UnresolvableDomainIdPropertiesException
      *
@@ -48,7 +34,7 @@ final class DomainContextAttributeRegistry
     }
 
     /**
-     * @param class-string<EventSourcedDomainContext<T>> $domainContextClassName
+     * @param class-string<EventSourcedDomainContext> $domainContextClassName
      * @param class-string $eventClassName
      */
     public static function getContextSubscriberMethodForEvent(string $domainContextClassName, string $eventClassName): ?string

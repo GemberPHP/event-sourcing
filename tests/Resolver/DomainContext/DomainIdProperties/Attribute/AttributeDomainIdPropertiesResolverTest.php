@@ -18,7 +18,7 @@ use stdClass;
  */
 final class AttributeDomainIdPropertiesResolverTest extends TestCase
 {
-    private AttributeDomainIdPropertiesResolver $resolver; // @phpstan-ignore-line
+    private AttributeDomainIdPropertiesResolver $resolver;
 
     #[Override]
     protected function setUp(): void

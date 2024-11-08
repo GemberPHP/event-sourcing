@@ -7,12 +7,11 @@ namespace Gember\EventSourcing\Repository;
 use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
 use Stringable;
 
-/**
- * @template T of EventSourcedDomainContext
- */
 interface DomainContextRepository
 {
     /**
+     * @template T of EventSourcedDomainContext
+     *
      * @param class-string<T> $domainContextClassName
      *
      * @throws DomainContextNotFoundException
@@ -23,6 +22,8 @@ interface DomainContextRepository
     public function get(string $domainContextClassName, string|Stringable ...$domainId): EventSourcedDomainContext;
 
     /**
+     * @template T of EventSourcedDomainContext
+     *
      * @param class-string<T> $domainContextClassName
      *
      * @throws DomainContextRepositoryFailedException
@@ -30,8 +31,6 @@ interface DomainContextRepository
     public function has(string $domainContextClassName, string|Stringable ...$domainId): bool;
 
     /**
-     * @param T $context
-     *
      * @throws DomainContextRepositoryFailedException
      */
     public function save(EventSourcedDomainContext $context): void;

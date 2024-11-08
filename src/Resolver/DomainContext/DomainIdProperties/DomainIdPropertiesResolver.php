@@ -8,13 +8,11 @@ use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
 
 /**
  * Resolves property names defining all domain identifiers belonging to the domain context.
- *
- * @template T of EventSourcedDomainContext
  */
 interface DomainIdPropertiesResolver
 {
     /**
-     * @param class-string<EventSourcedDomainContext<T>> $domainContextClassName
+     * @param class-string<EventSourcedDomainContext> $domainContextClassName
      *
      * @throws UnresolvableDomainIdPropertiesException
      *

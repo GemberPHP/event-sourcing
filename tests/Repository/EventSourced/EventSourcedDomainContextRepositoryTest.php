@@ -40,7 +40,6 @@ use DateTimeImmutable;
  */
 final class EventSourcedDomainContextRepositoryTest extends TestCase
 {
-    // @phpstan-ignore-next-line
     private EventSourcedDomainContextRepository $repository;
     private TestRdbmsEventStoreRepository $eventStoreRepository;
     private TestClock $clock;
