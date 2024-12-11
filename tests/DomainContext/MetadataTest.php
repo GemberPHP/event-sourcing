@@ -18,9 +18,7 @@ final class MetadataTest extends TestCase
     {
         $metadata = new Metadata(['foo' => 'bar', 'bar' => 'baz']);
 
-        $updatedMetadata = $metadata
-            ->withMetadata('foo', 'bar.updated')
-            ->withMetadata('qux', 'fred');
+        $updatedMetadata = $metadata->addMetadata(['foo' => 'bar.updated', 'qux' => 'fred']);
 
         self::assertSame([
             'foo' => 'bar',

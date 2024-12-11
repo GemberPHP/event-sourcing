@@ -18,4 +18,15 @@ final readonly class DomainEventEnvelope
         public Metadata $metadata,
         public DateTimeImmutable $appliedAt,
     ) {}
+
+    public function withMetadata(Metadata $metadata): self
+    {
+        return new self(
+            $this->eventId,
+            $this->domainIds,
+            $this->event,
+            $metadata,
+            $this->appliedAt,
+        );
+    }
 }

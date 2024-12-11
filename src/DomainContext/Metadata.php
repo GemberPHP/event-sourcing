@@ -21,11 +21,14 @@ final readonly class Metadata implements IteratorAggregate
         public array $metadata = [],
     ) {}
 
-    public function withMetadata(string $key, mixed $value): self
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    public function addMetadata(array $metadata): self
     {
         return new self([
             ...$this->metadata,
-            ...[$key => $value],
+            ...$metadata,
         ]);
     }
 
