@@ -20,7 +20,8 @@
         }
     ],
     "require": {
-        "php": "^8.3"
+        "php": "^8.3",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "captainhook/captainhook": "^5.23",
