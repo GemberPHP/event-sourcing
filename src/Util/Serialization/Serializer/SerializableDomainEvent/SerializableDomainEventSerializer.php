@@ -38,7 +38,10 @@ final readonly class SerializableDomainEventSerializer implements Serializer
         }
 
         try {
-            return $className::fromPayload((array) json_decode($payload, true, flags: JSON_THROW_ON_ERROR));
+            /** @var array<string, mixed> $payload */
+            $payload = (array) json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
+
+            return $className::fromPayload($payload);
         } catch (JsonException $exception) {
             throw SerializationFailedException::withException($exception);
         }
