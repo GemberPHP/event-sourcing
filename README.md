@@ -7,8 +7,10 @@
 
 _Let go of the Aggregate - EventSourcing in PHP with the Dynamic Consistency Boundary (DCB) pattern._
 
+## Documentation
+
 - [Background](/docs/background.md)
-- Installation
+- [Installation](/docs/installation.md)
 - Library architecture
 - A simple example
 - Library reference
