@@ -11,7 +11,7 @@ _Let go of the Aggregate - EventSourcing in PHP with the Dynamic Consistency Bou
 
 - [Background](/docs/background.md)
 - [Installation](/docs/installation.md)
+- [Usage](/docs/usage.md)
 - Library architecture
-- A simple example
 - Library reference
 - Hooking into the library
