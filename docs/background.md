@@ -7,8 +7,8 @@ In a 'traditional' event sourced application, aggregates have strict boundaries,
 meaning that it disallows re-using domain events by multiple different aggregates.
 A common rule in event sourcing is that all business logic belonging to an aggregate should reside within that aggregate.
 
-Also, since aggregates are consistent internally, each behavioral change to an aggregate locks other behavioral changes
-(called optimistic locking), even if the changes aren’t really related from a domain perspective.
+Since aggregates are consistent internally, each behavioral change to an aggregate locks other behavioral changes, 
+even if the changes aren’t really related from a domain perspective.
 
 An aggregate as described by Evans in his 'blue book':
 
@@ -21,7 +21,7 @@ _From "Domain-Driven Design: Tackling Complexity in the Heart of Software" by Er
 However, over time, this often leads to "fat aggregates" (the new fat controller? 😛).
 
 Also, the aggregate is a highly technical concept, which makes it difficult to explain to non-technical stakeholders,
-e.g. during EventStorming sessions.
+e.g. during [EventStorming](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet) sessions.
 
 ## Gember Event Sourcing
 Gember addresses these issues and takes a different approach, by using a new concept called "Dynamic Consistency Boundary" (DCB) pattern in mind.
@@ -32,12 +32,13 @@ Gember addresses these issues and takes a different approach, by using a new con
 Introduced by Sara Pellegrini in 2023, the DCB pattern rethinks the traditional approach in event sourcing,
 which she explains well in her talk: ["The Aggregate is dead. Long live the Aggregate!"](https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html) (a must-read).
 
-In a nutshell, the DCB pattern removes the strict one-to-one relation between an aggregate and a domain event.
+**In a nutshell, the DCB pattern removes the strict one-to-one relation between an aggregate and a domain event.**
+
 As a consequence, a domain event can now be reused by multiple different aggregates, or better called now, "business decision models".
 This allows us to create business decision models based on a subset of domain events,
 or even on domain events from different aggregates, or better called now, "domain identifiers".
 
-This aligns well with the way [EventStorming](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet) looks at aggregates nowadays.
+This aligns well with the way EventStorming looks at aggregates nowadays.
 What they used to call aggregates are often seen as "systems" or "consistent business rules",
 making the problem space more understandable to non-technical stakeholders.
 
