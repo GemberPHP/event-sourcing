@@ -42,7 +42,7 @@ final readonly class CachedAttributeResolverDecorator implements AttributeResolv
         if (!$this->cache->has($cacheKey)) {
             $properties = $this->attributeResolver->getPropertyNamesWithAttribute($className, $attributeClassName);
 
-            $this->cache->set($cacheKey, (string) json_encode($properties, JSON_THROW_ON_ERROR));
+            $this->cache->set($cacheKey, json_encode($properties, JSON_THROW_ON_ERROR));
 
             return $properties;
         }
@@ -58,7 +58,7 @@ final readonly class CachedAttributeResolverDecorator implements AttributeResolv
         if (!$this->cache->has($cacheKey)) {
             $methods = $this->attributeResolver->getMethodsWithAttribute($className, $attributeClassName);
 
-            $this->cache->set($cacheKey, (string) json_encode($methods, JSON_THROW_ON_ERROR));
+            $this->cache->set($cacheKey, json_encode($methods, JSON_THROW_ON_ERROR));
 
             return $methods;
         }
@@ -85,7 +85,7 @@ final readonly class CachedAttributeResolverDecorator implements AttributeResolv
 
             $this->cache->set(
                 $cacheKey,
-                (string) json_encode($serializedAttributes, JSON_THROW_ON_ERROR),
+                json_encode($serializedAttributes, JSON_THROW_ON_ERROR),
             );
 
             return $attributes;

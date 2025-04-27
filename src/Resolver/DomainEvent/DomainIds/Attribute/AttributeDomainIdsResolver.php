@@ -9,6 +9,7 @@ use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\DomainIdsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
+use Stringable;
 
 final readonly class AttributeDomainIdsResolver implements DomainIdsResolver
 {
@@ -28,6 +29,7 @@ final readonly class AttributeDomainIdsResolver implements DomainIdsResolver
             );
         }
 
+        /** @var list<string|Stringable> */
         return array_map(fn($property) => $event->{$property}, $properties);
     }
 }

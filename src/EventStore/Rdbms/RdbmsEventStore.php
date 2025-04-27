@@ -100,11 +100,9 @@ final readonly class RdbmsEventStore implements EventStore
      */
     private function getEventNamesFromStreamQuery(StreamQuery $streamQuery): array
     {
-        return array_values(
-            array_map(
-                fn($eventClassName) => $this->eventNameResolver->resolve($eventClassName),
-                $streamQuery->eventClassNames,
-            ),
+        return array_map(
+            fn($eventClassName) => $this->eventNameResolver->resolve($eventClassName),
+            $streamQuery->eventClassNames,
         );
     }
 }
