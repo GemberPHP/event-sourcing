@@ -2,6 +2,134 @@
 
 ### Business decision models / aggregates
 
+Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **business decision models** using DCB and traditional **aggregate root models**. 
+
+The setup for both are pretty much the same; they just need to implement the `EventSourcedDomainContext` interface.
+A trait `EventSourcedDomainContextBehaviorTrait` is available for all required interface logic.
+
+```php
+final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+{
+    use EventSourcedDomainContextBehaviorTrait;
+    
+    // Do your magic
+}
+```
+
+When using DCB, each model is built from a specific stream of events tied to a set of **domain identifiers**. 
+
+To make this work behind the scenes, the model needs to define which domain identifiers it is connected to. 
+This can be done with the `#[DomainId]` attribute on one or more (private) properties. 
+_Gember Event Sourcing_ will then load all events that are linked to **at least one** of those domain identifiers.
+
+> Note: For a traditional aggregate root model, this is always just **one** domain identifier.
+
+```php
+final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+{
+    use EventSourcedDomainContextBehaviorTrait;
+    
+    #[DomainId]
+    private SomeId $someId;
+    
+    #[DomainId]
+    private AnotherId $anotherId;
+    
+    // Do your magic
+}
+```
+
+Next up is to add behavior to the model; primarily done in the form of methods. 
+These methods typically consists of three main steps:
+
+1. Check for idempotency
+2. Protect invariants (business rules)
+3. Apply a domain event
+
+```php
+final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+{
+    use EventSourcedDomainContextBehaviorTrait;
+    
+    #[DomainId]
+    private SomeId $someId;
+    
+    #[DomainId]
+    private AnotherId $anotherId;
+    
+    public static function open() : self
+    {
+        /* 
+         * For the first event in a model, a static method like this is often used
+         * instead of the constructor.
+         *
+         * With DCB, this is usually not needed; there might already be events 
+         * tied to any of the domain identifiers that are defined in this model.
+         */
+        $model = new self();
+        
+        $model->apply(new ModelOpenedEvent(/*...*/));
+        
+        return $model;
+    }
+    
+    public function close() : void 
+    {
+        // 1. Check for idempotency
+        // ...
+        
+        // 2. Protect invariants
+        // ...
+
+        // 3. Apply a domain event
+        $this->apply(new ModelClosedEvent(/*...*/));
+    }
+}
+```
+
+Lastly, in order to check for idempotency and protect invariants, the model needs maintain a domain state. 
+This basically means that it needs to keep all data required to make these decisions.
+
+Therefore, the model can define **event subscribers** with the `#[DomainEventSubscriber]` attribute. 
+Any event subscribed in this way is automatically loaded from the event store when building the model.
+
+> Note: The model doesn’t have to be the one that applied the event. It just needs to be related to at least one of the model's domain identifiers.
+
+```php
+final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+{
+    use EventSourcedDomainContextBehaviorTrait;
+    
+    #[DomainId]
+    private SomeId $someId;
+
+    #[DomainId]
+    private AnotherId $anotherId;
+    
+    // All required data to make decisions with
+    private SomeStatus $status;
+    // ...
+    
+    #[DomainEventSubscriber]
+    private function applyModelOpenedEvent(ModelOpenedEvent $event) : void
+    {
+        // Update state    
+    }
+    
+    /*
+     * FYI: In a lot of event sourcing libraries, the method name is used to match the event.
+     * That’s not needed here. The event type itself is used. The method name can be anything.
+     */
+    #[DomainEventSubscriber]
+    private function applyModelArchivedEvent(ModelArchivedEvent $event) : void
+    {
+        // Update state  
+    }
+}
+```
+
+#### Examples
+
 A simple example of a business decision model using several domain identifiers and events:
 
 ```php
@@ -60,7 +188,7 @@ final class SubscribeStudentToCourse implements EventSourcedDomainContext
 }
 ```
 
-A simple example of a 'traditional' aggregate root:
+A simple example of a traditional aggregate root:
 
 ```php
 use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
