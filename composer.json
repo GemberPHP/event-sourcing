@@ -1,6 +1,6 @@
 {
     "name": "gember/event-sourcing",
-    "description": "Let go of the Aggregate - EventSourcing in PHP with the Dynamic Consistency Boundary (DCB) pattern.",
+    "description": "Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern.",
     "license": "MIT",
     "type": "library",
     "keywords": [
