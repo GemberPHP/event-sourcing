@@ -2,7 +2,7 @@
 
 ### Business decision models / aggregates
 
-Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **business decision models** using DCB and traditional **aggregate root models**. 
+Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**. 
 
 The setup for both are pretty much the same; they just need to implement the `EventSourcedDomainContext` interface.
 A trait `EventSourcedDomainContextBehaviorTrait` is available for all required interface logic.
@@ -18,11 +18,10 @@ final class SomeBusinessDecisionModel implements EventSourcedDomainContext
 
 When using DCB, each model is built from a specific stream of events tied to a set of **domain identifiers**. 
 
-To make this work behind the scenes, the model needs to define which domain identifiers it is connected to. 
-This can be done with the `#[DomainId]` attribute on one or more (private) properties. 
-_Gember Event Sourcing_ will then load all events that are linked to **at least one** of those domain identifiers.
+To make this work behind the scenes (e.g. optimistic lock guards), the model needs to define all domain identifiers it is connected to. 
+This can be done with the `#[DomainId]` attribute on one or more (private) properties.
 
-> Note: For a traditional aggregate root model, this is always just **one** domain identifier.
+> Note: For a traditional aggregate, this is always just **one** domain identifier.
 
 ```php
 final class SomeBusinessDecisionModel implements EventSourcedDomainContext
