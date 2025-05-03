@@ -8,7 +8,7 @@ The setup for both are pretty much the same; they just need to implement the `Ev
 A trait `EventSourcedDomainContextBehaviorTrait` is available for all required interface logic.
 
 ```php
-final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedDomainContext
 {
     use EventSourcedDomainContextBehaviorTrait;
     
@@ -24,7 +24,7 @@ This can be done with the `#[DomainId]` attribute on one or more (private) prope
 > Note: For a traditional aggregate, this is always just **one** domain identifier.
 
 ```php
-final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedDomainContext
 {
     use EventSourcedDomainContextBehaviorTrait;
     
@@ -46,7 +46,7 @@ These methods typically consists of three main steps:
 3. Apply a domain event
 
 ```php
-final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedDomainContext
 {
     use EventSourcedDomainContextBehaviorTrait;
     
@@ -97,7 +97,7 @@ Any event subscribed in this way is automatically loaded from the event store wh
 > Also, the model doesn't need to have an event subscriber for each applied message. Just for the events which are required to maintain domain state.
 
 ```php
-final class SomeBusinessDecisionModel implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedDomainContext
 {
     use EventSourcedDomainContextBehaviorTrait;
     
