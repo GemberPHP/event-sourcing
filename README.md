@@ -7,6 +7,15 @@
 
 _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern._
 
+## Documentation
+
+- [Background](/docs/background.md)
+- [Installation](/docs/installation.md)
+- [Usage](/docs/usage.md)
+- Library architecture
+- Library reference
+- Hooking into the library
+
 ## In a nutshell
 
 #### Traditional 'Aggregate driven' EventSourcing
@@ -25,12 +34,3 @@ Domain concepts are modeled through use cases.
 - A use case can relate to one or more domain concepts
 
 <img width="495" alt="use-case-driven-event-sourcing" src="/docs/images/use-case-driven-event-sourcing.png" />
-
-## Documentation
-
-- [Background](/docs/background.md)
-- [Installation](/docs/installation.md)
-- [Usage](/docs/usage.md)
-- Library architecture
-- Library reference
-- Hooking into the library
