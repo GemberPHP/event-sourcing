@@ -57,6 +57,9 @@ Overall, the DCB pattern reduces the "accidental complexity" introduced by aggre
 
 **More information about the DCB pattern:**
 
+Dynamic Consistency Boundary - Explanation, resources, specification
+- Website: https://dcb.events
+
 _"Kill the aggregate!"_ - Sara Pellegrini, Milan Savic, 2023
 - Blog: https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html
 - Talk: https://www.youtube.com/watch?v=wXt54BawI-8
