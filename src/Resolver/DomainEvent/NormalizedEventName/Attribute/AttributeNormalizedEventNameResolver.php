@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute;
 
-use Gember\EventSourcing\DomainContext\Attribute\DomainEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;

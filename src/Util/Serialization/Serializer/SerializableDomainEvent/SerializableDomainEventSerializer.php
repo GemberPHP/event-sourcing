@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent;
 
-use Gember\EventSourcing\DomainContext\SerializableDomainEvent;
+use Gember\EventSourcing\UseCase\SerializableDomainEvent;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
 use JsonException;

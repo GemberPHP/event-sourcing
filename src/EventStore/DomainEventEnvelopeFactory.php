@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
-use Gember\EventSourcing\DomainContext\Metadata;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\DomainIdsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
 use Gember\EventSourcing\Util\Generator\Identity\IdentityGenerator;

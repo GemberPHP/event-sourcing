@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Attribute\Resolver\Reflector;
 
-use Gember\EventSourcing\DomainContext\Attribute\DomainEvent;
-use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\DomainContext\Attribute\DomainId;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContext;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
+use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Method;
 use Gember\EventSourcing\Util\Attribute\Resolver\Parameter;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
@@ -35,7 +35,7 @@ final class ReflectorAttributeResolverTest extends TestCase
     public function itShouldGetPropertiesNamesWithAttribute(): void
     {
         $names = $this->resolver->getPropertyNamesWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainId::class,
         );
 
@@ -49,16 +49,16 @@ final class ReflectorAttributeResolverTest extends TestCase
     public function itShouldGetMethodsWithAttribute(): void
     {
         $methods = $this->resolver->getMethodsWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainEventSubscriber::class,
         );
 
         self::assertEquals(
             [
                 new Method(
-                    'onTestDomainContextCreatedEvent',
+                    'onTestUseCaseCreatedEvent',
                     [
-                        new Parameter('event', TestDomainContextCreatedEvent::class),
+                        new Parameter('event', TestUseCaseCreatedEvent::class),
                     ],
                 ),
             ],
@@ -70,12 +70,12 @@ final class ReflectorAttributeResolverTest extends TestCase
     public function itShouldGetAttributesForClass(): void
     {
         $attributes = $this->resolver->getAttributesForClass(
-            TestDomainContextCreatedEvent::class,
+            TestUseCaseCreatedEvent::class,
             DomainEvent::class,
         );
 
         self::assertEquals([
-            new DomainEvent('test.domain-context.created'),
+            new DomainEvent('test.use-case.created'),
         ], $attributes);
     }
 }

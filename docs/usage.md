@@ -4,13 +4,13 @@
 
 Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**. 
 
-The setup for both are pretty much the same; they just need to implement the `EventSourcedDomainContext` interface.
-A trait `EventSourcedDomainContextBehaviorTrait` is available for all required interface logic.
+The setup for both are pretty much the same; they just need to implement the `EventSourcedUseCase` interface.
+A trait `EventSourcedUseCaseBehaviorTrait` is available for all required interface logic.
 
 ```php
-final class SomeBusinessUseCase implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
     
     // Do your magic
 }
@@ -24,9 +24,9 @@ This can be done with the `#[DomainId]` attribute on one or more (private) prope
 > Note: For a traditional aggregate, this is always just **one** domain identifier.
 
 ```php
-final class SomeBusinessUseCase implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
     
     #[DomainId]
     private SomeId $someId;
@@ -46,9 +46,9 @@ These methods typically consists of three main steps:
 3. Apply a domain event
 
 ```php
-final class SomeBusinessUseCase implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
     
     #[DomainId]
     private SomeId $someId;
@@ -97,9 +97,9 @@ Any event subscribed in this way is automatically loaded from the event store wh
 > Also, the model doesn't need to have an event subscriber for each applied message. Just for the events which are required to maintain domain state.
 
 ```php
-final class SomeBusinessUseCase implements EventSourcedDomainContext
+final class SomeBusinessUseCase implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
     
     #[DomainId]
     private SomeId $someId;
@@ -134,14 +134,14 @@ final class SomeBusinessUseCase implements EventSourcedDomainContext
 A simple example of a business decision model using several domain identifiers and events:
 
 ```php
-use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\DomainContext\Attribute\DomainId;
-use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
-use Gember\EventSourcing\DomainContext\EventSourcedDomainContextBehaviorTrait;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
+use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\EventSourcedUseCase;
+use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
-final class SubscribeStudentToCourse implements EventSourcedDomainContext
+final class SubscribeStudentToCourse implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
 
     #[DomainId]
     private CourseId $courseId;
@@ -192,14 +192,14 @@ final class SubscribeStudentToCourse implements EventSourcedDomainContext
 A simple example of a traditional aggregate root:
 
 ```php
-use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\DomainContext\Attribute\DomainId;
-use Gember\EventSourcing\DomainContext\EventSourcedDomainContext;
-use Gember\EventSourcing\DomainContext\EventSourcedDomainContextBehaviorTrait;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
+use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\EventSourcedUseCase;
+use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
-final class Course implements EventSourcedDomainContext
+final class Course implements EventSourcedUseCase
 {
-    use EventSourcedDomainContextBehaviorTrait;
+    use EventSourcedUseCaseBehaviorTrait;
 
     #[DomainId]
     private CourseId $courseId;
@@ -391,13 +391,13 @@ final readonly class StudentSubscribedToCourseEvent
 A simple example of a command handler calling a business decision model:
 
 ```php
-use Gember\EventSourcing\Repository\DomainContextRepository;
+use Gember\EventSourcing\Repository\UseCaseRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;;
 
 final readonly class SubscribeStudentToCourseHandler
 {
     public function __construct(
-        private DomainContextRepository $repository,
+        private UseCaseRepository $repository,
     ) {}
 
     #[AsMessageHandler(bus: 'command.bus')]

@@ -6,9 +6,9 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\DomainIds\Interface;
 
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Interface\InterfaceDomainIdsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextModifiedEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainId;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainId;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
@@ -33,7 +33,7 @@ final class InterfaceDomainIdsResolverTest extends TestCase
     {
         self::expectException(UnresolvableDomainIdsException::class);
 
-        $this->resolver->resolve(new TestDomainContextCreatedEvent(
+        $this->resolver->resolve(new TestUseCaseCreatedEvent(
             '7dc468da-5285-4ba0-bba6-fbdd4068d032',
             '8fb156a6-58a6-41de-92dc-f4dc52294581',
         ));
@@ -42,7 +42,7 @@ final class InterfaceDomainIdsResolverTest extends TestCase
     #[Test]
     public function itShouldResolveDomainIds(): void
     {
-        $domainIds = $this->resolver->resolve(new TestDomainContextModifiedEvent());
+        $domainIds = $this->resolver->resolve(new TestUseCaseModifiedEvent());
 
         self::assertEquals([
             '3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a',

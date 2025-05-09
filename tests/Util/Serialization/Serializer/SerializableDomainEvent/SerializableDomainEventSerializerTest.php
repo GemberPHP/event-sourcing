@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\SerializableDomainEvent;
 
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestSerializableDomainEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use PHPUnit\Framework\Attributes\Test;
@@ -41,7 +41,7 @@ final class SerializableDomainEventSerializerTest extends TestCase
         self::expectException(SerializationFailedException::class);
         self::expectExceptionMessage('Missing SerializableDomainEvent interface');
 
-        $this->serializer->serialize(new TestDomainContextCreatedEvent(
+        $this->serializer->serialize(new TestUseCaseCreatedEvent(
             'cf42cb77-34e1-494a-a2ce-e4ebe9c89838',
             '330cfda7-3d0b-4802-b8e5-cc6a4166634b',
         ));
@@ -65,7 +65,7 @@ final class SerializableDomainEventSerializerTest extends TestCase
         self::expectException(SerializationFailedException::class);
         self::expectExceptionMessage('Missing SerializableDomainEvent interface');
 
-        $this->serializer->deserialize('{"data":"serialized"}', TestDomainContextCreatedEvent::class);
+        $this->serializer->deserialize('{"data":"serialized"}', TestUseCaseCreatedEvent::class);
     }
 
     #[Test]

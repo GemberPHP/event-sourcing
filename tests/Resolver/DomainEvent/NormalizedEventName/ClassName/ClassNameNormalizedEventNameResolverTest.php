@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Resolver\DomainEvent\NormalizedEventName\ClassName;
 
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\ClassName\ClassNameNormalizedEventNameResolver;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestClassNameBasedDomainEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestClassNameBasedDomainEvent;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
 use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,7 +35,7 @@ final class ClassNameNormalizedEventNameResolverTest extends TestCase
         $eventName = $this->resolver->resolve(TestClassNameBasedDomainEvent::class);
 
         self::assertSame(
-            'gember.event-sourcing.test.test-doubles.domain-context.test-class-name-based-domain-event',
+            'gember.event-sourcing.test.test-doubles.use-case.test-class-name-based-domain-event',
             $eventName,
         );
     }

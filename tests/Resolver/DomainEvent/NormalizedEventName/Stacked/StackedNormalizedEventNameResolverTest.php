@@ -8,8 +8,8 @@ use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\Attr
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Interface\InterfaceNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Stacked\StackedNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameCollectionException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextModifiedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -48,12 +48,12 @@ final class StackedNormalizedEventNameResolverTest extends TestCase
     #[Test]
     public function itShouldResolveName(): void
     {
-        $eventName = $this->resolver->resolve(TestDomainContextModifiedEvent::class);
+        $eventName = $this->resolver->resolve(TestUseCaseModifiedEvent::class);
 
-        self::assertSame('test.domain-context.modified', $eventName);
+        self::assertSame('test.use-case.modified', $eventName);
 
-        $eventName = $this->resolver->resolve(TestDomainContextCreatedEvent::class);
+        $eventName = $this->resolver->resolve(TestUseCaseCreatedEvent::class);
 
-        self::assertSame('test.domain-context.created', $eventName);
+        self::assertSame('test.use-case.created', $eventName);
     }
 }

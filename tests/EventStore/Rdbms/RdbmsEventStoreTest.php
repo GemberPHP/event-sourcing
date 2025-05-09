@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
-use Gember\EventSourcing\DomainContext\Metadata;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
 use Gember\EventSourcing\EventStore\NoEventsForDomainIdsException;
 use Gember\EventSourcing\EventStore\OptimisticLockException;
@@ -15,8 +15,8 @@ use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\EventStore\StreamQuery;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextModifiedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Registry\TestEventRegistry;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
@@ -65,7 +65,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ));
     }
@@ -80,7 +80,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ));
     }
@@ -95,7 +95,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                     '1b34e6a1-bfde-4995-a3d2-1aac53f6b124',
                 ],
-                'test.domain-context.created',
+                'test.use-case.created',
                 '',
                 [],
                 $appliedAt1 = new DateTimeImmutable(),
@@ -105,7 +105,7 @@ final class RdbmsEventStoreTest extends TestCase
                 [
                     '9b71b0b4-2c17-493a-980f-6d8d29182e15',
                 ],
-                'test.domain-context.modified',
+                'test.use-case.modified',
                 '',
                 [],
                 $appliedAt2 = new DateTimeImmutable(),
@@ -117,7 +117,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ));
 
@@ -152,7 +152,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ), null);
 
@@ -161,7 +161,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ));
     }
@@ -179,7 +179,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                 ],
                 [
-                    TestDomainContextCreatedEvent::class,
+                    TestUseCaseCreatedEvent::class,
                 ],
             ),
             '0e1647ef-8c62-477e-9957-d7b962876eff',
@@ -219,7 +219,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                 ],
                 [
-                    TestDomainContextModifiedEvent::class,
+                    TestUseCaseModifiedEvent::class,
                 ],
             ),
             '0e1647ef-8c62-477e-9957-d7b962876eff',
@@ -260,7 +260,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                 ],
                 [
-                    TestDomainContextCreatedEvent::class,
+                    TestUseCaseCreatedEvent::class,
                 ],
             ),
             '0e1647ef-8c62-477e-9957-d7b962876eff',
@@ -270,7 +270,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                     '1b34e6a1-bfde-4995-a3d2-1aac53f6b124',
                 ],
-                new TestDomainContextCreatedEvent('5ae5484d-9890-4bbe-95e8-b828bfea2f9e', '1b34e6a1-bfde-4995-a3d2-1aac53f6b124'),
+                new TestUseCaseCreatedEvent('5ae5484d-9890-4bbe-95e8-b828bfea2f9e', '1b34e6a1-bfde-4995-a3d2-1aac53f6b124'),
                 new Metadata(),
                 new DateTimeImmutable(),
             ),
@@ -280,7 +280,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '9b71b0b4-2c17-493a-980f-6d8d29182e15',
                     '8784010b-b13c-4c3d-869a-80b1790f0122',
                 ],
-                new TestDomainContextCreatedEvent('9b71b0b4-2c17-493a-980f-6d8d29182e15', '8784010b-b13c-4c3d-869a-80b1790f0122'),
+                new TestUseCaseCreatedEvent('9b71b0b4-2c17-493a-980f-6d8d29182e15', '8784010b-b13c-4c3d-869a-80b1790f0122'),
                 new Metadata(),
                 new DateTimeImmutable(),
             ),
@@ -298,7 +298,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                 ],
                 [
-                    TestDomainContextCreatedEvent::class,
+                    TestUseCaseCreatedEvent::class,
                 ],
             ),
             '0e1647ef-8c62-477e-9957-d7b962876eff',
@@ -308,7 +308,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                     '1b34e6a1-bfde-4995-a3d2-1aac53f6b124',
                 ],
-                new TestDomainContextCreatedEvent('5ae5484d-9890-4bbe-95e8-b828bfea2f9e', '1b34e6a1-bfde-4995-a3d2-1aac53f6b124'),
+                new TestUseCaseCreatedEvent('5ae5484d-9890-4bbe-95e8-b828bfea2f9e', '1b34e6a1-bfde-4995-a3d2-1aac53f6b124'),
                 new Metadata(),
                 $appliedAt1 = new DateTimeImmutable(),
             ),
@@ -318,7 +318,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '9b71b0b4-2c17-493a-980f-6d8d29182e15',
                     '8784010b-b13c-4c3d-869a-80b1790f0122',
                 ],
-                new TestDomainContextCreatedEvent('9b71b0b4-2c17-493a-980f-6d8d29182e15', '8784010b-b13c-4c3d-869a-80b1790f0122'),
+                new TestUseCaseCreatedEvent('9b71b0b4-2c17-493a-980f-6d8d29182e15', '8784010b-b13c-4c3d-869a-80b1790f0122'),
                 new Metadata(),
                 $appliedAt2 = new DateTimeImmutable(),
             ),
@@ -331,8 +331,8 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                     '1b34e6a1-bfde-4995-a3d2-1aac53f6b124',
                 ],
-                'test.domain-context.created',
-                'O:81:"Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent":2:{s:2:"id";s:36:"5ae5484d-9890-4bbe-95e8-b828bfea2f9e";s:11:"secondaryId";s:36:"1b34e6a1-bfde-4995-a3d2-1aac53f6b124";}',
+                'test.use-case.created',
+                'O:69:"Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent":2:{s:2:"id";s:36:"5ae5484d-9890-4bbe-95e8-b828bfea2f9e";s:11:"secondaryId";s:36:"1b34e6a1-bfde-4995-a3d2-1aac53f6b124";}',
                 [],
                 $appliedAt1,
             ),
@@ -342,8 +342,8 @@ final class RdbmsEventStoreTest extends TestCase
                     '9b71b0b4-2c17-493a-980f-6d8d29182e15',
                     '8784010b-b13c-4c3d-869a-80b1790f0122',
                 ],
-                'test.domain-context.created',
-                'O:81:"Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent":2:{s:2:"id";s:36:"9b71b0b4-2c17-493a-980f-6d8d29182e15";s:11:"secondaryId";s:36:"8784010b-b13c-4c3d-869a-80b1790f0122";}',
+                'test.use-case.created',
+                'O:69:"Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent":2:{s:2:"id";s:36:"9b71b0b4-2c17-493a-980f-6d8d29182e15";s:11:"secondaryId";s:36:"8784010b-b13c-4c3d-869a-80b1790f0122";}',
                 [],
                 $appliedAt2,
             ),
@@ -352,7 +352,7 @@ final class RdbmsEventStoreTest extends TestCase
                 '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
             ],
             [
-                TestDomainContextCreatedEvent::class,
+                TestUseCaseCreatedEvent::class,
             ],
         ));
     }

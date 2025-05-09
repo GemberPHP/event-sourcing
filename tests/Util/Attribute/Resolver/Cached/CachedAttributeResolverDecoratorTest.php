@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Attribute\Resolver\Cached;
 
-use Gember\EventSourcing\DomainContext\Attribute\DomainEvent;
-use Gember\EventSourcing\DomainContext\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\DomainContext\Attribute\DomainId;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContext;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
+use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
 use Gember\EventSourcing\Util\Attribute\Resolver\Cached\CachedAttributeResolverDecorator;
 use Gember\EventSourcing\Util\Attribute\Resolver\Method;
@@ -47,12 +47,12 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetPropertyNamesWithAttributeFromCache(): void
     {
         $this->cache->set(
-            'gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context.gember.event-sourcing.domain-context.attribute.domain-id',
+            'gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-id',
             '["domainId","someOtherId"]',
         );
 
         $names = $this->decorator->getPropertyNamesWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainId::class,
         );
 
@@ -66,7 +66,7 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetPropertyNamesWithAttributeFromDecoratedResolverAndStoreInCache(): void
     {
         $names = $this->decorator->getPropertyNamesWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainId::class,
         );
 
@@ -77,7 +77,7 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
 
         self::assertSame(
             '["domainId","secondaryId"]',
-            $this->cache->get('gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context.gember.event-sourcing.domain-context.attribute.domain-id'),
+            $this->cache->get('gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-id'),
         );
     }
 
@@ -85,12 +85,12 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetMethodsWithAttributeFromCache(): void
     {
         $this->cache->set(
-            'gember.attribute-resolver.methods.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context.gember.event-sourcing.domain-context.attribute.domain-event-subscriber',
-            '[{"name":"onSomeMethod","parameters":[{"name":"eventName","type":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\DomainContext\\\TestDomainContextCreatedEvent"}]}]',
+            'gember.attribute-resolver.methods.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-event-subscriber',
+            '[{"name":"onSomeMethod","parameters":[{"name":"eventName","type":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseCreatedEvent"}]}]',
         );
 
         $methods = $this->decorator->getMethodsWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainEventSubscriber::class,
         );
 
@@ -99,7 +99,7 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
                 new Method(
                     'onSomeMethod',
                     [
-                        new Parameter('eventName', TestDomainContextCreatedEvent::class),
+                        new Parameter('eventName', TestUseCaseCreatedEvent::class),
                     ],
                 ),
             ],
@@ -111,16 +111,16 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetMethodsWithAttributeFromDecoratedResolverAndStoreInCache(): void
     {
         $methods = $this->decorator->getMethodsWithAttribute(
-            TestDomainContext::class,
+            TestUseCase::class,
             DomainEventSubscriber::class,
         );
 
         self::assertEquals(
             [
                 new Method(
-                    'onTestDomainContextCreatedEvent',
+                    'onTestUseCaseCreatedEvent',
                     [
-                        new Parameter('event', TestDomainContextCreatedEvent::class),
+                        new Parameter('event', TestUseCaseCreatedEvent::class),
                     ],
                 ),
             ],
@@ -128,8 +128,8 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
         );
 
         self::assertSame(
-            '[{"name":"onTestDomainContextCreatedEvent","parameters":[{"name":"event","type":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\DomainContext\\\TestDomainContextCreatedEvent"}]}]',
-            $this->cache->get('gember.attribute-resolver.methods.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context.gember.event-sourcing.domain-context.attribute.domain-event-subscriber'),
+            '[{"name":"onTestUseCaseCreatedEvent","parameters":[{"name":"event","type":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseCreatedEvent"}]}]',
+            $this->cache->get('gember.attribute-resolver.methods.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-event-subscriber'),
         );
     }
 
@@ -137,12 +137,12 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetAttributesForClassFromCache(): void
     {
         $this->cache->set(
-            'gember.attribute-resolver.class-attributes.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context-created-event.gember.event-sourcing.domain-context.attribute.domain-event',
-            '["O:56:\"Gember\\\EventSourcing\\\DomainContext\\\Attribute\\\DomainEvent\":1:{s:4:\"name\";s:15:\"some.event.name\";}"]',
+            'gember.attribute-resolver.class-attributes.gember.event-sourcing.test.test-doubles.use-case.test-use-case-created-event.gember.event-sourcing.use-case.attribute.domain-event',
+            '["O:50:\"Gember\\\EventSourcing\\\UseCase\\\Attribute\\\DomainEvent\":1:{s:4:\"name\";s:15:\"some.event.name\";}"]',
         );
 
         $attributes = $this->decorator->getAttributesForClass(
-            TestDomainContextCreatedEvent::class,
+            TestUseCaseCreatedEvent::class,
             DomainEvent::class,
         );
 
@@ -155,17 +155,17 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetAttributesForClassFromDecoratedResolverAndStoreInCache(): void
     {
         $attributes = $this->decorator->getAttributesForClass(
-            TestDomainContextCreatedEvent::class,
+            TestUseCaseCreatedEvent::class,
             DomainEvent::class,
         );
 
         self::assertEquals([
-            new DomainEvent('test.domain-context.created'),
+            new DomainEvent('test.use-case.created'),
         ], $attributes);
 
         self::assertSame(
-            '["O:56:\"Gember\\\EventSourcing\\\DomainContext\\\Attribute\\\DomainEvent\":1:{s:4:\"name\";s:27:\"test.domain-context.created\";}"]',
-            $this->cache->get('gember.attribute-resolver.class-attributes.gember.event-sourcing.test.test-doubles.domain-context.test-domain-context-created-event.gember.event-sourcing.domain-context.attribute.domain-event'),
+            '["O:50:\"Gember\\\EventSourcing\\\UseCase\\\Attribute\\\DomainEvent\":1:{s:4:\"name\";s:21:\"test.use-case.created\";}"]',
+            $this->cache->get('gember.attribute-resolver.class-attributes.gember.event-sourcing.test.test-doubles.use-case.test-use-case-created-event.gember.event-sourcing.use-case.attribute.domain-event'),
         );
     }
 }

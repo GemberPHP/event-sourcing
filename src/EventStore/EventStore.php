@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 
 interface EventStore
 {

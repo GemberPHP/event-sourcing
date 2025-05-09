@@ -7,7 +7,7 @@ namespace Gember\EventSourcing\Test\Registry\Reflector;
 use Gember\EventSourcing\Registry\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Reflector\ReflectorEventRegistry;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
@@ -54,11 +54,11 @@ final class ReflectorEventRegistryTest extends TestCase
         ];
 
         $this->reflector->files = [
-            'path/to/event.php' => TestDomainContextCreatedEvent::class,
+            'path/to/event.php' => TestUseCaseCreatedEvent::class,
         ];
 
-        $eventFqcn = $this->registry->retrieve('test.domain-context.created');
+        $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
-        self::assertSame(TestDomainContextCreatedEvent::class, $eventFqcn);
+        self::assertSame(TestUseCaseCreatedEvent::class, $eventFqcn);
     }
 }
