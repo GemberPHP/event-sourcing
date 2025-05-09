@@ -22,9 +22,6 @@ use Override;
  */
 final class CachedEventRegistryDecoratorTest extends TestCase
 {
-    /**
-     * @var TestCache<class-string>
-     */
     private TestCache $cache;
     private CachedEventRegistryDecorator $registry;
 

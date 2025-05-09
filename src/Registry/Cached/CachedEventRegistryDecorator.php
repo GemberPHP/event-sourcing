@@ -6,25 +6,22 @@ namespace Gember\EventSourcing\Registry\Cached;
 
 use Gember\EventSourcing\Registry\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\EventRegistry;
-use Gember\EventSourcing\Util\Cache\Cache;
-use Gember\EventSourcing\Util\Cache\CacheException;
 use Override;
+use Psr\SimpleCache\CacheInterface;
+use Psr\SimpleCache\InvalidArgumentException;
 
 final readonly class CachedEventRegistryDecorator implements EventRegistry
 {
     private const string CACHE_KEY = 'gember.event-registry.%s';
 
-    /**
-     * @param Cache<class-string> $cache
-     */
     public function __construct(
         private EventRegistry $eventRegistry,
-        private Cache $cache,
+        private CacheInterface $cache,
     ) {}
 
     /**
      * @throws EventNotRegisteredException
-     * @throws CacheException
+     * @throws InvalidArgumentException
      */
     #[Override]
     public function retrieve(string $eventName): string
@@ -39,6 +36,7 @@ final readonly class CachedEventRegistryDecorator implements EventRegistry
             return $eventClassName;
         }
 
+        /** @var class-string */
         return $this->cache->get($cacheKey);
     }
 
