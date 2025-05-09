@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore\Rdbms;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;

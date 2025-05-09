@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Interface;
 
-use Gember\EventSourcing\DomainContext\NamedDomainEvent;
+use Gember\EventSourcing\UseCase\NamedDomainEvent;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Override;

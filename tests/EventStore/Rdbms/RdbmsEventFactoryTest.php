@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
-use Gember\EventSourcing\DomainContext\Metadata;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
@@ -43,7 +43,7 @@ final class RdbmsEventFactoryTest extends TestCase
             [
                 '8f9a8c7c-c776-4781-93a8-7cb9ff50db29',
             ],
-            new TestDomainContextCreatedEvent('c739e791-c70c-47ad-bf87-32fec2bccd34', '10f3f8aa-100b-4b33-83f1-b934386de277'),
+            new TestUseCaseCreatedEvent('c739e791-c70c-47ad-bf87-32fec2bccd34', '10f3f8aa-100b-4b33-83f1-b934386de277'),
             new Metadata(['some' => 'data']),
             $appliedAt = new DateTimeImmutable(),
         ));
@@ -53,8 +53,8 @@ final class RdbmsEventFactoryTest extends TestCase
             [
                 '8f9a8c7c-c776-4781-93a8-7cb9ff50db29',
             ],
-            'test.domain-context.created',
-            'O:81:"Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent":2:{s:2:"id";s:36:"c739e791-c70c-47ad-bf87-32fec2bccd34";s:11:"secondaryId";s:36:"10f3f8aa-100b-4b33-83f1-b934386de277";}',
+            'test.use-case.created',
+            'O:69:"Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent":2:{s:2:"id";s:36:"c739e791-c70c-47ad-bf87-32fec2bccd34";s:11:"secondaryId";s:36:"10f3f8aa-100b-4b33-83f1-b934386de277";}',
             ['some' => 'data'],
             $appliedAt,
         ), $event);

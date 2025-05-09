@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\Stacked;
 
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestSerializableDomainEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestThrowingExceptionSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedCollectionException;

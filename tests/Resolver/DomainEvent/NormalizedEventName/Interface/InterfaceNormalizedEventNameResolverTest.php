@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\NormalizedEventName\Int
 
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Interface\InterfaceNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextModifiedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
@@ -38,8 +38,8 @@ final class InterfaceNormalizedEventNameResolverTest extends TestCase
     #[Test]
     public function itShouldResolveEventName(): void
     {
-        $eventName = $this->resolver->resolve(TestDomainContextModifiedEvent::class);
+        $eventName = $this->resolver->resolve(TestUseCaseModifiedEvent::class);
 
-        self::assertSame('test.domain-context.modified', $eventName);
+        self::assertSame('test.use-case.modified', $eventName);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Attribute;
 
-use Gember\EventSourcing\DomainContext\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainId;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\DomainIdsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;

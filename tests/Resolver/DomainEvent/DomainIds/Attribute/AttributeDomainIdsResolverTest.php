@@ -6,8 +6,8 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\DomainIds\Attribute;
 
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Attribute\AttributeDomainIdsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextModifiedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -33,13 +33,13 @@ final class AttributeDomainIdsResolverTest extends TestCase
     {
         self::expectException(UnresolvableDomainIdsException::class);
 
-        $this->resolver->resolve(new TestDomainContextModifiedEvent());
+        $this->resolver->resolve(new TestUseCaseModifiedEvent());
     }
 
     #[Test]
     public function itShouldResolveDomainIds(): void
     {
-        $domainIds = $this->resolver->resolve(new TestDomainContextCreatedEvent(
+        $domainIds = $this->resolver->resolve(new TestUseCaseCreatedEvent(
             '7cb5c1e5-be4d-4520-90ab-b2300cb67ae1',
             'fb08765f-2549-44b3-8b47-14a0dab158ea',
         ));

@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\DomainIds;
 
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsCollectionException;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -19,14 +19,14 @@ final class UnresolvableDomainIdsCollectionExceptionTest extends TestCase
     public function itShouldCreateCollectionException(): void
     {
         $exception = UnresolvableDomainIdsCollectionException::withExceptions(
-            TestDomainContextCreatedEvent::class,
+            TestUseCaseCreatedEvent::class,
             'It failed',
-            $exception1 = UnresolvableDomainIdsException::create(TestDomainContextCreatedEvent::class, 'It failed'),
-            $exception2 = UnresolvableDomainIdsException::create(TestDomainContextCreatedEvent::class, 'Also failed'),
+            $exception1 = UnresolvableDomainIdsException::create(TestUseCaseCreatedEvent::class, 'It failed'),
+            $exception2 = UnresolvableDomainIdsException::create(TestUseCaseCreatedEvent::class, 'Also failed'),
         );
 
         self::assertSame(
-            'Unresolvable domainIds for event Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent: It failed',
+            'Unresolvable domainIds for event Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent: It failed',
             $exception->getMessage(),
         );
         self::assertSame([$exception1, $exception2], $exception->getExceptions());

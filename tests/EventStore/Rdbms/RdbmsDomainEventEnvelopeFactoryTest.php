@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
-use Gember\EventSourcing\DomainContext\DomainEventEnvelope;
-use Gember\EventSourcing\DomainContext\Metadata;
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\Test\TestDoubles\Registry\TestEventRegistry;

@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\NormalizedEventName\Att
 
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
-use Gember\EventSourcing\Test\TestDoubles\DomainContext\TestDomainContextCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -41,8 +41,8 @@ final class AttributeNormalizedEventNameResolverTest extends TestCase
     #[Test]
     public function itShouldResolveEventName(): void
     {
-        $eventName = $this->resolver->resolve(TestDomainContextCreatedEvent::class);
+        $eventName = $this->resolver->resolve(TestUseCaseCreatedEvent::class);
 
-        self::assertSame('test.domain-context.created', $eventName);
+        self::assertSame('test.use-case.created', $eventName);
     }
 }
