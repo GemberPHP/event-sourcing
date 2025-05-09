@@ -21,7 +21,8 @@
     ],
     "require": {
         "php": "^8.3",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "psr/simple-cache": "^3.0"
     },
     "require-dev": {
         "captainhook/captainhook": "^5.23",

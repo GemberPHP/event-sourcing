@@ -25,9 +25,6 @@ use Override;
  */
 final class CachedAttributeResolverDecoratorTest extends TestCase
 {
-    /**
-     * @var TestCache<string>
-     */
     private TestCache $cache;
     private CachedAttributeResolverDecorator $decorator;
 

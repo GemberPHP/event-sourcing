@@ -6,11 +6,10 @@ namespace Gember\EventSourcing\Util\Attribute\Resolver\Cached;
 
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Gember\EventSourcing\Util\Attribute\Resolver\Method;
-use Gember\EventSourcing\Util\Cache\Cache;
-use Gember\EventSourcing\Util\Cache\CacheException;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use JsonException;
 use Override;
+use Psr\SimpleCache\CacheInterface;
 
 /**
  * @phpstan-import-type MethodPayload from Method
@@ -21,17 +20,13 @@ final readonly class CachedAttributeResolverDecorator implements AttributeResolv
     private const string CACHE_KEY_CLASS_ATTRIBUTES = 'gember.attribute-resolver.class-attributes.%s';
     private const string CACHE_KEY_METHODS = 'gember.attribute-resolver.methods.%s';
 
-    /**
-     * @param Cache<string> $cache
-     */
     public function __construct(
         private AttributeResolver $attributeResolver,
         private FriendlyClassNamer $friendlyClassNamer,
-        private Cache $cache,
+        private CacheInterface $cache,
     ) {}
 
     /**
-     * @throws CacheException
      * @throws JsonException
      */
     #[Override]
@@ -70,7 +65,6 @@ final readonly class CachedAttributeResolverDecorator implements AttributeResolv
     }
 
     /**
-     * @throws CacheException
      * @throws JsonException
      */
     #[Override]
