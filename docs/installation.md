@@ -27,6 +27,5 @@ The following adapter packages are currently available:
 - [file-finder-symfony](https://github.com/GemberPHP/file-finder-symfony)
 - [file-reflector-roave](https://github.com/GemberPHP/file-reflector-roave)
 - [serializer-symfony](https://github.com/GemberPHP/serializer-symfony)
-- [cache-psr](https://github.com/GemberPHP/cache-psr)
 
 **Note:** When using the Symfony Bundle or the universal service provider, all dependencies packages are installed automatically.
