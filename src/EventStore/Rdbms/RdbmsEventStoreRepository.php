@@ -9,18 +9,18 @@ use Stringable;
 interface RdbmsEventStoreRepository
 {
     /**
-     * @param list<string|Stringable> $domainIds
+     * @param list<string|Stringable> $domainTags
      * @param list<string> $eventNames
      *
      * @return list<RdbmsEvent>
      */
-    public function getEvents(array $domainIds, array $eventNames): array;
+    public function getEvents(array $domainTags, array $eventNames): array;
 
     /**
-     * @param list<string|Stringable> $domainIds
+     * @param list<string|Stringable> $domainTags
      * @param list<string> $eventNames
      */
-    public function getLastEventIdPersisted(array $domainIds, array $eventNames): ?string;
+    public function getLastEventIdPersisted(array $domainTags, array $eventNames): ?string;
 
     /**
      * @param list<RdbmsEvent> $events

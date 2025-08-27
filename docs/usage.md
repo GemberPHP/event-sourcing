@@ -16,22 +16,22 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
-When using DCB, each model is built from a specific stream of events tied to a set of **domain identifiers**. 
+When using DCB, each model is built from a specific stream of events tied to a set of **domain tags**. 
 
-To make this work behind the scenes (e.g. optimistic lock guards), the model needs to define all domain identifiers it is connected to. 
-This can be done with the `#[DomainId]` attribute on one or more (private) properties.
+To make this work behind the scenes (e.g. optimistic lock guards), the model needs to define all domain tags it is connected to. 
+This can be done with the `#[DomainTag]` attribute on one or more (private) properties.
 
-> Note: For a traditional aggregate, this is always just **one** domain identifier.
+> Note: For a traditional aggregate, this is always just **one** domain tag.
 
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
     
-    #[DomainId]
+    #[DomainTag]
     private SomeId $someId;
     
-    #[DomainId]
+    #[DomainTag]
     private AnotherId $anotherId;
     
     // Do your magic
@@ -50,10 +50,10 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
     
-    #[DomainId]
+    #[DomainTag]
     private SomeId $someId;
     
-    #[DomainId]
+    #[DomainTag]
     private AnotherId $anotherId;
     
     public static function open() : self
@@ -63,7 +63,7 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
          * instead of the constructor.
          *
          * With DCB, this is usually not needed; there might already be events 
-         * tied to any of the domain identifiers that are defined in this model.
+         * tied to any of the domain tags that are defined in this model.
          */
         $model = new self();
         
@@ -92,7 +92,7 @@ This basically means that it needs to keep all data required to make these decis
 Therefore, the model can define **event subscribers** with the `#[DomainEventSubscriber]` attribute. 
 Any event subscribed in this way is automatically loaded from the event store when building the model.
 
-> Note: The model doesn’t have to be the one that applied the event. It just needs to be related to at least one of the model's domain identifiers.
+> Note: The model doesn’t have to be the one that applied the event. It just needs to be related to at least one of the model's domain tags.
 >
 > Also, the model doesn't need to have an event subscriber for each applied message. Just for the events which are required to maintain domain state.
 
@@ -101,10 +101,10 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
     
-    #[DomainId]
+    #[DomainTag]
     private SomeId $someId;
 
-    #[DomainId]
+    #[DomainTag]
     private AnotherId $anotherId;
     
     // All required data to make decisions with
@@ -131,11 +131,11 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 
 #### Examples
 
-A simple example of a business decision model using several domain identifiers and events:
+A simple example of a business decision model using several domain tags and events:
 
 ```php
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
@@ -143,9 +143,9 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
-    #[DomainId]
+    #[DomainTag]
     private CourseId $courseId;
-    #[DomainId]
+    #[DomainTag]
     private StudentId $studentId;
     
     private bool $isStudentSubscribedToCourse;
@@ -193,7 +193,7 @@ A simple example of a traditional aggregate root:
 
 ```php
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
@@ -201,7 +201,7 @@ final class Course implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
-    #[DomainId]
+    #[DomainTag]
     private CourseId $courseId;
     
     private string $name;
@@ -251,14 +251,14 @@ In _Gember Event Sourcing_, any DTO can be used as a domain event.
 
 With DCB, a domain event is not limited to a single aggregate root model anymore. 
 Instead, the same event can be used across multiple business decision models. 
-To make this work, a domain event is linked to a set of **domain identifiers**.
-You can define those by adding the `#[DomainId]` attribute to the appropriate properties.
+To make this work, a domain event is linked to a set of **domain tags**.
+You can define those by adding the `#[DomainTag]` attribute to the appropriate properties.
 
 ```php
 final readonly class SomeEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $id,
         public int $value,
     ) {}
@@ -266,17 +266,17 @@ final readonly class SomeEvent
 ```
 
 In some cases, using this attribute isn’t enough. 
-If you need more control, the event can implement the `SpecifiedDomainIdsDomainEvent` interface instead.
+If you need more control, the event can implement the `SpecifiedDomainTagsDomainEvent` interface instead.
 
 ```php
-final readonly class SomeEvent implements SpecifiedDomainIdsDomainEvent
+final readonly class SomeEvent implements SpecifiedDomainTagsDomainEvent
 {
     public function __construct(
         public string $id,
         public int $value,
     ) {}
     
-    public function getDomainIds(): array
+    public function getDomainTags(): array
     {
         return [
             $this->id,
@@ -302,7 +302,7 @@ If neither of those is used, _Gember Event Sourcing_ will fall back to generatin
 final readonly class SomeEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $id,
         public int $value,
     ) {}
@@ -311,7 +311,7 @@ final readonly class SomeEvent
 final readonly class AnotherEvent implements NamedDomainEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $id,
         public int $value,
     ) {}
@@ -347,7 +347,7 @@ and take full control over how the event is serialized and deserialized.
 final readonly class SomeEvent implements SerializableDomainEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $id,
         public int $value,
     ) {}
@@ -372,16 +372,16 @@ final readonly class SomeEvent implements SerializableDomainEvent
 
 #### Examples
 
-A simple example of a domain event related to multiple domain identifiers:
+A simple example of a domain event related to multiple domain tags:
 
 ```php
 #[DomainEvent(name: 'student-subscribed-to-course')]
 final readonly class StudentSubscribedToCourseEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $courseId,
-        #[DomainId]
+        #[DomainTag]
         public string $studentId,
     ) {}
 }

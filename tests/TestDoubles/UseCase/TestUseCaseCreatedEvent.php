@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
 use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 
 #[DomainEvent(name: 'test.use-case.created')]
 final readonly class TestUseCaseCreatedEvent
 {
     public function __construct(
-        #[DomainId]
+        #[DomainTag]
         public string $id,
-        #[DomainId]
+        #[DomainTag]
         public string $secondaryId,
     ) {}
 }

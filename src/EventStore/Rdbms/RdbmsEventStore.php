@@ -7,7 +7,7 @@ namespace Gember\EventSourcing\EventStore\Rdbms;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\EventStore\EventStore;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
-use Gember\EventSourcing\EventStore\NoEventsForDomainIdsException;
+use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\OptimisticLockException;
 use Gember\EventSourcing\EventStore\StreamQuery;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
@@ -29,7 +29,7 @@ final readonly class RdbmsEventStore implements EventStore
     {
         try {
             $rdbmsEvents = $this->repository->getEvents(
-                $streamQuery->domainIds,
+                $streamQuery->domainTags,
                 $this->getEventNamesFromStreamQuery($streamQuery),
             );
 
@@ -42,7 +42,7 @@ final readonly class RdbmsEventStore implements EventStore
         }
 
         if ($eventEnvelopes === []) {
-            throw NoEventsForDomainIdsException::create();
+            throw NoEventsForDomainTagsException::create();
         }
 
         return $eventEnvelopes;
@@ -80,7 +80,7 @@ final readonly class RdbmsEventStore implements EventStore
     private function guardOptimisticLock(StreamQuery $streamQuery, ?string $lastEventId): void
     {
         $lastEventIdPersisted = $this->repository->getLastEventIdPersisted(
-            $streamQuery->domainIds,
+            $streamQuery->domainTags,
             $this->getEventNamesFromStreamQuery($streamQuery),
         );
 

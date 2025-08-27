@@ -26,7 +26,7 @@ final readonly class RdbmsDomainEventEnvelopeFactory
     {
         return new DomainEventEnvelope(
             $row->eventId,
-            $row->domainIds,
+            $row->domainTags,
             $this->serializer->deserialize($row->payload, $this->eventRegistry->retrieve($row->eventName)),
             new Metadata($row->metadata),
             $row->appliedAt,

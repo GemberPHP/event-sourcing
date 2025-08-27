@@ -19,7 +19,7 @@ final class TestRdbmsEventStoreRepository implements RdbmsEventStoreRepository
     public ?string $lastEventIdPersisted = null;
 
     #[Override]
-    public function getEvents(array $domainIds, array $eventNames): array
+    public function getEvents(array $domainTags, array $eventNames): array
     {
         if ($this->throwException !== null) {
             throw $this->throwException;
@@ -29,7 +29,7 @@ final class TestRdbmsEventStoreRepository implements RdbmsEventStoreRepository
     }
 
     #[Override]
-    public function getLastEventIdPersisted(array $domainIds, array $eventNames): ?string
+    public function getLastEventIdPersisted(array $domainTags, array $eventNames): ?string
     {
         return $this->lastEventIdPersisted;
     }

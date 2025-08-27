@@ -10,7 +10,7 @@ interface EventStore
 {
     /**
      * @throws EventStoreFailedException
-     * @throws NoEventsForDomainIdsException
+     * @throws NoEventsForDomainTagsException
      *
      * @return list<DomainEventEnvelope>
      */

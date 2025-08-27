@@ -15,7 +15,7 @@ use DateTimeImmutable;
 final class RdbmsEventTest extends TestCase
 {
     #[Test]
-    public function itShouldUpdateDomainIdImmutable(): void
+    public function itShouldUpdateDomainTagImmutable(): void
     {
         $event = new RdbmsEvent(
             '924150cd-7f47-4a32-a503-f15bb46c4725',
@@ -28,16 +28,16 @@ final class RdbmsEventTest extends TestCase
             new DateTimeImmutable(),
         );
 
-        $eventWithDomainIdsAdded = $event->withDomainId('e523cb09-ea08-4ef2-b734-3a6c9c7a3113');
+        $eventWithDomainTagsAdded = $event->withDomainTag('e523cb09-ea08-4ef2-b734-3a6c9c7a3113');
 
-        self::assertNotEquals($event, $eventWithDomainIdsAdded);
+        self::assertNotEquals($event, $eventWithDomainTagsAdded);
 
         self::assertSame([
             '67700171-468c-4622-a181-fade15cb952b',
-        ], $event->domainIds);
+        ], $event->domainTags);
         self::assertSame([
             '67700171-468c-4622-a181-fade15cb952b',
             'e523cb09-ea08-4ef2-b734-3a6c9c7a3113',
-        ], $eventWithDomainIdsAdded->domainIds);
+        ], $eventWithDomainTagsAdded->domainTags);
     }
 }

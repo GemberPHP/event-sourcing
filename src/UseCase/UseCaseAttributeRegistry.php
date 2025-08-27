@@ -5,32 +5,32 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\UseCase;
 
 use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\SubscriberMethodForEventResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainIdProperties\DomainIdPropertiesResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainIdProperties\UnresolvableDomainIdPropertiesException;
+use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\DomainTagsPropertiesResolver;
+use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\UnresolvableDomainTagPropertiesException;
 
 final class UseCaseAttributeRegistry
 {
-    private static DomainIdPropertiesResolver $domainIdsResolver;
+    private static DomainTagsPropertiesResolver $domainTagsResolver;
     private static SubscriberMethodForEventResolver $subscriberMethodsResolver;
 
     public static function initialize(
-        DomainIdPropertiesResolver $domainIdsResolver,
+        DomainTagsPropertiesResolver $domainTagsResolver,
         SubscriberMethodForEventResolver $subscriberMethodsResolver,
     ): void {
-        self::$domainIdsResolver = $domainIdsResolver;
+        self::$domainTagsResolver = $domainTagsResolver;
         self::$subscriberMethodsResolver = $subscriberMethodsResolver;
     }
 
     /**
      * @param class-string<EventSourcedUseCase> $useCaseClassName
      *
-     * @throws UnresolvableDomainIdPropertiesException
+     * @throws UnresolvableDomainTagPropertiesException
      *
      * @return list<string>
      */
-    public static function getDomainIdPropertiesForUseCase(string $useCaseClassName): array
+    public static function getDomainTagPropertiesForUseCase(string $useCaseClassName): array
     {
-        return self::$domainIdsResolver->resolve($useCaseClassName);
+        return self::$domainTagsResolver->resolve($useCaseClassName);
     }
 
     /**

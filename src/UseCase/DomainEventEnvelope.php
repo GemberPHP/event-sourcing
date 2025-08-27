@@ -9,11 +9,11 @@ use DateTimeImmutable;
 final readonly class DomainEventEnvelope
 {
     /**
-     * @param list<string> $domainIds
+     * @param list<string> $domainTags
      */
     public function __construct(
         public string $eventId,
-        public array $domainIds,
+        public array $domainTags,
         public object $event,
         public Metadata $metadata,
         public DateTimeImmutable $appliedAt,
@@ -23,7 +23,7 @@ final readonly class DomainEventEnvelope
     {
         return new self(
             $this->eventId,
-            $this->domainIds,
+            $this->domainTags,
             $this->event,
             $metadata,
             $this->appliedAt,
