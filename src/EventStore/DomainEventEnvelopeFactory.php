@@ -6,29 +6,29 @@ namespace Gember\EventSourcing\EventStore;
 
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\DomainIdsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\UnresolvableDomainIdsException;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\DomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsException;
 use Gember\EventSourcing\Util\Generator\Identity\IdentityGenerator;
 use Gember\EventSourcing\Util\Time\Clock\Clock;
 
 final readonly class DomainEventEnvelopeFactory
 {
     public function __construct(
-        private DomainIdsResolver $eventDomainIdsResolver,
+        private DomainTagsResolver $domainTagsResolver,
         private IdentityGenerator $identityGenerator,
         private Clock $clock,
     ) {}
 
     /**
-     * @throws UnresolvableDomainIdsException
+     * @throws UnresolvableDomainTagsException
      */
     public function createFromAppliedEvent(object $appliedEvent): DomainEventEnvelope
     {
         return new DomainEventEnvelope(
             $this->identityGenerator->generate(),
             array_map(
-                fn($domainId) => (string) $domainId,
-                $this->eventDomainIdsResolver->resolve($appliedEvent),
+                fn($domainTag) => (string) $domainTag,
+                $this->domainTagsResolver->resolve($appliedEvent),
             ),
             $appliedEvent,
             new Metadata(),

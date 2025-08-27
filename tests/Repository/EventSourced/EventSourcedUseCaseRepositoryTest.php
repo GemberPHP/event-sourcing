@@ -12,17 +12,17 @@ use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\EventSourced\EventSourcedUseCaseRepository;
-use Gember\EventSourcing\Resolver\UseCase\DomainIdProperties\Attribute\AttributeDomainIdPropertiesResolver;
+use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
 use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\Attribute\AttributeSubscribedEventsResolver;
 use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Attribute\AttributeDomainIdsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Interface\InterfaceDomainIdsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainIds\Stacked\StackedDomainIdsResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Attribute\AttributeDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Interface\InterfaceDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Stacked\StackedDomainTagsResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Interface\InterfaceNormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Stacked\StackedNormalizedEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
-use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainId;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Registry\TestEventRegistry;
 use Gember\EventSourcing\Test\TestDoubles\Util\Generator\Identity\TestIdentityGenerator;
@@ -50,7 +50,7 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
         parent::setUp();
 
         UseCaseAttributeRegistry::initialize(
-            new AttributeDomainIdPropertiesResolver($attributeResolver = new ReflectorAttributeResolver()),
+            new AttributeDomainTagsPropertiesResolver($attributeResolver = new ReflectorAttributeResolver()),
             new AttributeSubscriberMethodForEventResolver($attributeResolver),
         );
 
@@ -76,9 +76,9 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 $this->eventStoreRepository = new TestRdbmsEventStoreRepository(),
             ),
             new DomainEventEnvelopeFactory(
-                new StackedDomainIdsResolver([
-                    new AttributeDomainIdsResolver($attributeResolver),
-                    new InterfaceDomainIdsResolver(),
+                new StackedDomainTagsResolver([
+                    new AttributeDomainTagsResolver($attributeResolver),
+                    new InterfaceDomainTagsResolver(),
                 ]),
                 new TestIdentityGenerator(),
                 $this->clock,
@@ -163,7 +163,7 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
     #[Test]
     public function itShouldSaveUseCase(): void
     {
-        $useCase = TestUseCase::create(new TestDomainId('1dcdf55b-f518-419f-abad-768afa56e6bb'), 'ded58226-d3bf-4a7e-a9eb-cc7d7b7603ce');
+        $useCase = TestUseCase::create(new TestDomainTag('1dcdf55b-f518-419f-abad-768afa56e6bb'), 'ded58226-d3bf-4a7e-a9eb-cc7d7b7603ce');
         $useCase->modify();
 
         $this->repository->save($useCase);

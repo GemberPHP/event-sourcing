@@ -7,7 +7,7 @@ namespace Gember\EventSourcing\Repository\EventSourced;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\EventStore;
-use Gember\EventSourcing\EventStore\NoEventsForDomainIdsException;
+use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\StreamQuery;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
@@ -38,16 +38,16 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
      * @return T
      */
     #[Override]
-    public function get(string $useCaseClassName, string|Stringable ...$domainId): EventSourcedUseCase
+    public function get(string $useCaseClassName, string|Stringable ...$domainTag): EventSourcedUseCase
     {
         try {
             $eventEnvelopes = $this->eventStore->load(new StreamQuery(
-                array_values($domainId),
+                array_values($domainTag),
                 $this->subscribedEventsResolver->resolve($useCaseClassName),
             ));
 
             return $useCaseClassName::reconstitute(...$eventEnvelopes); // @phpstan-ignore-line
-        } catch (NoEventsForDomainIdsException) {
+        } catch (NoEventsForDomainTagsException) {
             throw UseCaseNotFoundException::create();
         } catch (Throwable $exception) {
             throw UseCaseRepositoryFailedException::withException($exception);
@@ -62,10 +62,10 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
      * @throws UseCaseRepositoryFailedException
      */
     #[Override]
-    public function has(string $useCaseClassName, string|Stringable ...$domainId): bool
+    public function has(string $useCaseClassName, string|Stringable ...$domainTag): bool
     {
         try {
-            $this->get($useCaseClassName, ...$domainId);
+            $this->get($useCaseClassName, ...$domainTag);
         } catch (UseCaseNotFoundException) {
             return false;
         }
@@ -86,7 +86,7 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
 
             $this->eventStore->append(
                 new StreamQuery(
-                    $useCase->getDomainIds(),
+                    $useCase->getDomainTags(),
                     $this->subscribedEventsResolver->resolve($useCase::class),
                 ),
                 $useCase->getLastEventId(),

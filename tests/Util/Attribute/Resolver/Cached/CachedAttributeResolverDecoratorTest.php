@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\Test\Util\Attribute\Resolver\Cached;
 
 use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
@@ -44,18 +44,18 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     public function itShouldGetPropertyNamesWithAttributeFromCache(): void
     {
         $this->cache->set(
-            'gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-id',
-            '["domainId","someOtherId"]',
+            'gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-tag',
+            '["domainTag","someOtherTag"]',
         );
 
         $names = $this->decorator->getPropertyNamesWithAttribute(
             TestUseCase::class,
-            DomainId::class,
+            DomainTag::class,
         );
 
         self::assertSame([
-            'domainId',
-            'someOtherId',
+            'domainTag',
+            'someOtherTag',
         ], $names);
     }
 
@@ -64,17 +64,17 @@ final class CachedAttributeResolverDecoratorTest extends TestCase
     {
         $names = $this->decorator->getPropertyNamesWithAttribute(
             TestUseCase::class,
-            DomainId::class,
+            DomainTag::class,
         );
 
         self::assertSame([
-            'domainId',
-            'secondaryId',
+            'domainTag',
+            'secondaryTag',
         ], $names);
 
         self::assertSame(
-            '["domainId","secondaryId"]',
-            $this->cache->get('gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-id'),
+            '["domainTag","secondaryTag"]',
+            $this->cache->get('gember.attribute-resolver.properties.gember.event-sourcing.test.test-doubles.use-case.test-use-case.gember.event-sourcing.use-case.attribute.domain-tag'),
         );
     }
 

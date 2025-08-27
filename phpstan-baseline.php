@@ -8,7 +8,7 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/src/Util/Attribute/Resolver/Cached/CachedAttributeResolverDecorator.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestUseCase\\:\\:getDomainIds\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestUseCase.php',

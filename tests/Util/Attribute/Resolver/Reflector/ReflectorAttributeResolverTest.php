@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\Test\Util\Attribute\Resolver\Reflector;
 
 use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Method;
@@ -36,12 +36,12 @@ final class ReflectorAttributeResolverTest extends TestCase
     {
         $names = $this->resolver->getPropertyNamesWithAttribute(
             TestUseCase::class,
-            DomainId::class,
+            DomainTag::class,
         );
 
         self::assertSame([
-            'domainId',
-            'secondaryId',
+            'domainTag',
+            'secondaryTag',
         ], $names);
     }
 

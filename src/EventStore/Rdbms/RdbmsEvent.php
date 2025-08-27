@@ -9,23 +9,23 @@ use DateTimeImmutable;
 final readonly class RdbmsEvent
 {
     /**
-     * @param list<string> $domainIds
+     * @param list<string> $domainTags
      * @param array<string, mixed> $metadata
      */
     public function __construct(
         public string $eventId,
-        public array $domainIds,
+        public array $domainTags,
         public string $eventName,
         public string $payload,
         public array $metadata,
         public DateTimeImmutable $appliedAt,
     ) {}
 
-    public function withDomainId(string $domainId): self
+    public function withDomainTag(string $domainTag): self
     {
         return new self(
             $this->eventId,
-            [...$this->domainIds, $domainId],
+            [...$this->domainTags, $domainTag],
             $this->eventName,
             $this->payload,
             $this->metadata,

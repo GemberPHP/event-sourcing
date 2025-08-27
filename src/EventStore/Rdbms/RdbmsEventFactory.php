@@ -25,7 +25,7 @@ final readonly class RdbmsEventFactory
     {
         return new RdbmsEvent(
             $eventEnvelope->eventId,
-            $eventEnvelope->domainIds,
+            $eventEnvelope->domainTags,
             $this->eventNameResolver->resolve($eventEnvelope->event::class),
             $this->serializer->serialize($eventEnvelope->event),
             [...$eventEnvelope->metadata],

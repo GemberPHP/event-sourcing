@@ -19,7 +19,7 @@ interface UseCaseRepository
      *
      * @return T
      */
-    public function get(string $useCaseClassName, string|Stringable ...$domainId): EventSourcedUseCase;
+    public function get(string $useCaseClassName, string|Stringable ...$domainTag): EventSourcedUseCase;
 
     /**
      * @template T of EventSourcedUseCase
@@ -28,7 +28,7 @@ interface UseCaseRepository
      *
      * @throws UseCaseRepositoryFailedException
      */
-    public function has(string $useCaseClassName, string|Stringable ...$domainId): bool;
+    public function has(string $useCaseClassName, string|Stringable ...$domainTag): bool;
 
     /**
      * @throws UseCaseRepositoryFailedException

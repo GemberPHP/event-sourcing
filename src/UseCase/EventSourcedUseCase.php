@@ -11,7 +11,7 @@ interface EventSourcedUseCase
     /**
      * @return list<string|Stringable>
      */
-    public function getDomainIds(): array;
+    public function getDomainTags(): array;
 
     public function getLastEventId(): ?string;
 

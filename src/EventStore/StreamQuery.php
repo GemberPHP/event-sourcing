@@ -9,11 +9,11 @@ use Stringable;
 final readonly class StreamQuery
 {
     /**
-     * @param list<string|Stringable> $domainIds
+     * @param list<string|Stringable> $domainTags
      * @param list<class-string> $eventClassNames
      */
     public function __construct(
-        public array $domainIds,
+        public array $domainTags,
         public array $eventClassNames = [],
     ) {}
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
-use Gember\EventSourcing\UseCase\Attribute\DomainId;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
@@ -13,21 +13,21 @@ final class TestUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
-    #[DomainId]
-    private TestDomainId $domainId;
+    #[DomainTag]
+    private TestDomainTag $domainTag;
 
-    #[DomainId]
-    private string $secondaryId;
+    #[DomainTag]
+    private string $secondaryTag;
 
     /**
      * @var list<object>
      */
     public array $testAppliedEvents = [];
 
-    public static function create(TestDomainId $domainId, string $secondaryId): self
+    public static function create(TestDomainTag $domainTag, string $secondaryTag): self
     {
         $useCase = new self();
-        $useCase->apply(new TestUseCaseCreatedEvent((string) $domainId, $secondaryId));
+        $useCase->apply(new TestUseCaseCreatedEvent((string) $domainTag, $secondaryTag));
 
         return $useCase;
     }
@@ -40,8 +40,8 @@ final class TestUseCase implements EventSourcedUseCase
     #[DomainEventSubscriber]
     private function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event): void
     {
-        $this->domainId = new TestDomainId($event->id);
-        $this->secondaryId = $event->secondaryId;
+        $this->domainTag = new TestDomainTag($event->id);
+        $this->secondaryTag = $event->secondaryId;
         $this->testAppliedEvents[] = $event;
     }
 }

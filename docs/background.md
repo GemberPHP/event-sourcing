@@ -36,7 +36,7 @@ which she explains well in her talk: ["The Aggregate is dead. Long live the Aggr
 
 As a consequence, a domain event can now be reused by multiple different aggregates, or better called now, "business decision models".
 This allows us to create business decision models based on a subset of domain events,
-or even on domain events from different aggregates, or better called now, "domain identifiers".
+or even on domain events from different aggregates, or better called now, "domain tags".
 
 This aligns well with the way EventStorming looks at aggregates nowadays.
 What they used to call aggregates are often seen as "systems" or "consistent business rules",
@@ -48,7 +48,7 @@ Similarly, "sagas", when used to subscribe to events in order to synchronize bet
 
 Replacing "fat aggregates" with multiple business decision models also resolves consistency issues (optimistic locking)
 between behavioral changes that seem unrelated from a domain point of view.
-A business decision model is consistent only for the specific subset of domain events relevant to its domain identifier.
+A business decision model is consistent only for the specific subset of domain events relevant to its domain tag.
 
 > For example, splitting into different business decision models allows behavioral changes to a course title
 > without blocking a student from subscribing to that course (referring to Sara Pellegrini’s example).

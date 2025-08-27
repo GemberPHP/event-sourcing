@@ -22,11 +22,11 @@ trait EventSourcedUseCaseBehaviorTrait
         $this->applyEventInUseCase($event);
     }
 
-    public function getDomainIds(): array
+    public function getDomainTags(): array
     {
         return array_map(
             fn($property) => $this->{$property},
-            UseCaseAttributeRegistry::getDomainIdPropertiesForUseCase($this::class),
+            UseCaseAttributeRegistry::getDomainTagPropertiesForUseCase($this::class),
         );
     }
 

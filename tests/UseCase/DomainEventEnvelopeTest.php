@@ -37,7 +37,7 @@ final class DomainEventEnvelopeTest extends TestCase
 
         self::assertSame($envelope->eventId, $envelopeWithMetadata->eventId);
         self::assertSame($envelope->event, $envelopeWithMetadata->event);
-        self::assertSame($envelope->domainIds, $envelopeWithMetadata->domainIds);
+        self::assertSame($envelope->domainTags, $envelopeWithMetadata->domainTags);
         self::assertSame($envelope->appliedAt, $envelopeWithMetadata->appliedAt);
     }
 }

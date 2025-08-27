@@ -7,7 +7,7 @@ namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
-use Gember\EventSourcing\EventStore\NoEventsForDomainIdsException;
+use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\OptimisticLockException;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
@@ -73,7 +73,7 @@ final class RdbmsEventStoreTest extends TestCase
     #[Test]
     public function itShouldThrowExceptionWhenNoEventsAreFound(): void
     {
-        self::expectException(NoEventsForDomainIdsException::class);
+        self::expectException(NoEventsForDomainTagsException::class);
 
         $this->eventStore->load(new StreamQuery(
             [
