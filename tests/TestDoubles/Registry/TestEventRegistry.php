@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\Registry;
 
-use Gember\EventSourcing\Registry\EventRegistry;
+use Gember\EventSourcing\Registry\Event\EventRegistry;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Override;
 

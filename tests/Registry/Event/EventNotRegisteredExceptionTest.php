@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\Registry;
+namespace Gember\EventSourcing\Test\Registry\Event;
 
-use Gember\EventSourcing\Registry\EventNotRegisteredException;
+use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

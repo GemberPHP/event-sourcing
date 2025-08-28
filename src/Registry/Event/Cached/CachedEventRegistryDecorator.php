@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Registry\Cached;
+namespace Gember\EventSourcing\Registry\Event\Cached;
 
-use Gember\EventSourcing\Registry\EventNotRegisteredException;
-use Gember\EventSourcing\Registry\EventRegistry;
+use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
+use Gember\EventSourcing\Registry\Event\EventRegistry;
 use Override;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
