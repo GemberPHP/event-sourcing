@@ -6,8 +6,8 @@ namespace Gember\EventSourcing\EventStore\Rdbms;
 
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
-use Gember\EventSourcing\Registry\EventNotRegisteredException;
-use Gember\EventSourcing\Registry\EventRegistry;
+use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
+use Gember\EventSourcing\Registry\Event\EventRegistry;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
 

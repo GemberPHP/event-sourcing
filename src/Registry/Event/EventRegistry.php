@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Registry;
+namespace Gember\EventSourcing\Registry\Event;
 
 /**
  * Retrieve domain event (FQCN) based on normalized event name.

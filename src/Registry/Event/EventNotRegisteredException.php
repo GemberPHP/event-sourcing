@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Registry;
+namespace Gember\EventSourcing\Registry\Event;
 
 use Exception;
 

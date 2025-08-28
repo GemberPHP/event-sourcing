@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Registry\Reflector;
+namespace Gember\EventSourcing\Registry\Event\Reflector;
 
-use Gember\EventSourcing\Registry\EventNotRegisteredException;
-use Gember\EventSourcing\Registry\EventRegistry;
+use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
+use Gember\EventSourcing\Registry\Event\EventRegistry;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Gember\EventSourcing\Util\File\Finder\Finder;

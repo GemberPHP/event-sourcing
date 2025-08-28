@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\Registry\Reflector;
+namespace Gember\EventSourcing\Test\Registry\Event\Reflector;
 
-use Gember\EventSourcing\Registry\EventNotRegisteredException;
-use Gember\EventSourcing\Registry\Reflector\ReflectorEventRegistry;
+use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
+use Gember\EventSourcing\Registry\Event\Reflector\ReflectorEventRegistry;
 use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
