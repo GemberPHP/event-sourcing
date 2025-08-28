@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Stacked;
+namespace Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Stacked;
 
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\DomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsCollectionException;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsException;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\DomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsCollectionException;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsException;
 use Override;
 
 final readonly class StackedDomainTagsResolver implements DomainTagsResolver
@@ -19,13 +19,13 @@ final readonly class StackedDomainTagsResolver implements DomainTagsResolver
     ) {}
 
     #[Override]
-    public function resolve(object $event): array
+    public function resolve(object $message): array
     {
         $exceptions = [];
 
         foreach ($this->domainTagsResolvers as $domainTagsResolver) {
             try {
-                return $domainTagsResolver->resolve($event);
+                return $domainTagsResolver->resolve($message);
             } catch (UnresolvableDomainTagsException $exception) {
                 $exceptions[] = $exception;
 
@@ -34,7 +34,7 @@ final readonly class StackedDomainTagsResolver implements DomainTagsResolver
         }
 
         throw UnresolvableDomainTagsCollectionException::withExceptions(
-            $event::class,
+            $message::class,
             'None DomainTagsResolver could resolve domainTags',
             ...$exceptions,
         );

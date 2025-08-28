@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\Resolver\DomainEvent\DomainTags\Stacked;
+namespace Gember\EventSourcing\Test\Resolver\DomainMessage\DomainTags\Stacked;
 
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Attribute\AttributeDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Interface\InterfaceDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Stacked\StackedDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsCollectionException;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Attribute\AttributeDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Interface\InterfaceDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Stacked\StackedDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsCollectionException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;

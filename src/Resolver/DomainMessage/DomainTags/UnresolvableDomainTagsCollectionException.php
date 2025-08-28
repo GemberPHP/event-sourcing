@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Resolver\DomainEvent\DomainTags;
+namespace Gember\EventSourcing\Resolver\DomainMessage\DomainTags;
 
 final class UnresolvableDomainTagsCollectionException extends UnresolvableDomainTagsException
 {
@@ -12,14 +12,19 @@ final class UnresolvableDomainTagsCollectionException extends UnresolvableDomain
     private array $exceptions = [];
 
     /**
-     * @param class-string $eventClassName
+     * @param class-string $messageClassName
      */
     public static function withExceptions(
-        string $eventClassName,
+        string $messageClassName,
         string $message,
         UnresolvableDomainTagsException ...$exceptions,
     ): self {
-        $exception = new self(sprintf('Unresolvable domainTags for event %s: %s', $eventClassName, $message));
+        $exception = new self(sprintf(
+            'Unresolvable domainTags for domain message (event/command) %s: %s',
+            $messageClassName,
+            $message,
+        ));
+
         $exception->exceptions = array_values($exceptions);
 
         return $exception;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\Resolver\DomainEvent\DomainTags\Attribute;
+namespace Gember\EventSourcing\Test\Resolver\DomainMessage\DomainTags\Attribute;
 
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Attribute\AttributeDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsException;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Attribute\AttributeDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
