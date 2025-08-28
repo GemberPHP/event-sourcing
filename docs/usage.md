@@ -266,10 +266,10 @@ final readonly class SomeEvent
 ```
 
 In some cases, using this attribute isn’t enough. 
-If you need more control, the event can implement the `SpecifiedDomainTagsDomainEvent` interface instead.
+If you need more control, the event can implement the `SpecifiedDomainTagsDomainMessage` interface instead.
 
 ```php
-final readonly class SomeEvent implements SpecifiedDomainTagsDomainEvent
+final readonly class SomeEvent implements SpecifiedDomainTagsDomainMessage
 {
     public function __construct(
         public string $id,

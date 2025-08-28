@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Resolver\DomainEvent\DomainTags;
+namespace Gember\EventSourcing\Resolver\DomainMessage\DomainTags;
 
 use Stringable;
 
 /**
- * Resolve all domain tag values from an event (object).
+ * Resolve all domain tag values from a message (event/command object).
  */
 interface DomainTagsResolver
 {
@@ -16,5 +16,5 @@ interface DomainTagsResolver
      *
      * @return list<string|Stringable>
      */
-    public function resolve(object $event): array;
+    public function resolve(object $message): array;
 }

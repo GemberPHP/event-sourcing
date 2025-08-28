@@ -6,8 +6,8 @@ namespace Gember\EventSourcing\EventStore;
 
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\DomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\UnresolvableDomainTagsException;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\DomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsException;
 use Gember\EventSourcing\Util\Generator\Identity\IdentityGenerator;
 use Gember\EventSourcing\Util\Time\Clock\Clock;
 

@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainTags\Attribute\AttributeDomainTagsResolver;
+use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Attribute\AttributeDomainTagsResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Generator\Identity\TestIdentityGenerator;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
