@@ -12,7 +12,7 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 final readonly class CachedEventRegistryDecorator implements EventRegistry
 {
-    private const string CACHE_KEY = 'gember.event-registry.%s';
+    private const string CACHE_KEY = 'gember.registry.event.%s';
 
     public function __construct(
         private EventRegistry $eventRegistry,
