@@ -1,0 +1,65 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gember\EventSourcing\Registry\CommandHandler\Reflector;
+
+use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlerDefinition;
+use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerNotRegisteredException;
+use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerRegistry;
+use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlersResolver;
+use Gember\EventSourcing\UseCase\EventSourcedUseCase;
+use Gember\EventSourcing\Util\File\Finder\Finder;
+use Gember\EventSourcing\Util\File\Reflector\Reflector;
+use Override;
+
+final class ReflectorCommandHandlerRegistry implements CommandHandlerRegistry
+{
+    /**
+     * @var array<class-string, CommandHandlerDefinition>
+     */
+    private array $definitions = [];
+
+    public function __construct(
+        private readonly Finder $finder,
+        private readonly Reflector $reflector,
+        private readonly CommandHandlersResolver $commandHandlersResolver,
+        private readonly string $path,
+    ) {}
+
+    #[Override]
+    public function retrieve(string $commandName): CommandHandlerDefinition
+    {
+        $this->initialize();
+
+        if (!array_key_exists($commandName, $this->definitions)) {
+            throw CommandHandlerNotRegisteredException::withCommandName($commandName);
+        }
+
+        return $this->definitions[$commandName];
+    }
+
+    private function initialize(): void
+    {
+        if ($this->definitions !== []) {
+            return;
+        }
+
+        $files = $this->finder->getFiles($this->path);
+
+        foreach ($files as $file) {
+            if ($file === '') {
+                continue;
+            }
+
+            $reflectionClass = $this->reflector->reflectClassFromFile($file);
+
+            /** @var class-string<EventSourcedUseCase> $useCaseClassName */
+            $useCaseClassName = $reflectionClass->getName();
+
+            foreach ($this->commandHandlersResolver->resolve($useCaseClassName) as $definition) {
+                $this->definitions[$definition->commandName] = $definition;
+            }
+        }
+    }
+}
