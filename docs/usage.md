@@ -1,6 +1,6 @@
 ## Usage
 
-### Business decision models / aggregates
+### Use cases / aggregates
 
 Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**. 
 
@@ -45,6 +45,22 @@ These methods typically consists of three main steps:
 2. Protect invariants (business rules)
 3. Apply a domain event
 
+#### Command handlers
+Typically, a behavioral action is being called from a command handler class. 
+This is taken care of in your application itself, and not part of this library.
+
+However, these command handlers often do not contain any extra value other than: (a) get use case, (b) trigger action, (c) save.
+That makes a command handler in the original setup often redundant.
+
+Therefore, this library introduces a `#[DomainCommandHandler]` attribute, to directly bind a command to a behavioral action method.
+Still, the classic separate command handler setup is also possible.
+
+When using this attribute, your application is responsible for registering each command to a generic command handler,
+`UseCaseCommandHandler`. When using any of the provided libraries [gember/event-sourcing-symfony-bundle](https://github.com/GemberPHP/event-sourcing-symfony-bundle) or [gember/event-sourcing-universal-service-provider](https://github.com/GemberPHP/event-sourcing-universal-service-provider), it will take care of this for you. 
+
+In the example below, both options:
+_(normally one option is picked for one use case)_
+
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
 {
@@ -56,6 +72,7 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
     #[DomainTag]
     private AnotherId $anotherId;
     
+    // Behavioral method to be called from a separate command handler
     public static function open() : self
     {
         /* 
@@ -72,7 +89,14 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
         return $model;
     }
     
-    public function close() : void 
+    /*
+     * Behavioral method bind to a command.
+     * With a CreationPolicy it can be configured whether a use case should be created when not found yet.
+     * 
+     * Note: When using the attribute, the method should NOT be static, NOR return anything (return void)
+     */
+    #[DomainCommandHandler(policy: CreationPolicy::Never)]
+    public function close(CloseModelCommand $command) : void 
     {
         // 1. Check for idempotency
         // ...
