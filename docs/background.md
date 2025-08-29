@@ -62,7 +62,8 @@ Dynamic Consistency Boundary - Explanation, resources, specification
 
 _"Kill the aggregate!"_ - Sara Pellegrini, Milan Savic, 2023
 - Blog: https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html
-- Talk: https://www.youtube.com/watch?v=wXt54BawI-8
+- Talk: "AxonIQ Con 2023: Kill Aggregate! with Sara Pellegrini & Milan Savic" https://www.youtube.com/watch?v=wXt54BawI-8
+- Talk: "Kill Aggregate - Volume 2 - Sara Pellegrini at JOTB25" https://www.youtube.com/watch?v=AQ5fk4D3u9I
 
 _"Rethinking microservices architecture through Dynamic Consistency Boundaries"_ - Bruce Hopkins, 2024
 - Blog: https://www.axoniq.io/blog/rethinking-microservices-architecture-through-dynamic-consistency-boundaries
