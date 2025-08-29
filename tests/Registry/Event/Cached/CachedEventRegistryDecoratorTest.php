@@ -55,7 +55,7 @@ final class CachedEventRegistryDecoratorTest extends TestCase
     #[Test]
     public function itShouldResolveFromCache(): void
     {
-        $this->cache->set('gember.event-registry.test.use-case.created', TestUseCaseModifiedEvent::class);
+        $this->cache->set('gember.registry.event.test.use-case.created', TestUseCaseModifiedEvent::class);
 
         $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
@@ -68,6 +68,6 @@ final class CachedEventRegistryDecoratorTest extends TestCase
         $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
         self::assertSame(TestUseCaseCreatedEvent::class, $eventFqcn);
-        self::assertSame(TestUseCaseCreatedEvent::class, $this->cache->get('gember.event-registry.test.use-case.created'));
+        self::assertSame(TestUseCaseCreatedEvent::class, $this->cache->get('gember.registry.event.test.use-case.created'));
     }
 }
