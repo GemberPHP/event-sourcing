@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\Util\Generator\Identity;
 
-use Gember\EventSourcing\Util\Generator\Identity\IdentityGenerator;
+use Gember\DependencyContracts\Util\Generator\Identity\IdentityGenerator;
 
 final readonly class TestIdentityGenerator implements IdentityGenerator
 {

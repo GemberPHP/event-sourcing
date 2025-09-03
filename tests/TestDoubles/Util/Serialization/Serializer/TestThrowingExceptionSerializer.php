@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer;
 
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
-use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 
 final readonly class TestThrowingExceptionSerializer implements Serializer
 {

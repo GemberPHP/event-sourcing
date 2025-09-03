@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\Stacked;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestThrowingExceptionSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedCollectionException;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Util\Serialization\Serializer\Stacked\StackedSerializer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

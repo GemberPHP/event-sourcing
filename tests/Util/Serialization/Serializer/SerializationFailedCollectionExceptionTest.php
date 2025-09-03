@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Serialization\Serializer;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedCollectionException;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

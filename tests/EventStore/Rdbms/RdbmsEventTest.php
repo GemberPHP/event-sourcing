@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use DateTimeImmutable;

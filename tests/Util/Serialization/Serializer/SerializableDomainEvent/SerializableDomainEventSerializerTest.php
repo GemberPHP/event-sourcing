@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\SerializableDomainEvent;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

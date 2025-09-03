@@ -4,8 +4,64 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "914d6dcf4fd95ba041d0b3f9965b6c99",
+    "content-hash": "265da6eed98788469961c211bc315116",
     "packages": [
+        {
+            "name": "gember/dependency-contracts",
+            "version": "0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/GemberPHP/dependency-contracts.git",
+                "reference": "e82562e0f46c091d4991508ebf43257fc3a9a424"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/GemberPHP/dependency-contracts/zipball/e82562e0f46c091d4991508ebf43257fc3a9a424",
+                "reference": "e82562e0f46c091d4991508ebf43257fc3a9a424",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "captainhook/captainhook": "^5.25",
+                "friendsofphp/php-cs-fixer": "^3.87",
+                "phpstan/phpstan": "^2.1",
+                "rector/rector": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Gember\\DependencyContracts\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jeroen de Graaf",
+                    "email": "gember@jero.work",
+                    "homepage": "https://jero.work"
+                }
+            ],
+            "description": "Dependency contracts for gember/event-sourcing",
+            "keywords": [
+                "cqrs",
+                "dcb",
+                "ddd",
+                "domain-driven-design",
+                "dynamic-consistency-boundary",
+                "event-sourcing",
+                "gember"
+            ],
+            "support": {
+                "issues": "https://github.com/GemberPHP/dependency-contracts/issues",
+                "source": "https://github.com/GemberPHP/dependency-contracts/tree/0.1.0"
+            },
+            "time": "2025-09-03T17:15:32+00:00"
+        },
         {
             "name": "psr/simple-cache",
             "version": "3.0.0",

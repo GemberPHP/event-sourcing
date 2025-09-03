@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\UseCase\SerializableDomainEvent;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
-use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
 use JsonException;
 use Override;
 
