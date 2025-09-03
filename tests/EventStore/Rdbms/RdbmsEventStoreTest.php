@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\OptimisticLockException;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\EventStore\StreamQuery;

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Event\EventRegistry;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
-use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
 
 final readonly class RdbmsDomainEventEnvelopeFactory
 {

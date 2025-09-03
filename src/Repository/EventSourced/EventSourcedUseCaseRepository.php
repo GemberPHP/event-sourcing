@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Repository\EventSourced;
 
+use Gember\DependencyContracts\Util\Messaging\MessageBus\EventBus;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\EventStore;
@@ -13,7 +14,6 @@ use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
 use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\SubscribedEventsResolver;
-use Gember\EventSourcing\Util\Messaging\MessageBus\EventBus;
 use Override;
 use Stringable;
 use Throwable;

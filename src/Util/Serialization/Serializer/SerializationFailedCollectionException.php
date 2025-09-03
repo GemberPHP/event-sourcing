@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Util\Serialization\Serializer;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
+
 final class SerializationFailedCollectionException extends SerializationFailedException
 {
     /**

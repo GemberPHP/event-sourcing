@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\Util\Messaging\MessageBus;
 
-use Gember\EventSourcing\Util\Messaging\MessageBus\EventBus;
+use Gember\DependencyContracts\Util\Messaging\MessageBus\EventBus;
 
 final class TestEventBus implements EventBus
 {

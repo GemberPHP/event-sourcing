@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms;
 
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStoreRepository;
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEventStoreRepository;
 use Override;
 use Exception;
 

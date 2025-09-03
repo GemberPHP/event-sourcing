@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Repository\EventSourced;
 
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;

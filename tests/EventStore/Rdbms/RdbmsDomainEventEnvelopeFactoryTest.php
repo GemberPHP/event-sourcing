@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
-use Gember\EventSourcing\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\Test\TestDoubles\Registry\TestEventRegistry;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use PHPUnit\Framework\Attributes\Test;

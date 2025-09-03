@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Util\Serialization\Serializer\Stacked;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedCollectionException;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedException;
-use Gember\EventSourcing\Util\Serialization\Serializer\Serializer;
 use Override;
 
 final readonly class StackedSerializer implements Serializer
