@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
 use ReflectionMethod;
+use ReflectionProperty;
 
 /**
  * @internal
@@ -33,14 +34,20 @@ final class ReflectorAttributeResolverTest extends TestCase
     #[Test]
     public function itShouldGetPropertiesNamesWithAttribute(): void
     {
-        $names = $this->resolver->getPropertyNamesWithAttribute(
+        $names = $this->resolver->getPropertiesWithAttribute(
             TestUseCase::class,
             DomainTag::class,
         );
 
-        self::assertSame([
-            'domainTag',
-            'secondaryTag',
+        self::assertEquals([
+            [
+                new ReflectionProperty(TestUseCase::class, 'domainTag'),
+                new DomainTag(),
+            ],
+            [
+                new ReflectionProperty(TestUseCase::class, 'secondaryTag'),
+                new DomainTag(),
+            ],
         ], $names);
     }
 

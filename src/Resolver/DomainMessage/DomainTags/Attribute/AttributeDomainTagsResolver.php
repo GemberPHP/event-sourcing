@@ -9,6 +9,7 @@ use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\DomainTagsResolver;
 use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\UnresolvableDomainTagsException;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
+use ReflectionProperty;
 use Stringable;
 
 final readonly class AttributeDomainTagsResolver implements DomainTagsResolver
@@ -20,7 +21,7 @@ final readonly class AttributeDomainTagsResolver implements DomainTagsResolver
     #[Override]
     public function resolve(object $message): array
     {
-        $properties = $this->attributeResolver->getPropertyNamesWithAttribute($message::class, DomainTag::class);
+        $properties = $this->attributeResolver->getPropertiesWithAttribute($message::class, DomainTag::class);
 
         if ($properties === []) {
             throw UnresolvableDomainTagsException::create(
@@ -29,7 +30,15 @@ final readonly class AttributeDomainTagsResolver implements DomainTagsResolver
             );
         }
 
-        /** @var list<string|Stringable> */
-        return array_map(fn($property) => $message->{$property}, $properties);
+        $domainTags = [];
+
+        /** @var ReflectionProperty $reflectionProperty */
+        foreach ($properties as [$reflectionProperty]) {
+            /** @var string|Stringable $domainTag */
+            $domainTag = $message->{$reflectionProperty->getName()};
+            $domainTags[] = $domainTag;
+        }
+
+        return $domainTags;
     }
 }

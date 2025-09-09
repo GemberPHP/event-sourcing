@@ -15,7 +15,7 @@ final readonly class ReflectorAttributeResolver implements AttributeResolver
      * @throws ReflectionException
      */
     #[Override]
-    public function getPropertyNamesWithAttribute(string $className, string $attributeClassName): array
+    public function getPropertiesWithAttribute(string $className, string $attributeClassName): array
     {
         $reflectionClass = new ReflectionClass($className);
 
@@ -27,7 +27,7 @@ final readonly class ReflectorAttributeResolver implements AttributeResolver
                 continue;
             }
 
-            $properties[] = $reflectionProperty->getName();
+            $properties[] = [$reflectionProperty, $attributes[array_key_first($attributes)]->newInstance()];
         }
 
         return $properties;
