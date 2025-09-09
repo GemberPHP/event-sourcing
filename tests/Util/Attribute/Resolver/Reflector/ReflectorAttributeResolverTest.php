@@ -9,12 +9,11 @@ use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
-use Gember\EventSourcing\Util\Attribute\Resolver\Method;
-use Gember\EventSourcing\Util\Attribute\Resolver\Parameter;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
+use ReflectionMethod;
 
 /**
  * @internal
@@ -55,12 +54,10 @@ final class ReflectorAttributeResolverTest extends TestCase
 
         self::assertEquals(
             [
-                new Method(
-                    'onTestUseCaseCreatedEvent',
-                    [
-                        new Parameter('event', TestUseCaseCreatedEvent::class),
-                    ],
-                ),
+                [
+                    new ReflectionMethod(TestUseCase::class, 'onTestUseCaseCreatedEvent'),
+                    new DomainEventSubscriber(),
+                ],
             ],
             $methods,
         );

@@ -8,6 +8,8 @@ use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\SubscribedEventsResolver;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
+use ReflectionMethod;
+use ReflectionNamedType;
 
 final readonly class AttributeSubscribedEventsResolver implements SubscribedEventsResolver
 {
@@ -24,18 +26,24 @@ final readonly class AttributeSubscribedEventsResolver implements SubscribedEven
         );
 
         $eventClassNames = [];
-        foreach ($methods as $method) {
-            if ($method->parameters === []) {
+
+        /** @var ReflectionMethod $reflectionMethod */
+        foreach ($methods as [$reflectionMethod]) {
+            $parameters = $reflectionMethod->getParameters();
+
+            if ($parameters === []) {
                 continue;
             }
 
-            $firstParameter = $method->parameters[array_key_first($method->parameters)];
+            $firstParameter = $parameters[array_key_first($parameters)];
 
-            if ($firstParameter->type === null) {
+            if (!$firstParameter->getType() instanceof ReflectionNamedType) {
                 continue;
             }
 
-            $eventClassNames[] = $firstParameter->type;
+            /** @var class-string $eventClassName */
+            $eventClassName = $firstParameter->getType()->getName();
+            $eventClassNames[] = $eventClassName;
         }
 
         return $eventClassNames;

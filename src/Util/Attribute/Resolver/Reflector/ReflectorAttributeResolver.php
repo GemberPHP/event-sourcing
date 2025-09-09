@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Util\Attribute\Resolver\Reflector;
 
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
-use Gember\EventSourcing\Util\Attribute\Resolver\Method;
-use Gember\EventSourcing\Util\Attribute\Resolver\Parameter;
 use ReflectionClass;
 use ReflectionException;
 use Override;
-use ReflectionNamedType;
 
 final readonly class ReflectorAttributeResolver implements AttributeResolver
 {
@@ -52,18 +49,7 @@ final readonly class ReflectorAttributeResolver implements AttributeResolver
                 continue;
             }
 
-            $parameters = [];
-            foreach ($reflectionMethod->getParameters() as $reflectionParameter) {
-                $type = null;
-                if ($reflectionParameter->getType() instanceof ReflectionNamedType) {
-                    /** @var class-string $type */
-                    $type = $reflectionParameter->getType()->getName();
-                }
-
-                $parameters[] = new Parameter($reflectionParameter->getName(), $type);
-            }
-
-            $methods[] = new Method($reflectionMethod->getName(), $parameters);
+            $methods[] = [$reflectionMethod, $attributes[array_key_first($attributes)]->newInstance()];
         }
 
         return $methods;
