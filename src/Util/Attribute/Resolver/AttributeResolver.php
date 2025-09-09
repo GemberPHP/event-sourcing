@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Util\Attribute\Resolver;
 
+use ReflectionMethod;
+
 interface AttributeResolver
 {
     /**
@@ -15,10 +17,12 @@ interface AttributeResolver
     public function getPropertyNamesWithAttribute(string $className, string $attributeClassName): array;
 
     /**
-     * @param class-string $className
-     * @param class-string<object> $attributeClassName
+     * @template T of object
      *
-     * @return list<Method>
+     * @param class-string $className
+     * @param class-string<T> $attributeClassName
+     *
+     * @return list<array{ReflectionMethod, T}>
      */
     public function getMethodsWithAttribute(string $className, string $attributeClassName): array;
 

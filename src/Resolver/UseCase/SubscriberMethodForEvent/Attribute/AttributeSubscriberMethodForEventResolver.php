@@ -8,6 +8,8 @@ use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\SubscriberMethodForEventResolver;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
+use ReflectionMethod;
+use ReflectionNamedType;
 
 final readonly class AttributeSubscriberMethodForEventResolver implements SubscriberMethodForEventResolver
 {
@@ -23,18 +25,25 @@ final readonly class AttributeSubscriberMethodForEventResolver implements Subscr
             DomainEventSubscriber::class,
         );
 
-        foreach ($methods as $method) {
-            if ($method->parameters === []) {
+        /** @var ReflectionMethod $reflectionMethod */
+        foreach ($methods as [$reflectionMethod]) {
+            $parameters = $reflectionMethod->getParameters();
+
+            if ($parameters === []) {
                 continue;
             }
 
-            $firstParameter = $method->parameters[array_key_first($method->parameters)];
+            $firstParameter = $parameters[array_key_first($parameters)];
 
-            if ($firstParameter->type !== $eventClassName) {
+            if (!$firstParameter->getType() instanceof ReflectionNamedType) {
                 continue;
             }
 
-            return $method->name;
+            if ($firstParameter->getType()->getName() !== $eventClassName) {
+                continue;
+            }
+
+            return $reflectionMethod->getName();
         }
 
         return null;

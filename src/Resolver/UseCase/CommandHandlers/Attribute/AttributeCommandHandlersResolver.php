@@ -10,6 +10,7 @@ use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
 use ReflectionMethod;
+use ReflectionNamedType;
 
 final readonly class AttributeCommandHandlersResolver implements CommandHandlersResolver
 {
@@ -27,36 +28,34 @@ final readonly class AttributeCommandHandlersResolver implements CommandHandlers
 
         $definitions = [];
 
-        foreach ($methods as $method) {
-            if ($method->parameters === []) {
+        /**
+         * @var ReflectionMethod $reflectionMethod
+         * @var DomainCommandHandler $attribute
+         */
+        foreach ($methods as [$reflectionMethod, $attribute]) {
+            $parameters = $reflectionMethod->getParameters();
+
+            if ($parameters === []) {
                 continue;
             }
 
-            $firstParameter = $method->parameters[array_key_first($method->parameters)];
+            $firstParameter = $parameters[array_key_first($parameters)];
 
-            if ($firstParameter->type === null) {
+            if (!$firstParameter->getType() instanceof ReflectionNamedType) {
                 continue;
             }
 
-            $attribute = $this->getAttributeForMethod($useCaseClassName, $method->name);
+            /** @var class-string $commandClassName */
+            $commandClassName = $firstParameter->getType()->getName();
 
             $definitions[] = new CommandHandlerDefinition(
-                $firstParameter->type,
+                $commandClassName,
                 $useCaseClassName,
-                $method->name,
+                $reflectionMethod->getName(),
                 $attribute->policy,
             );
         }
 
         return $definitions;
-    }
-
-    private function getAttributeForMethod(string $useCaseClassName, string $methodName): DomainCommandHandler
-    {
-        $reflectionMethod = new ReflectionMethod($useCaseClassName, $methodName);
-        $attributes = $reflectionMethod->getAttributes(DomainCommandHandler::class);
-
-        /** @var DomainCommandHandler */
-        return $attributes[0]->newInstance();
     }
 }
