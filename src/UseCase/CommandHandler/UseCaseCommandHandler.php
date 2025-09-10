@@ -10,7 +10,7 @@ use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagValueHelper;
-use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandResolver;
 use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
 
 final readonly class UseCaseCommandHandler
@@ -18,7 +18,7 @@ final readonly class UseCaseCommandHandler
     public function __construct(
         private UseCaseRepository $repository,
         private CommandHandlerRegistry $commandHandlerRegistry,
-        private DomainEventResolver $domainEventResolver,
+        private DomainCommandResolver $domainCommandResolver,
     ) {}
 
     /**
@@ -38,7 +38,7 @@ final readonly class UseCaseCommandHandler
                 $useCaseClassName,
                 ...DomainTagValueHelper::getDomainTagValues(
                     $command,
-                    $this->domainEventResolver->resolve($command::class)->domainTags,
+                    $this->domainCommandResolver->resolve($command::class)->domainTags,
                 ),
             );
         } catch (UseCaseNotFoundException $exception) {
