@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
@@ -14,7 +17,6 @@ use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\EventStore\StreamQuery;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
@@ -42,12 +44,15 @@ final class RdbmsEventStoreTest extends TestCase
         parent::setUp();
 
         $this->eventStore = new RdbmsEventStore(
-            $eventNameResolver = new AttributeNormalizedEventNameResolver(new ReflectorAttributeResolver()),
+            $domainEventResolver = new DefaultDomainEventResolver(
+                new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeDomainTagResolver($attributeResolver),
+            ),
             new RdbmsDomainEventEnvelopeFactory(
                 $serializer = new TestSerializer(),
                 new TestEventRegistry(),
             ),
-            new RdbmsEventFactory($eventNameResolver, $serializer),
+            new RdbmsEventFactory($domainEventResolver, $serializer),
             $this->eventStoreRepository = new TestRdbmsEventStoreRepository(),
         );
     }
@@ -206,12 +211,11 @@ final class RdbmsEventStoreTest extends TestCase
     }
 
     #[Test]
-    public function itShouldThrowExceptionWhenEventNameIsUnresolvableOnGuardOptimisticLock(): void
+    public function itShouldThrowEventStoreFailedExceptionWhenSomeUnexpectedErrorHappenedOnGuardOptimisticLock(): void
     {
         $this->eventStoreRepository->lastEventIdPersisted = 'dccda5e4-ed20-4a98-b571-02ae7e71e8be';
 
         self::expectException(EventStoreFailedException::class);
-        self::expectExceptionMessage('Event does not contain #[DomainEvent] attribute');
 
         $this->eventStore->append(
             new StreamQuery(

@@ -2,6 +2,18 @@
 
 $ignoreErrors = [];
 $ignoreErrors[] = [
+	'message' => '#^Cannot cast mixed to string\\.$#',
+	'identifier' => 'cast.string',
+	'count' => 2,
+	'path' => __DIR__ . '/src/Resolver/Common/DomainTag/DomainTagValueHelper.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Parameter \\#2 \\$array of function array_map expects array, mixed given\\.$#',
+	'identifier' => 'argument.type',
+	'count' => 1,
+	'path' => __DIR__ . '/src/Resolver/Common/DomainTag/DomainTagValueHelper.php',
+];
+$ignoreErrors[] = [
 	'message' => '#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#',
 	'identifier' => 'argument.type',
 	'count' => 1,

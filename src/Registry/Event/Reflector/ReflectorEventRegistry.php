@@ -6,8 +6,7 @@ namespace Gember\EventSourcing\Registry\Event\Reflector;
 
 use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Event\EventRegistry;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
 use Gember\EventSourcing\Util\File\Finder\Finder;
 use Gember\EventSourcing\Util\File\Reflector\ReflectionFailedException;
 use Gember\EventSourcing\Util\File\Reflector\Reflector;
@@ -23,14 +22,13 @@ final class ReflectorEventRegistry implements EventRegistry
     public function __construct(
         private readonly Finder $finder,
         private readonly Reflector $reflector,
-        private readonly NormalizedEventNameResolver $eventNameResolver,
+        private readonly DomainEventResolver $domainEventResolver,
         private readonly string $path,
     ) {}
 
     /**
      * @throws EventNotRegisteredException
      * @throws ReflectionFailedException
-     * @throws UnresolvableEventNameException
      */
     #[Override]
     public function retrieve(string $eventName): string
@@ -46,7 +44,6 @@ final class ReflectorEventRegistry implements EventRegistry
 
     /**
      * @throws ReflectionFailedException
-     * @throws UnresolvableEventNameException
      */
     private function initialize(): void
     {
@@ -63,7 +60,7 @@ final class ReflectorEventRegistry implements EventRegistry
 
             $reflectionClass = $this->reflector->reflectClassFromFile($file);
 
-            $eventName = $this->eventNameResolver->resolve($reflectionClass->getName());
+            $eventName = $this->domainEventResolver->resolve($reflectionClass->getName())->eventName;
 
             $this->events[$eventName] = $reflectionClass->getName();
         }

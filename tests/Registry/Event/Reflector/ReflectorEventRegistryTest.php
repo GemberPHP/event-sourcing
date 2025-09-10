@@ -6,7 +6,9 @@ namespace Gember\EventSourcing\Test\Registry\Event\Reflector;
 
 use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Event\Reflector\ReflectorEventRegistry;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
@@ -32,7 +34,10 @@ final class ReflectorEventRegistryTest extends TestCase
         $this->registry = new ReflectorEventRegistry(
             $this->finder = new TestFinder(),
             $this->reflector = new TestReflector(),
-            new AttributeNormalizedEventNameResolver(new ReflectorAttributeResolver()),
+            new DefaultDomainEventResolver(
+                new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeDomainTagResolver($attributeResolver),
+            ),
             'path',
         );
     }

@@ -5,6 +5,14 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Repository\EventSourced;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Interface\InterfaceDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Stacked\StackedDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\ClassName\ClassNameEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Interface\InterfaceEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Stacked\StackedEventNameResolver;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
@@ -15,12 +23,6 @@ use Gember\EventSourcing\Repository\EventSourced\EventSourcedUseCaseRepository;
 use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
 use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\Attribute\AttributeSubscribedEventsResolver;
 use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
-use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Attribute\AttributeDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Interface\InterfaceDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Stacked\StackedDomainTagsResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Interface\InterfaceNormalizedEventNameResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Stacked\StackedNormalizedEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
@@ -30,6 +32,8 @@ use Gember\EventSourcing\Test\TestDoubles\Util\Messaging\MessageBus\TestEventBus
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
+use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
+use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
@@ -59,27 +63,47 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
 
         $this->repository = new EventSourcedUseCaseRepository(
             new RdbmsEventStore(
-                $eventNameResolver = new StackedNormalizedEventNameResolver([
-                    new AttributeNormalizedEventNameResolver(
-                        $attributeResolver,
+                $domainEventResolver = new DefaultDomainEventResolver(
+                    new StackedEventNameResolver(
+                        [
+                            new AttributeEventNameResolver($attributeResolver),
+                            new InterfaceEventNameResolver(),
+                        ],
+                        new ClassNameEventNameResolver(new NativeFriendlyClassNamer(new NativeInflector())),
                     ),
-                    new InterfaceNormalizedEventNameResolver(),
-                ]),
+                    new StackedDomainTagResolver(
+                        [
+                            new AttributeDomainTagResolver($attributeResolver),
+                            new InterfaceDomainTagResolver(),
+                        ],
+                    ),
+                ),
                 new RdbmsDomainEventEnvelopeFactory(
                     $serializer = new TestSerializer(),
                     new TestEventRegistry(),
                 ),
                 new RdbmsEventFactory(
-                    $eventNameResolver,
+                    $domainEventResolver,
                     $serializer,
                 ),
                 $this->eventStoreRepository = new TestRdbmsEventStoreRepository(),
             ),
             new DomainEventEnvelopeFactory(
-                new StackedDomainTagsResolver([
-                    new AttributeDomainTagsResolver($attributeResolver),
-                    new InterfaceDomainTagsResolver(),
-                ]),
+                new DefaultDomainEventResolver(
+                    new StackedEventNameResolver(
+                        [
+                            new AttributeEventNameResolver($attributeResolver),
+                            new InterfaceEventNameResolver(),
+                        ],
+                        new ClassNameEventNameResolver(new NativeFriendlyClassNamer(new NativeInflector())),
+                    ),
+                    new StackedDomainTagResolver(
+                        [
+                            new AttributeDomainTagResolver($attributeResolver),
+                            new InterfaceDomainTagResolver(),
+                        ],
+                    ),
+                ),
                 new TestIdentityGenerator(),
                 $this->clock,
             ),

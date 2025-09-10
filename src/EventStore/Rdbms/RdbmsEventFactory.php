@@ -5,29 +5,29 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\EventStore\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 
 final readonly class RdbmsEventFactory
 {
     public function __construct(
-        private NormalizedEventNameResolver $eventNameResolver,
+        private DomainEventResolver $domainEventResolver,
         private Serializer $serializer,
     ) {}
 
     /**
      * @throws SerializationFailedException
-     * @throws UnresolvableEventNameException
      */
     public function createFromDomainEventEnvelope(DomainEventEnvelope $eventEnvelope): RdbmsEvent
     {
+        $domainEventDefinition = $this->domainEventResolver->resolve($eventEnvelope->event::class);
+
         return new RdbmsEvent(
             $eventEnvelope->eventId,
             $eventEnvelope->domainTags,
-            $this->eventNameResolver->resolve($eventEnvelope->event::class),
+            $domainEventDefinition->eventName,
             $this->serializer->serialize($eventEnvelope->event),
             [...$eventEnvelope->metadata],
             $eventEnvelope->appliedAt,
