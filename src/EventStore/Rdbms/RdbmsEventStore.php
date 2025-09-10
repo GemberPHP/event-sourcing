@@ -5,21 +5,20 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\EventStore\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEventStoreRepository;
+use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\EventStore\EventStore;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\OptimisticLockException;
 use Gember\EventSourcing\EventStore\StreamQuery;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\NormalizedEventNameResolver;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\UnresolvableEventNameException;
 use Throwable;
 use Override;
 
 final readonly class RdbmsEventStore implements EventStore
 {
     public function __construct(
-        private NormalizedEventNameResolver $eventNameResolver,
+        private DomainEventResolver $domainEventResolver,
         private RdbmsDomainEventEnvelopeFactory $domainEventEnvelopeFactory,
         private RdbmsEventFactory $rdbmsEventFactory,
         private RdbmsEventStoreRepository $repository,
@@ -60,7 +59,9 @@ final readonly class RdbmsEventStore implements EventStore
 
         try {
             $this->guardOptimisticLock($streamQuery, $lastEventId);
-        } catch (UnresolvableEventNameException $exception) {
+        } catch (OptimisticLockException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
             throw EventStoreFailedException::withException($exception);
         }
 
@@ -76,7 +77,6 @@ final readonly class RdbmsEventStore implements EventStore
 
     /**
      * @throws OptimisticLockException
-     * @throws UnresolvableEventNameException
      */
     private function guardOptimisticLock(StreamQuery $streamQuery, ?string $lastEventId): void
     {
@@ -95,14 +95,12 @@ final readonly class RdbmsEventStore implements EventStore
     }
 
     /**
-     * @throws UnresolvableEventNameException
-     *
      * @return list<string>
      */
     private function getEventNamesFromStreamQuery(StreamQuery $streamQuery): array
     {
         return array_map(
-            fn($eventClassName) => $this->eventNameResolver->resolve($eventClassName),
+            fn($eventClassName) => $this->domainEventResolver->resolve($eventClassName)->eventName,
             $streamQuery->eventClassNames,
         );
     }

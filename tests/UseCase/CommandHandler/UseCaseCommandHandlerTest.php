@@ -6,7 +6,14 @@ namespace Gember\EventSourcing\Test\UseCase\CommandHandler;
 
 use Gember\EventSourcing\Registry\CommandHandler\Reflector\ReflectorCommandHandlerRegistry;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
-use Gember\EventSourcing\Resolver\DomainMessage\DomainTags\Attribute\AttributeDomainTagsResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Interface\InterfaceDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Stacked\StackedDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\ClassName\ClassNameEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Interface\InterfaceEventNameResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Stacked\StackedEventNameResolver;
 use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\Attribute\AttributeCommandHandlersResolver;
 use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
 use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
@@ -19,6 +26,8 @@ use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
 use Gember\EventSourcing\UseCase\CommandHandler\UseCaseCommandHandler;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
+use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
+use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
@@ -59,8 +68,20 @@ final class UseCaseCommandHandlerTest extends TestCase
                 new AttributeCommandHandlersResolver(new ReflectorAttributeResolver()),
                 'path',
             ),
-            new AttributeDomainTagsResolver(
-                $attributeResolver,
+            new DefaultDomainEventResolver(
+                new StackedEventNameResolver(
+                    [
+                        new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
+                        new InterfaceEventNameResolver(),
+                    ],
+                    new ClassNameEventNameResolver(new NativeFriendlyClassNamer(new NativeInflector())),
+                ),
+                new StackedDomainTagResolver(
+                    [
+                        new AttributeDomainTagResolver($attributeResolver),
+                        new InterfaceDomainTagResolver(),
+                    ],
+                ),
             ),
         );
     }

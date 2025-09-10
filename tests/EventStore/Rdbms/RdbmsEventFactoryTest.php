@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
@@ -30,7 +32,10 @@ final class RdbmsEventFactoryTest extends TestCase
         parent::setUp();
 
         $this->factory = new RdbmsEventFactory(
-            new AttributeNormalizedEventNameResolver(new ReflectorAttributeResolver()),
+            new DefaultDomainEventResolver(
+                new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeDomainTagResolver($attributeResolver),
+            ),
             new TestSerializer(),
         );
     }

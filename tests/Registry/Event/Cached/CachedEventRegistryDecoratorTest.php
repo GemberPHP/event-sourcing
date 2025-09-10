@@ -6,7 +6,9 @@ namespace Gember\EventSourcing\Test\Registry\Event\Cached;
 
 use Gember\EventSourcing\Registry\Event\Cached\CachedEventRegistryDecorator;
 use Gember\EventSourcing\Registry\Event\Reflector\ReflectorEventRegistry;
-use Gember\EventSourcing\Resolver\DomainEvent\NormalizedEventName\Attribute\AttributeNormalizedEventNameResolver;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
+use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
@@ -45,7 +47,10 @@ final class CachedEventRegistryDecoratorTest extends TestCase
             new ReflectorEventRegistry(
                 $finder,
                 $reflector,
-                new AttributeNormalizedEventNameResolver(new ReflectorAttributeResolver()),
+                new DefaultDomainEventResolver(
+                    new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
+                    new AttributeDomainTagResolver($attributeResolver),
+                ),
                 'path',
             ),
             $this->cache = new TestCache(),
