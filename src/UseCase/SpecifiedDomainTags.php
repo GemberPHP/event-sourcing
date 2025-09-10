@@ -6,7 +6,7 @@ namespace Gember\EventSourcing\UseCase;
 
 use Stringable;
 
-interface SpecifiedDomainTagsDomainMessage
+interface SpecifiedDomainTags
 {
     /**
      * @return list<string|Stringable>

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
 use Gember\EventSourcing\UseCase\NamedDomainEvent;
-use Gember\EventSourcing\UseCase\SpecifiedDomainTagsDomainMessage;
+use Gember\EventSourcing\UseCase\SpecifiedDomainTags;
 
-final readonly class TestUseCaseModifiedEvent implements NamedDomainEvent, SpecifiedDomainTagsDomainMessage
+final readonly class TestUseCaseModifiedEvent implements NamedDomainEvent, SpecifiedDomainTags
 {
     public static function getName(): string
     {
