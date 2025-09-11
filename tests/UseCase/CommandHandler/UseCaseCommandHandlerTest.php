@@ -10,9 +10,9 @@ use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagR
 use Gember\EventSourcing\Resolver\Common\DomainTag\Interface\InterfaceDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Stacked\StackedDomainTagResolver;
 use Gember\EventSourcing\Resolver\DomainCommand\Default\DefaultDomainCommandResolver;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\Attribute\AttributeCommandHandlersResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
-use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\Test\TestDoubles\Repository\TestUseCaseRepository;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSecondUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
@@ -40,8 +40,11 @@ final class UseCaseCommandHandlerTest extends TestCase
         parent::setUp();
 
         UseCaseAttributeRegistry::initialize(
-            new AttributeDomainTagsPropertiesResolver($attributeResolver = new ReflectorAttributeResolver()),
-            new AttributeSubscriberMethodForEventResolver($attributeResolver),
+            $useCaseResolver = new DefaultUseCaseResolver(
+                new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeCommandHandlerResolver($attributeResolver),
+                new AttributeEventSubscriberResolver($attributeResolver),
+            ),
         );
 
         $finder = new TestFinder();
@@ -59,7 +62,7 @@ final class UseCaseCommandHandlerTest extends TestCase
             new ReflectorCommandHandlerRegistry(
                 $finder,
                 $reflector,
-                new AttributeCommandHandlersResolver(new ReflectorAttributeResolver()),
+                $useCaseResolver,
                 'path',
             ),
             new DefaultDomainCommandResolver(

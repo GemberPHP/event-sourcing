@@ -4,41 +4,24 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\UseCase;
 
-use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\SubscriberMethodForEventResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\DomainTagsPropertiesResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\UnresolvableDomainTagPropertiesException;
+use Gember\EventSourcing\Resolver\UseCase\UseCaseDefinition;
+use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
 
 final class UseCaseAttributeRegistry
 {
-    private static DomainTagsPropertiesResolver $domainTagsResolver;
-    private static SubscriberMethodForEventResolver $subscriberMethodsResolver;
+    private static UseCaseResolver $useCaseResolver;
 
     public static function initialize(
-        DomainTagsPropertiesResolver $domainTagsResolver,
-        SubscriberMethodForEventResolver $subscriberMethodsResolver,
+        UseCaseResolver $useCaseResolver,
     ): void {
-        self::$domainTagsResolver = $domainTagsResolver;
-        self::$subscriberMethodsResolver = $subscriberMethodsResolver;
+        self::$useCaseResolver = $useCaseResolver;
     }
 
     /**
      * @param class-string<EventSourcedUseCase> $useCaseClassName
-     *
-     * @throws UnresolvableDomainTagPropertiesException
-     *
-     * @return list<string>
      */
-    public static function getDomainTagPropertiesForUseCase(string $useCaseClassName): array
+    public static function getUseCaseDefinition(string $useCaseClassName): UseCaseDefinition
     {
-        return self::$domainTagsResolver->resolve($useCaseClassName);
-    }
-
-    /**
-     * @param class-string<EventSourcedUseCase> $useCaseClassName
-     * @param class-string $eventClassName
-     */
-    public static function getUseCaseSubscriberMethodForEvent(string $useCaseClassName, string $eventClassName): ?string
-    {
-        return self::$subscriberMethodsResolver->resolve($useCaseClassName, $eventClassName);
+        return self::$useCaseResolver->resolve($useCaseClassName);
     }
 }

@@ -13,6 +13,9 @@ use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\Attrib
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\ClassName\ClassNameEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Interface\InterfaceEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Stacked\StackedEventNameResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
@@ -20,9 +23,6 @@ use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\EventSourced\EventSourcedUseCaseRepository;
-use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
-use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\Attribute\AttributeSubscribedEventsResolver;
-use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
@@ -54,8 +54,11 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
         parent::setUp();
 
         UseCaseAttributeRegistry::initialize(
-            new AttributeDomainTagsPropertiesResolver($attributeResolver = new ReflectorAttributeResolver()),
-            new AttributeSubscriberMethodForEventResolver($attributeResolver),
+            new DefaultUseCaseResolver(
+                new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeCommandHandlerResolver($attributeResolver),
+                new AttributeEventSubscriberResolver($attributeResolver),
+            ),
         );
 
         $this->clock = new TestClock();
@@ -107,7 +110,11 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 new TestIdentityGenerator(),
                 $this->clock,
             ),
-            new AttributeSubscribedEventsResolver($attributeResolver),
+            new DefaultUseCaseResolver(
+                new AttributeDomainTagResolver($attributeResolver),
+                new AttributeCommandHandlerResolver($attributeResolver),
+                new AttributeEventSubscriberResolver($attributeResolver),
+            ),
             new TestEventBus(),
         );
     }

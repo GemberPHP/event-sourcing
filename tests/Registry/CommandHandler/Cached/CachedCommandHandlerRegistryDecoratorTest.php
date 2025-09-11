@@ -6,8 +6,11 @@ namespace Gember\EventSourcing\Test\Registry\CommandHandler\Cached;
 
 use Gember\EventSourcing\Registry\CommandHandler\Cached\CachedCommandHandlerRegistryDecorator;
 use Gember\EventSourcing\Registry\CommandHandler\Reflector\ReflectorCommandHandlerRegistry;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\Attribute\AttributeCommandHandlersResolver;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlerDefinition;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
+use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
@@ -49,7 +52,11 @@ final class CachedCommandHandlerRegistryDecoratorTest extends TestCase
             new ReflectorCommandHandlerRegistry(
                 $finder,
                 $reflector,
-                new AttributeCommandHandlersResolver(new ReflectorAttributeResolver()),
+                new DefaultUseCaseResolver(
+                    new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
+                    new AttributeCommandHandlerResolver($attributeResolver),
+                    new AttributeEventSubscriberResolver($attributeResolver),
+                ),
                 'path',
             ),
             $this->cache = new TestCache(),
@@ -62,14 +69,15 @@ final class CachedCommandHandlerRegistryDecoratorTest extends TestCase
     {
         $this->cache->set(
             'gember.registry.command_handler.gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command',
-            '{"commandName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","methodName":"another","policy":"never"}',
+            '{"useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","commandHandlerDefinition":{"commandClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","methodName":"another","policy":"never"}}',
         );
 
-        $definition = $this->registry->retrieve(TestUseCaseWithCommand::class);
+        [$useCaseClassName, $definition] = $this->registry->retrieve(TestUseCaseWithCommand::class);
+
+        self::assertSame(TestUseCaseWithCommandHandler::class, $useCaseClassName);
 
         self::assertEquals(new CommandHandlerDefinition(
             TestUseCaseWithCommand::class,
-            TestUseCaseWithCommandHandler::class,
             'another',
             CreationPolicy::Never,
         ), $definition);
@@ -78,17 +86,18 @@ final class CachedCommandHandlerRegistryDecoratorTest extends TestCase
     #[Test]
     public function itShouldStoreInCache(): void
     {
-        $definition = $this->registry->retrieve(TestUseCaseWithCommand::class);
+        [$useCaseClassName, $definition] = $this->registry->retrieve(TestUseCaseWithCommand::class);
+
+        self::assertSame(TestUseCaseWithCommandHandler::class, $useCaseClassName);
 
         self::assertEquals(new CommandHandlerDefinition(
             TestUseCaseWithCommand::class,
-            TestUseCaseWithCommandHandler::class,
             '__invoke',
             CreationPolicy::Never,
         ), $definition);
 
         self::assertSame(
-            '{"commandName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","methodName":"__invoke","policy":"never"}',
+            '{"useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","commandHandlerDefinition":{"commandClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","methodName":"__invoke","policy":"never"}}',
             $this->cache->get('gember.registry.command_handler.gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command'),
         );
     }

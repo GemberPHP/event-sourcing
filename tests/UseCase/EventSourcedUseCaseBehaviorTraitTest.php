@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\UseCase;
 
 use DateTimeImmutable;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
-use Gember\EventSourcing\Resolver\UseCase\SubscriberMethodForEvent\Attribute\AttributeSubscriberMethodForEventResolver;
-use Gember\EventSourcing\Resolver\UseCase\DomainTagProperties\Attribute\AttributeDomainTagsPropertiesResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
@@ -28,10 +30,11 @@ final class EventSourcedUseCaseBehaviorTraitTest extends TestCase
         parent::setUp();
 
         UseCaseAttributeRegistry::initialize(
-            new AttributeDomainTagsPropertiesResolver(
-                $attributeResolver = new ReflectorAttributeResolver(),
+            new DefaultUseCaseResolver(
+                new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeCommandHandlerResolver($attributeResolver),
+                new AttributeEventSubscriberResolver($attributeResolver),
             ),
-            new AttributeSubscriberMethodForEventResolver($attributeResolver),
         );
     }
 

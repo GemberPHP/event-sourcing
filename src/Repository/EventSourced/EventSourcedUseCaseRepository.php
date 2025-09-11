@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Repository\EventSourced;
 
 use Gember\DependencyContracts\Util\Messaging\MessageBus\EventBus;
+use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\EventStore;
@@ -13,7 +14,6 @@ use Gember\EventSourcing\EventStore\StreamQuery;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
-use Gember\EventSourcing\Resolver\UseCase\SubscribedEvents\SubscribedEventsResolver;
 use Override;
 use Stringable;
 use Throwable;
@@ -23,7 +23,7 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
     public function __construct(
         private EventStore $eventStore,
         private DomainEventEnvelopeFactory $domainEventEnvelopeFactory,
-        private SubscribedEventsResolver $subscribedEventsResolver,
+        private UseCaseResolver $useCaseResolver,
         private EventBus $eventBus,
     ) {}
 
@@ -43,7 +43,10 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
         try {
             $eventEnvelopes = $this->eventStore->load(new StreamQuery(
                 array_values($domainTag),
-                $this->subscribedEventsResolver->resolve($useCaseClassName),
+                array_map(
+                    fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
+                    $this->useCaseResolver->resolve($useCaseClassName)->eventSubscribers,
+                ),
             ));
 
             return $useCaseClassName::reconstitute(...$eventEnvelopes); // @phpstan-ignore-line
@@ -87,7 +90,10 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
             $this->eventStore->append(
                 new StreamQuery(
                     $useCase->getDomainTags(),
-                    $this->subscribedEventsResolver->resolve($useCase::class),
+                    array_map(
+                        fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
+                        $this->useCaseResolver->resolve($useCase::class)->eventSubscribers,
+                    ),
                 ),
                 $useCase->getLastEventId(),
                 ...$eventEnvelopes,
