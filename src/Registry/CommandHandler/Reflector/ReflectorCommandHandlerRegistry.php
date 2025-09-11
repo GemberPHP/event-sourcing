@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Registry\CommandHandler\Reflector;
 
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlerDefinition;
 use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerNotRegisteredException;
 use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerRegistry;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlersResolver;
+use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
+use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\Util\File\Finder\Finder;
 use Gember\EventSourcing\Util\File\Reflector\Reflector;
@@ -16,19 +16,19 @@ use Override;
 final class ReflectorCommandHandlerRegistry implements CommandHandlerRegistry
 {
     /**
-     * @var array<class-string, CommandHandlerDefinition>
+     * @var array<class-string, array{class-string<EventSourcedUseCase>, CommandHandlerDefinition}>
      */
     private array $definitions = [];
 
     public function __construct(
         private readonly Finder $finder,
         private readonly Reflector $reflector,
-        private readonly CommandHandlersResolver $commandHandlersResolver,
+        private readonly UseCaseResolver $useCaseResolver,
         private readonly string $path,
     ) {}
 
     #[Override]
-    public function retrieve(string $commandName): CommandHandlerDefinition
+    public function retrieve(string $commandName): array
     {
         $this->initialize();
 
@@ -57,8 +57,13 @@ final class ReflectorCommandHandlerRegistry implements CommandHandlerRegistry
             /** @var class-string<EventSourcedUseCase> $useCaseClassName */
             $useCaseClassName = $reflectionClass->getName();
 
-            foreach ($this->commandHandlersResolver->resolve($useCaseClassName) as $definition) {
-                $this->definitions[$definition->commandName] = $definition;
+            $useCaseDefinition = $this->useCaseResolver->resolve($useCaseClassName);
+
+            foreach ($useCaseDefinition->commandHandlers as $commandHandlerDefinition) {
+                $this->definitions[$commandHandlerDefinition->commandClassName] = [
+                    $useCaseClassName,
+                    $commandHandlerDefinition,
+                ];
             }
         }
     }

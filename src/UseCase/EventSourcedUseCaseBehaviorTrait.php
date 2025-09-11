@@ -25,8 +25,8 @@ trait EventSourcedUseCaseBehaviorTrait
     public function getDomainTags(): array
     {
         return array_map(
-            fn($property) => $this->{$property},
-            UseCaseAttributeRegistry::getDomainTagPropertiesForUseCase($this::class),
+            fn($domainTagDefinition) => $this->{$domainTagDefinition->domainTagName},
+            UseCaseAttributeRegistry::getUseCaseDefinition($this::class)->domainTags,
         );
     }
 
@@ -58,10 +58,13 @@ trait EventSourcedUseCaseBehaviorTrait
 
     private function applyEventInUseCase(object $event): void
     {
-        $method = UseCaseAttributeRegistry::getUseCaseSubscriberMethodForEvent($this::class, $event::class);
+        $useCaseDefinition = UseCaseAttributeRegistry::getUseCaseDefinition($this::class);
+        foreach ($useCaseDefinition->eventSubscribers as $eventSubscriber) {
+            if ($eventSubscriber->eventClassName !== $event::class) {
+                continue;
+            }
 
-        if ($method !== null) {
-            $this->{$method}($event);
+            $this->{$eventSubscriber->methodName}($event);
         }
     }
 }

@@ -28,9 +28,8 @@ final readonly class UseCaseCommandHandler
      */
     public function __invoke(object $command): void
     {
-        $commandHandlerDefinition = $this->commandHandlerRegistry->retrieve($command::class);
+        [$useCaseClassName, $commandHandlerDefinition] = $this->commandHandlerRegistry->retrieve($command::class);
 
-        $useCaseClassName = $commandHandlerDefinition->useCaseClassName;
         $methodName = $commandHandlerDefinition->methodName;
 
         try {

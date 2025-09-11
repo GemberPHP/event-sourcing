@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Registry\CommandHandler\Reflector;
 
 use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerNotRegisteredException;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\Attribute\AttributeCommandHandlersResolver;
-use Gember\EventSourcing\Resolver\UseCase\CommandHandlers\CommandHandlerDefinition;
+use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
+use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
@@ -36,7 +39,11 @@ final class ReflectorCommandHandlerRegistryTest extends TestCase
         $this->registry = new ReflectorCommandHandlerRegistry(
             $this->finder = new TestFinder(),
             $this->reflector = new TestReflector(),
-            new AttributeCommandHandlersResolver(new ReflectorAttributeResolver()),
+            new DefaultUseCaseResolver(
+                new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
+                new AttributeCommandHandlerResolver($attributeResolver),
+                new AttributeEventSubscriberResolver($attributeResolver),
+            ),
             'path',
         );
     }
@@ -61,11 +68,12 @@ final class ReflectorCommandHandlerRegistryTest extends TestCase
             'path/to/use-case.php' => TestUseCaseWithCommandHandler::class,
         ];
 
-        $definition = $this->registry->retrieve(TestUseCaseWithCommand::class);
+        [$useCaseClassName, $definition] = $this->registry->retrieve(TestUseCaseWithCommand::class);
+
+        self::assertSame(TestUseCaseWithCommandHandler::class, $useCaseClassName);
 
         self::assertEquals(new CommandHandlerDefinition(
             TestUseCaseWithCommand::class,
-            TestUseCaseWithCommandHandler::class,
             '__invoke',
             CreationPolicy::Never,
         ), $definition);
