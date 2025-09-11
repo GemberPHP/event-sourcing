@@ -38,10 +38,46 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Resolver/DomainEvent/Cached/CachedDomainEventResolverDecoratorTest.php',
 ];
 $ignoreErrors[] = [
+	'message' => '#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#',
+	'identifier' => 'argument.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Parameter \\#1 \\$payload of static method Gember\\\\EventSourcing\\\\Resolver\\\\UseCase\\\\UseCaseDefinition\\:\\:fromPayload\\(\\) expects array\\{useCaseClassName\\: class\\-string, domainTags\\: list\\<array\\{domainTagName\\: string, type\\: string\\}\\>, commandHandlers\\: list\\<array\\{commandClassName\\: class\\-string, methodName\\: string, policy\\: string\\}\\>, eventSubscribers\\: list\\<array\\{eventClassName\\: class\\-string, methodName\\: string\\}\\>\\}, mixed given\\.$#',
+	'identifier' => 'argument.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',
+];
+$ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\Repository\\\\TestUseCaseRepository\\:\\:get\\(\\) should return T of Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase but returns Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/TestDoubles/Repository/TestUseCaseRepository.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase has an uninitialized readonly property \\$domainTag\\. Assign it in the constructor\\.$#',
+	'identifier' => 'property.uninitializedReadonly',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase has an uninitialized readonly property \\$secondaryId\\. Assign it in the constructor\\.$#',
+	'identifier' => 'property.uninitializedReadonly',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase\\:\\:onTestUseCaseCreatedEvent\\(\\) is unused\\.$#',
+	'identifier' => 'method.unused',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase\\:\\:onTestUseCaseModifiedEvent\\(\\) is unused\\.$#',
+	'identifier' => 'method.unused',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
 ];
 $ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
