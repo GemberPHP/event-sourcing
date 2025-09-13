@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Resolver\UseCase;
 
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use PHPUnit\Framework\Attributes\Test;

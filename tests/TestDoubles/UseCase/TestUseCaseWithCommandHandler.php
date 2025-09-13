@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;

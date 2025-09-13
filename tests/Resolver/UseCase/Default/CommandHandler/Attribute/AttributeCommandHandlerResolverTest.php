@@ -8,7 +8,7 @@ use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSecondUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -14,7 +14,7 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
