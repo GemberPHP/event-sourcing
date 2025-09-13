@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\SerializableDomainEvent;
+namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\Interface;
 
 use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
+use Gember\EventSourcing\Util\Serialization\Serializer\Interface\SerializableInterfaceSerializer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
-final class SerializableDomainEventSerializerTest extends TestCase
+final class SerializableInterfaceSerializerTest extends TestCase
 {
-    private SerializableDomainEventSerializer $serializer;
+    private SerializableInterfaceSerializer $serializer;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->serializer = new SerializableDomainEventSerializer();
+        $this->serializer = new SerializableInterfaceSerializer();
     }
 
     #[Test]
@@ -39,7 +39,7 @@ final class SerializableDomainEventSerializerTest extends TestCase
     public function itShouldThrowExceptionOnSerializeWhenEventDoesNotImplementInterface(): void
     {
         self::expectException(SerializationFailedException::class);
-        self::expectExceptionMessage('Missing SerializableDomainEvent interface');
+        self::expectExceptionMessage('Missing Serializable interface');
 
         $this->serializer->serialize(new TestUseCaseCreatedEvent(
             'cf42cb77-34e1-494a-a2ce-e4ebe9c89838',
@@ -63,7 +63,7 @@ final class SerializableDomainEventSerializerTest extends TestCase
     public function itShouldThrowExceptionOnDeserializeWhenEventDoesNotImplementInterface(): void
     {
         self::expectException(SerializationFailedException::class);
-        self::expectExceptionMessage('Missing SerializableDomainEvent interface');
+        self::expectExceptionMessage('Missing Serializable interface');
 
         $this->serializer->deserialize('{"data":"serialized"}', TestUseCaseCreatedEvent::class);
     }

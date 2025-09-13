@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
-use Gember\EventSourcing\UseCase\SerializableDomainEvent;
+use Gember\EventSourcing\Util\Serialization\Serializable;
 
 /**
- * @implements SerializableDomainEvent<array{
+ * @implements Serializable<array{
  *     id: string
- * }>
+ * }, TestSerializableDomainEvent>
  */
-final readonly class TestSerializableDomainEvent implements SerializableDomainEvent
+final readonly class TestSerializableDomainEvent implements Serializable
 {
     public function __construct(
         public string $id,
     ) {}
 
-    public static function fromPayload(array $payload): SerializableDomainEvent
+    public static function fromPayload(array $payload): self
     {
         return new self($payload['id']);
     }

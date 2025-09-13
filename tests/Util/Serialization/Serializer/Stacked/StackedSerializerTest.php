@@ -7,7 +7,7 @@ namespace Gember\EventSourcing\Test\Util\Serialization\Serializer\Stacked;
 use Gember\DependencyContracts\Util\Serialization\Serializer\SerializationFailedException;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSerializableDomainEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestThrowingExceptionSerializer;
-use Gember\EventSourcing\Util\Serialization\Serializer\SerializableDomainEvent\SerializableDomainEventSerializer;
+use Gember\EventSourcing\Util\Serialization\Serializer\Interface\SerializableInterfaceSerializer;
 use Gember\EventSourcing\Util\Serialization\Serializer\SerializationFailedCollectionException;
 use Gember\EventSourcing\Util\Serialization\Serializer\Stacked\StackedSerializer;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,7 +24,7 @@ final class StackedSerializerTest extends TestCase
     {
         $serializer  = new StackedSerializer([
             new TestThrowingExceptionSerializer(),
-            new SerializableDomainEventSerializer(),
+            new SerializableInterfaceSerializer(),
         ]);
 
         $serialized = $serializer->serialize(new TestSerializableDomainEvent('eccfd8da-1925-4365-8479-6ca189e5abf4'));
@@ -57,7 +57,7 @@ final class StackedSerializerTest extends TestCase
     {
         $serializer  = new StackedSerializer([
             new TestThrowingExceptionSerializer(),
-            new SerializableDomainEventSerializer(),
+            new SerializableInterfaceSerializer(),
         ]);
 
         $deserialized = $serializer->deserialize(
