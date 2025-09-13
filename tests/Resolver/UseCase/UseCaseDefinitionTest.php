@@ -13,7 +13,7 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseDefinition;
 use PHPUnit\Framework\Attributes\Test;

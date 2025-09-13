@@ -11,7 +11,7 @@ use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagValueHelper;
 use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandResolver;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 
 final readonly class UseCaseCommandHandler
 {

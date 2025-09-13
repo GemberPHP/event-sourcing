@@ -16,7 +16,7 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
-use Gember\EventSourcing\UseCase\Attribute\CreationPolicy;
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
 use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;

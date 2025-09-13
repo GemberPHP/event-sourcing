@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\UseCase\Attribute;
+namespace Gember\EventSourcing\Common;
 
 enum CreationPolicy: string
 {
