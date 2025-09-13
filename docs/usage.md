@@ -385,18 +385,18 @@ It's common practice to only use primitive types for all properties.
 > Not only serialization can become difficult, but more importantly, using mutable Value Objects could lead to past events accidentally changing when the Value Objects evolves over time.
 > That goes against the core idea of event sourcing, where events should be immutable once stored. 
 
-If you need to handle more complex serialization, you can implement the `SerializableDomainEvent` interface
+If you need to handle more complex serialization, you can implement the `Serializable` interface
 and take full control over how the event is serialized and deserialized.
 
 ```php
 /**
- * @implements SerializableDomainEvent<array{
+ * @implements Serializable<array{
  *    id: string,
  *    value: int 
- * }>
+ * }, SomeEvent>
  */
 #[DomainEvent(name: 'some.event')]
-final readonly class SomeEvent implements SerializableDomainEvent
+final readonly class SomeEvent implements Serializable
 {
     public function __construct(
         #[DomainTag]
