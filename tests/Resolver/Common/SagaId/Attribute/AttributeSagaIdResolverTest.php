@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Resolver\Common\SagaId\Attribute;
 
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
+use Gember\EventSourcing\Test\TestDoubles\InvalidSaga\TestInvalidSagaWithPrivateSagaId;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSaga;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Override;
+use LogicException;
 
 /**
  * @internal
@@ -57,5 +59,13 @@ final class AttributeSagaIdResolverTest extends TestCase
         self::assertEquals([
             new SagaIdDefinition('anotherName', 'someId'),
         ], $definitions);
+    }
+
+    #[Test]
+    public function itShouldThrowWhenSagaIdIsSetToPrivate(): void
+    {
+        self::expectException(LogicException::class);
+
+        $this->resolver->resolve(TestInvalidSagaWithPrivateSagaId::class);
     }
 }

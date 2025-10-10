@@ -10,6 +10,7 @@ use Gember\EventSourcing\Saga\Attribute\SagaId;
 use Gember\EventSourcing\Util\Attribute\Resolver\AttributeResolver;
 use Override;
 use ReflectionProperty;
+use LogicException;
 
 final readonly class AttributeSagaIdResolver implements SagaIdResolver
 {
@@ -33,6 +34,10 @@ final readonly class AttributeSagaIdResolver implements SagaIdResolver
          * @var SagaId $attribute
          */
         foreach ($properties as [$reflectionProperty, $attribute]) {
+            if (!$reflectionProperty->isPublic()) {
+                throw new LogicException(sprintf('SagaId %s must be set to public', $reflectionProperty->getName()));
+            }
+
             $sagaIds[] = new SagaIdDefinition(
                 $attribute->name ?? $reflectionProperty->getName(),
                 $reflectionProperty->getName(),
