@@ -16,7 +16,7 @@ use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Stacked\StackedSagaNameR
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Gember\EventSourcing\Resolver\Saga\UnresolvableSagaException;
-use Gember\EventSourcing\Test\TestDoubles\Saga\TestInvalidSagaWithMultipleSagaIds;
+use Gember\EventSourcing\Test\TestDoubles\InvalidSaga\TestInvalidSagaWithMultipleSagaIds;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSaga;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;

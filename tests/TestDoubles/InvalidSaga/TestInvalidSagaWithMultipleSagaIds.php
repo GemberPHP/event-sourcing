@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Gember\EventSourcing\Test\TestDoubles\Saga;
+namespace Gember\EventSourcing\Test\TestDoubles\InvalidSaga;
 
 use Gember\EventSourcing\Saga\Attribute\SagaId;
 
