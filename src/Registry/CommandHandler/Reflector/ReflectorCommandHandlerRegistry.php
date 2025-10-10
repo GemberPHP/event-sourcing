@@ -54,6 +54,10 @@ final class ReflectorCommandHandlerRegistry implements CommandHandlerRegistry
 
             $reflectionClass = $this->reflector->reflectClassFromFile($file);
 
+            if (!$reflectionClass->implementsInterface(EventSourcedUseCase::class)) {
+                continue;
+            }
+
             /** @var class-string<EventSourcedUseCase> $useCaseClassName */
             $useCaseClassName = $reflectionClass->getName();
 

@@ -10,6 +10,7 @@ use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
@@ -77,5 +78,22 @@ final class ReflectorCommandHandlerRegistryTest extends TestCase
             '__invoke',
             CreationPolicy::Never,
         ), $definition);
+    }
+
+    #[Test]
+    public function itShouldIgnoreNonEventSourcedUseCaseClasses(): void
+    {
+        $this->finder->files = [
+            'path/to/use-case.php',
+            '',
+        ];
+
+        $this->reflector->files = [
+            'path/to/use-case.php' => TestUseCaseCreatedEvent::class,
+        ];
+
+        self::expectException(CommandHandlerNotRegisteredException::class);
+
+        $this->registry->retrieve(TestUseCaseCreatedEvent::class);
     }
 }
