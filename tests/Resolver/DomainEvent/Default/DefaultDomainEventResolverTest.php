@@ -7,6 +7,8 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\Default;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagDefinition;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagType;
+use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
+use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainEventDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
@@ -31,6 +33,7 @@ final class DefaultDomainEventResolverTest extends TestCase
         $this->resolver = new DefaultDomainEventResolver(
             new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
             new AttributeDomainTagResolver($attributeResolver),
+            new AttributeSagaIdResolver($attributeResolver),
         );
     }
 
@@ -45,6 +48,9 @@ final class DefaultDomainEventResolverTest extends TestCase
             [
                 new DomainTagDefinition('id', DomainTagType::Property),
                 new DomainTagDefinition('secondaryId', DomainTagType::Property),
+            ],
+            [
+                new SagaIdDefinition('id'),
             ],
         ), $definition);
     }

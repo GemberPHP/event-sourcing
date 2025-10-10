@@ -6,6 +6,7 @@ namespace Gember\EventSourcing\Test\EventStore\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
@@ -35,6 +36,7 @@ final class RdbmsEventFactoryTest extends TestCase
             new DefaultDomainEventResolver(
                 new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeDomainTagResolver($attributeResolver),
+                new AttributeSagaIdResolver($attributeResolver),
             ),
             new TestSerializer(),
         );
