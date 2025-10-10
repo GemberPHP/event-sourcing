@@ -35,6 +35,7 @@ final readonly class AttributeSagaIdResolver implements SagaIdResolver
         foreach ($properties as [$reflectionProperty, $attribute]) {
             $sagaIds[] = new SagaIdDefinition(
                 $attribute->name ?? $reflectionProperty->getName(),
+                $reflectionProperty->getName(),
             );
         }
 

@@ -79,7 +79,7 @@ final class DefaultSagaResolverTest extends TestCase
         self::assertEquals(new SagaDefinition(
             TestSaga::class,
             'saga.test',
-            new SagaIdDefinition('anotherName'),
+            new SagaIdDefinition('anotherName', 'someId'),
             [
                 new SagaEventSubscriberDefinition(
                     TestUseCaseCreatedEvent::class,

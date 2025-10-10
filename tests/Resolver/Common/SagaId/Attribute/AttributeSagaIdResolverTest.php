@@ -45,7 +45,7 @@ final class AttributeSagaIdResolverTest extends TestCase
         $definitions = $this->resolver->resolve(TestUseCaseCreatedEvent::class);
 
         self::assertEquals([
-            new SagaIdDefinition('id'),
+            new SagaIdDefinition('id', 'id'),
         ], $definitions);
     }
 
@@ -55,7 +55,7 @@ final class AttributeSagaIdResolverTest extends TestCase
         $definitions = $this->resolver->resolve(TestSaga::class);
 
         self::assertEquals([
-            new SagaIdDefinition('anotherName'),
+            new SagaIdDefinition('anotherName', 'someId'),
         ], $definitions);
     }
 }

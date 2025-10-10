@@ -18,6 +18,12 @@ final class TestSaga
     #[SagaId(name: 'anotherName')]
     public string $someId;
 
+    public function __construct(
+        ?string $someId = null,
+    ) {
+        $this->someId = $someId;
+    }
+
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
     public function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event, CommandBus $commandBus): void {}
 

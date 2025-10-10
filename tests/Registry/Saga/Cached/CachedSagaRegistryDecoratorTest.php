@@ -72,7 +72,7 @@ final class CachedSagaRegistryDecoratorTest extends TestCase
             new SagaDefinition(
                 TestSaga::class,
                 'saga.test',
-                new SagaIdDefinition('anotherName'),
+                new SagaIdDefinition('anotherName', 'someId'),
                 [
                     new SagaEventSubscriberDefinition(
                         TestUseCaseCreatedEvent::class,
@@ -94,6 +94,7 @@ final class CachedSagaRegistryDecoratorTest extends TestCase
                 'sagaName' => 'saga.test',
                 'sagaId' => [
                     'sagaIdName' => 'anotherName',
+                    'propertyName' => 'someId',
                 ],
                 'eventSubscribers' => [
                     [
@@ -128,6 +129,7 @@ final class CachedSagaRegistryDecoratorTest extends TestCase
                 'sagaName' => 'saga.test',
                 'sagaId' => [
                     'sagaIdName' => 'anotherName',
+                    'propertyName' => 'someId',
                 ],
                 'eventSubscribers' => [
                     [
