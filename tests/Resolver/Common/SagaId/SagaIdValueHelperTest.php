@@ -25,7 +25,7 @@ final class SagaIdValueHelperTest extends TestCase
 
         self::assertSame(
             '01K76K7H4V25CD1VQJQP2TG6Y6',
-            SagaIdValueHelper::getSagaIdValue($event, new SagaIdDefinition('id')),
+            SagaIdValueHelper::getSagaIdValue($event, new SagaIdDefinition('id', 'id')),
         );
     }
 }

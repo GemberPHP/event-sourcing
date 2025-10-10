@@ -10,7 +10,6 @@ final readonly class SagaIdValueHelper
 {
     public static function getSagaIdValue(object $object, SagaIdDefinition $sagaIdDefinition): string|Stringable
     {
-        /** @var string|Stringable */
-        return $object->{$sagaIdDefinition->sagaIdName};
+        return $object->{$sagaIdDefinition->propertyName};
     }
 }

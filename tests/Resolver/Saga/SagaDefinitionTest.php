@@ -27,6 +27,7 @@ final class SagaDefinitionTest extends TestCase
             'sagaName' => 'test.saga',
             'sagaId' => [
                 'sagaIdName' => 'id',
+                'propertyName' => 'someId',
             ],
             'eventSubscribers' => [
                 [
@@ -46,7 +47,7 @@ final class SagaDefinitionTest extends TestCase
             new SagaDefinition(
                 TestSaga::class,
                 'test.saga',
-                new SagaIdDefinition('id'),
+                new SagaIdDefinition('id', 'someId'),
                 [
                     new SagaEventSubscriberDefinition(
                         TestUseCaseCreatedEvent::class,
@@ -70,7 +71,7 @@ final class SagaDefinitionTest extends TestCase
         $definition = new SagaDefinition(
             TestSaga::class,
             'test.saga',
-            new SagaIdDefinition('id'),
+            new SagaIdDefinition('id', 'someId'),
             [
                 new SagaEventSubscriberDefinition(
                     TestUseCaseCreatedEvent::class,
@@ -90,6 +91,7 @@ final class SagaDefinitionTest extends TestCase
             'sagaName' => 'test.saga',
             'sagaId' => [
                 'sagaIdName' => 'id',
+                'propertyName' => 'someId',
             ],
             'eventSubscribers' => [
                 [

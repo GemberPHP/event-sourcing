@@ -50,7 +50,7 @@ final class DefaultDomainEventResolverTest extends TestCase
                 new DomainTagDefinition('secondaryId', DomainTagType::Property),
             ],
             [
-                new SagaIdDefinition('id'),
+                new SagaIdDefinition('id', 'id'),
             ],
         ), $definition);
     }

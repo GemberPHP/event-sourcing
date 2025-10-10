@@ -28,8 +28,8 @@ final class DomainEventDefinitionTest extends TestCase
                 new DomainTagDefinition('secondaryId', DomainTagType::Property),
             ],
             [
-                new SagaIdDefinition('id'),
-                new SagaIdDefinition('second'),
+                new SagaIdDefinition('id', 'id'),
+                new SagaIdDefinition('second', 'id'),
             ],
         );
 
@@ -51,9 +51,11 @@ final class DomainEventDefinitionTest extends TestCase
             'sagaIds' => [
                 [
                     'sagaIdName' => 'id',
+                    'propertyName' => 'id',
                 ],
                 [
                     'sagaIdName' => 'second',
+                    'propertyName' => 'id',
                 ],
             ],
         ], $serialized);

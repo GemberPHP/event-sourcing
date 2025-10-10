@@ -18,18 +18,21 @@ final class SagaIdDefinitionTest extends TestCase
     {
         $definition = SagaIdDefinition::fromPayload([
             'sagaIdName' => 'some.name',
+            'propertyName' => 'second',
         ]);
 
         self::assertSame('some.name', $definition->sagaIdName);
+        self::assertSame('second', $definition->propertyName);
     }
 
     #[Test]
     public function itShouldSerizalizeDefinitionToPayload(): void
     {
-        $definition = new SagaIdDefinition('some.name');
+        $definition = new SagaIdDefinition('some.name', 'second');
 
         self::assertSame([
             'sagaIdName' => 'some.name',
+            'propertyName' => 'second',
         ], $definition->toPayload());
     }
 }

@@ -77,7 +77,7 @@ final class ReflectorSagaRegistryTest extends TestCase
             new SagaDefinition(
                 TestSaga::class,
                 'saga.test',
-                new SagaIdDefinition('anotherName'),
+                new SagaIdDefinition('anotherName', 'someId'),
                 [
                     new SagaEventSubscriberDefinition(
                         TestUseCaseCreatedEvent::class,
