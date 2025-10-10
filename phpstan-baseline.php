@@ -92,6 +92,30 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',
 ];
 $ignoreErrors[] = [
+	'message' => '#^Parameter \\#4 \\$sagaEventSubscriberResolver of class Gember\\\\EventSourcing\\\\Registry\\\\Saga\\\\Reflector\\\\ReflectorSagaRegistry constructor expects Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\Default\\\\EventSubscriber\\\\SagaEventSubscriberResolver, mixed given\\.$#',
+	'identifier' => 'argument.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Saga/SagaEventHandlerTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Parameter \\#4 \\$serializer of class Gember\\\\EventSourcing\\\\Repository\\\\Rdbms\\\\RdbmsSagaStore constructor expects Gember\\\\DependencyContracts\\\\Util\\\\Serialization\\\\Serializer\\\\Serializer, mixed given\\.$#',
+	'identifier' => 'argument.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Saga/SagaEventHandlerTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\InvalidSaga\\\\TestInvalidSagaWithPrivateSagaId has an uninitialized readonly property \\$id\\. Assign it in the constructor\\.$#',
+	'identifier' => 'property.uninitializedReadonly',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/InvalidSaga/TestInvalidSagaWithPrivateSagaId.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\InvalidSaga\\\\TestInvalidSagaWithPrivateSagaId\\:\\:\\$id is unused\\.$#',
+	'identifier' => 'property.unused',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/InvalidSaga/TestInvalidSagaWithPrivateSagaId.php',
+];
+$ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\Repository\\\\TestUseCaseRepository\\:\\:get\\(\\) should return T of Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase but returns Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,
