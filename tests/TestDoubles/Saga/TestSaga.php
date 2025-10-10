@@ -11,11 +11,16 @@ use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
 use Gember\EventSourcing\Saga\Attribute\SagaId;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
-use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 
 #[Saga(name: 'saga.test')]
 final class TestSaga
 {
     #[SagaId(name: 'anotherName')]
     public string $someId;
+
+    #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
+    public function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event, CommandBus $commandBus): void {}
+
+    #[SagaEventSubscriber]
+    public function onTestUseCaseModifiedEvent(TestUseCaseModifiedEvent $event, CommandBus $commandBus): void {}
 }
