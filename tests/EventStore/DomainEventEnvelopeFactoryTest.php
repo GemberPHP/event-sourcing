@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Interface\InterfaceDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Stacked\StackedDomainTagResolver;
+use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\ClassName\ClassNameEventNameResolver;
@@ -55,6 +56,7 @@ final class DomainEventEnvelopeFactoryTest extends TestCase
                         new InterfaceDomainTagResolver(),
                     ],
                 ),
+                new AttributeSagaIdResolver($attributeResolver),
             ),
             new TestIdentityGenerator(),
             $this->clock = new TestClock(),

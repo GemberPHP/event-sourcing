@@ -6,6 +6,7 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent;
 
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagDefinition;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagType;
+use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainEventDefinition;
@@ -26,6 +27,10 @@ final class DomainEventDefinitionTest extends TestCase
                 new DomainTagDefinition('id', DomainTagType::Property),
                 new DomainTagDefinition('secondaryId', DomainTagType::Property),
             ],
+            [
+                new SagaIdDefinition('id'),
+                new SagaIdDefinition('second'),
+            ],
         );
 
         $serialized = $definition->toPayload();
@@ -41,6 +46,14 @@ final class DomainEventDefinitionTest extends TestCase
                 [
                     'domainTagName' => 'secondaryId',
                     'type' => 'property',
+                ],
+            ],
+            'sagaIds' => [
+                [
+                    'sagaIdName' => 'id',
+                ],
+                [
+                    'sagaIdName' => 'second',
                 ],
             ],
         ], $serialized);

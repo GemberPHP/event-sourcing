@@ -7,6 +7,7 @@ namespace Gember\EventSourcing\Test\Resolver\DomainEvent\Cached;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagDefinition;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagType;
+use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Cached\CachedDomainEventResolverDecorator;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
@@ -38,6 +39,7 @@ final class CachedDomainEventResolverDecoratorTest extends TestCase
             new DefaultDomainEventResolver(
                 new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeDomainTagResolver($attributeResolver),
+                new AttributeSagaIdResolver($attributeResolver),
             ),
             $this->cache = new TestCache(),
             new NativeFriendlyClassNamer(new NativeInflector()),
@@ -54,6 +56,7 @@ final class CachedDomainEventResolverDecoratorTest extends TestCase
                 new DomainTagDefinition('id', DomainTagType::Property),
                 new DomainTagDefinition('secondaryId', DomainTagType::Property),
             ],
+            [],
         );
 
         $this->cache->set('gember.resolver.domain_event.std-class', json_encode($expectedDefinition->toPayload()));
