@@ -8,9 +8,13 @@ use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
+use Gember\EventSourcing\UseCase\EventSourcedUseCase;
+use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
-final readonly class TestFullUseCase
+final class TestFullUseCase implements EventSourcedUseCase
 {
+    use EventSourcedUseCaseBehaviorTrait;
+
     #[DomainTag]
     public string $domainTag;
 
