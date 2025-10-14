@@ -19,6 +19,7 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
+use Gember\EventSourcing\UseCase\CommandHandler\Default\DefaultUseCaseCommandExecutor;
 use Gember\EventSourcing\UseCase\CommandHandler\UseCaseCommandHandler;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
@@ -58,7 +59,6 @@ final class UseCaseCommandHandlerTest extends TestCase
         ];
 
         $this->handler = new UseCaseCommandHandler(
-            $this->useCaseRepository = new TestUseCaseRepository(),
             new ReflectorCommandHandlerRegistry(
                 $finder,
                 $reflector,
@@ -72,6 +72,9 @@ final class UseCaseCommandHandlerTest extends TestCase
                         new InterfaceDomainTagResolver(),
                     ],
                 ),
+            ),
+            new DefaultUseCaseCommandExecutor(
+                $this->useCaseRepository = new TestUseCaseRepository(),
             ),
         );
     }
