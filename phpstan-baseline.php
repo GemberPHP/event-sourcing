@@ -140,26 +140,8 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/TestDoubles/Saga/TestSagaWithoutName.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase has an uninitialized readonly property \\$domainTag\\. Assign it in the constructor\\.$#',
-	'identifier' => 'property.uninitializedReadonly',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase has an uninitialized readonly property \\$secondaryId\\. Assign it in the constructor\\.$#',
-	'identifier' => 'property.uninitializedReadonly',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase\\:\\:onTestUseCaseCreatedEvent\\(\\) is unused\\.$#',
-	'identifier' => 'method.unused',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase\\:\\:onTestUseCaseModifiedEvent\\(\\) is unused\\.$#',
-	'identifier' => 'method.unused',
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestFullUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
+	'identifier' => 'return.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestFullUseCase.php',
 ];
