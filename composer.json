@@ -24,6 +24,7 @@
         "ext-mbstring": "*",
         "ext-tokenizer": "*",
         "gember/dependency-contracts": "^0.2",
+        "psr/log": "^3.0",
         "psr/simple-cache": "^3.0"
     },
     "require-dev": {
