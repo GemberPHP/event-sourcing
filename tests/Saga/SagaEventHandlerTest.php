@@ -22,6 +22,7 @@ use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Attribute\AttributeSagaN
 use Gember\EventSourcing\Resolver\Saga\Default\SagaName\ClassName\ClassNameSagaNameResolver;
 use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Interface\InterfaceSagaNameResolver;
 use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Stacked\StackedSagaNameResolver;
+use Gember\EventSourcing\Saga\Default\DefaultSagaEventExecutor;
 use Gember\EventSourcing\Test\Repository\Rdbms\TestRdbmsSagaStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEvent;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaForEventHandler;
@@ -86,16 +87,18 @@ final class SagaEventHandlerTest extends TestCase
                 $eventSubscriberResolver,
                 __DIR__ . '/../TestDoubles/Saga',
             ),
-            new RdbmsSagaStore(
-                $sagaResolver,
-                $this->repository = new TestRdbmsSagaStoreRepository(),
-                new SagaFactory(
-                    $serializer = new TestSerializer(),
+            new DefaultSagaEventExecutor(
+                new TestCommandBus(),
+                new RdbmsSagaStore(
+                    $sagaResolver,
+                    $this->repository = new TestRdbmsSagaStoreRepository(),
+                    new SagaFactory(
+                        $serializer = new TestSerializer(),
+                    ),
+                    $serializer,
+                    new TestClock(),
                 ),
-                $serializer,
-                new TestClock(),
             ),
-            new TestCommandBus(),
         );
     }
 
