@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Saga;
 
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
-use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Registry\Saga\SagaRegistry;
-use Gember\EventSourcing\Repository\SagaNotFoundException;
-use Gember\EventSourcing\Repository\SagaStore;
+use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdValueHelper;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
+use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
+use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Generator;
 
 final readonly class SagaEventHandler
@@ -18,28 +17,26 @@ final readonly class SagaEventHandler
     public function __construct(
         private DomainEventResolver $domainEventResolver,
         private SagaRegistry $sagaRegistry,
-        private SagaStore $sagaStore,
-        private CommandBus $commandBus,
+        private SagaEventExecutor $sagaEventExecutor,
     ) {}
 
-    /**
-     * @throws SagaNotFoundException
-     */
     public function __invoke(object $event): void
     {
-        foreach ($this->getSagasForEvent($event) as [$saga, $methodName]) {
-            // Run saga
-            $saga->{$methodName}($event, $this->commandBus);
-
-            // Save saga in repository
-            $this->sagaStore->save($saga);
+        foreach ($this->getSagaDefinitionsForEvent($event) as [$sagaDefinition, $sagaIdDefinition, $eventSubscriberDefinition]) {
+            $this->sagaEventExecutor->execute(
+                $event,
+                $eventSubscriberDefinition,
+                $sagaDefinition->sagaClassName,
+                $eventSubscriberDefinition->methodName,
+                SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition),
+            );
         }
     }
 
     /**
-     * @return Generator<array{object, string}>
+     * @return Generator<array{SagaDefinition, SagaIdDefinition, SagaEventSubscriberDefinition}>
      */
-    private function getSagasForEvent(object $event): Generator
+    private function getSagaDefinitionsForEvent(object $event): Generator
     {
         // Get all Saga ids in event
         foreach ($this->domainEventResolver->resolve($event::class)->sagaIds as $sagaIdDefinition) {
@@ -51,22 +48,7 @@ final readonly class SagaEventHandler
                         continue;
                     }
 
-                    // Get persisted Saga by saga id from repository
-                    try {
-                        $saga = $this->sagaStore->get(
-                            $sagaDefinition->sagaClassName,
-                            SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition),
-                        );
-                    } catch (SagaNotFoundException) {
-                        if ($eventSubscriberDefinition->policy !== CreationPolicy::IfMissing) {
-                            continue;
-                        }
-
-                        $sagaClassName = $sagaDefinition->sagaClassName;
-                        $saga = new $sagaClassName();
-                    }
-
-                    yield [$saga, $eventSubscriberDefinition->methodName];
+                    yield [$sagaDefinition, $sagaIdDefinition, $eventSubscriberDefinition];
                 }
             }
         }
