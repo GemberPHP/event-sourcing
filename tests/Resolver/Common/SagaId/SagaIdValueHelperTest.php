@@ -28,4 +28,17 @@ final class SagaIdValueHelperTest extends TestCase
             SagaIdValueHelper::getSagaIdValue($event, new SagaIdDefinition('id', 'id')),
         );
     }
+
+    #[Test]
+    public function itShouldReturnNullWhenIdValueFromObjectIsNull(): void
+    {
+        $event = new TestUseCaseCreatedEvent(
+            null,
+            'some-id',
+        );
+
+        self::assertNull(
+            SagaIdValueHelper::getSagaIdValue($event, new SagaIdDefinition('id', 'id')),
+        );
+    }
 }

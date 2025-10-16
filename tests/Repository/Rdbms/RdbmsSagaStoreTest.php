@@ -67,7 +67,7 @@ final class RdbmsSagaStoreTest extends TestCase
     #[Test]
     public function itShouldSaveAndGetSaga(): void
     {
-        $this->sagaStore->save(new TestSaga('saga-id'));
+        $this->sagaStore->save(new TestSaga('saga-id', 'another-id'));
 
         $saga = $this->sagaStore->get(TestSaga::class, 'saga-id');
 

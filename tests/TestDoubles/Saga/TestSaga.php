@@ -16,12 +16,17 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 final class TestSaga
 {
     #[SagaId(name: 'anotherName')]
-    public string $someId;
+    public ?string $someId;
+
+    #[SagaId]
+    public ?string $anotherId;
 
     public function __construct(
         ?string $someId = null,
+        ?string $anotherId = null,
     ) {
         $this->someId = $someId;
+        $this->anotherId = $anotherId;
     }
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]

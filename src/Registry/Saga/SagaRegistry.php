@@ -12,8 +12,6 @@ use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 interface SagaRegistry
 {
     /**
-     * @throws SagaNotRegisteredException
-     *
      * @return list<SagaDefinition>
      */
     public function retrieve(string $sagaIdName): array;

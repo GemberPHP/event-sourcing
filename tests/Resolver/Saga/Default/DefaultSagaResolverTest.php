@@ -16,7 +16,6 @@ use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Stacked\StackedSagaNameR
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Gember\EventSourcing\Resolver\Saga\UnresolvableSagaException;
-use Gember\EventSourcing\Test\TestDoubles\InvalidSaga\TestInvalidSagaWithMultipleSagaIds;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSaga;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
@@ -63,15 +62,6 @@ final class DefaultSagaResolverTest extends TestCase
     }
 
     #[Test]
-    public function itShouldGuardThatSagaHasOnlyOneSagaId(): void
-    {
-        self::expectException(UnresolvableSagaException::class);
-        self::expectExceptionMessage('Multiple saga ids found for saga');
-
-        $this->resolver->resolve(TestInvalidSagaWithMultipleSagaIds::class);
-    }
-
-    #[Test]
     public function itShouldResolveSaga(): void
     {
         $definition = $this->resolver->resolve(TestSaga::class);
@@ -79,7 +69,10 @@ final class DefaultSagaResolverTest extends TestCase
         self::assertEquals(new SagaDefinition(
             TestSaga::class,
             'saga.test',
-            new SagaIdDefinition('anotherName', 'someId'),
+            [
+                new SagaIdDefinition('anotherName', 'someId'),
+                new SagaIdDefinition('anotherId', 'anotherId'),
+            ],
             [
                 new SagaEventSubscriberDefinition(
                     TestUseCaseCreatedEvent::class,

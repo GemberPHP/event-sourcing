@@ -46,9 +46,15 @@ final readonly class RdbmsSagaStore implements SagaStore
 
         $this->sagaStoreRepository->save(
             $sagaDefinition->sagaName,
-            SagaIdValueHelper::getSagaIdValue($saga, $sagaDefinition->sagaId),
             $this->serializer->serialize($saga),
             $this->clock->now(),
+            ...array_filter(
+                array_map(
+                    fn($sagaIdDefinition) => SagaIdValueHelper::getSagaIdValue($saga, $sagaIdDefinition),
+                    $sagaDefinition->sagaIds,
+                ),
+                fn($sagaId) => $sagaId !== null,
+            ),
         );
     }
 }

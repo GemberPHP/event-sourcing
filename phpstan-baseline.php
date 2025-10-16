@@ -20,7 +20,7 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/src/Resolver/Common/DomainTag/DomainTagValueHelper.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Method Gember\\\\EventSourcing\\\\Resolver\\\\Common\\\\SagaId\\\\SagaIdValueHelper\\:\\:getSagaIdValue\\(\\) should return string\\|Stringable but returns mixed\\.$#',
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Resolver\\\\Common\\\\SagaId\\\\SagaIdValueHelper\\:\\:getSagaIdValue\\(\\) should return string\\|Stringable\\|null but returns mixed\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,
 	'path' => __DIR__ . '/src/Resolver/Common/SagaId/SagaIdValueHelper.php',
@@ -74,7 +74,7 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Resolver/Saga/Cached/CachedSagaResolverDecoratorTest.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Parameter \\#1 \\$payload of static method Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\SagaDefinition\\:\\:fromPayload\\(\\) expects array\\{sagaClassName\\: class\\-string, sagaName\\: string, sagaId\\: array\\{sagaIdName\\: string, propertyName\\: string\\}, eventSubscribers\\: list\\<array\\{eventClassName\\: class\\-string, methodName\\: string, policy\\: string\\}\\>\\}, mixed given\\.$#',
+	'message' => '#^Parameter \\#1 \\$payload of static method Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\SagaDefinition\\:\\:fromPayload\\(\\) expects array\\{sagaClassName\\: class\\-string, sagaName\\: string, sagaIds\\: list\\<array\\{sagaIdName\\: string, propertyName\\: string\\}\\>, eventSubscribers\\: list\\<array\\{eventClassName\\: class\\-string, methodName\\: string, policy\\: string\\}\\>\\}, mixed given\\.$#',
 	'identifier' => 'argument.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/Resolver/Saga/Cached/CachedSagaResolverDecoratorTest.php',
@@ -120,12 +120,6 @@ $ignoreErrors[] = [
 	'identifier' => 'return.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/TestDoubles/Repository/TestUseCaseRepository.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\Saga\\\\TestSaga\\:\\:\\$someId \\(string\\) does not accept string\\|null\\.$#',
-	'identifier' => 'assign.propertyType',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/TestDoubles/Saga/TestSaga.php',
 ];
 $ignoreErrors[] = [
 	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\Saga\\\\TestSagaWithNamedInterface\\:\\:\\$someId is unused\\.$#',

@@ -23,12 +23,18 @@ final readonly class SagaEventHandler
     public function __invoke(object $event): void
     {
         foreach ($this->getSagaDefinitionsForEvent($event) as [$sagaDefinition, $sagaIdDefinition, $eventSubscriberDefinition]) {
+            $sagaId = SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition);
+
+            if ($sagaId === null) {
+                continue;
+            }
+
             $this->sagaEventExecutor->execute(
                 $event,
                 $eventSubscriberDefinition,
                 $sagaDefinition->sagaClassName,
                 $eventSubscriberDefinition->methodName,
-                SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition),
+                $sagaId,
             );
         }
     }

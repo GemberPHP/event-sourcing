@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Registry\Saga\Reflector;
 
-use Gember\EventSourcing\Registry\Saga\SagaNotRegisteredException;
 use Gember\EventSourcing\Registry\Saga\SagaRegistry;
 use Gember\EventSourcing\Resolver\Saga\Default\EventSubscriber\SagaEventSubscriberResolver;
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
@@ -34,7 +33,7 @@ final class ReflectorSagaRegistry implements SagaRegistry
         $this->initialize();
 
         if (!array_key_exists($sagaIdName, $this->definitions)) {
-            throw SagaNotRegisteredException::withSagaIdName($sagaIdName);
+            return [];
         }
 
         return $this->definitions[$sagaIdName];
@@ -64,7 +63,9 @@ final class ReflectorSagaRegistry implements SagaRegistry
 
             $definition = $this->sagaResolver->resolve($reflectionClass->getName());
 
-            $this->definitions[$definition->sagaId->sagaIdName][] = $definition;
+            foreach ($definition->sagaIds as $sagaIdDefinition) {
+                $this->definitions[$sagaIdDefinition->sagaIdName][] = $definition;
+            }
         }
     }
 }

@@ -17,22 +17,31 @@ final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
      */
     public array $sagas = [];
 
-    public function get(string $sagaName, Stringable|string $sagaId): RdbmsSaga
+    public function get(string $sagaName, Stringable|string ...$sagaIds): RdbmsSaga
     {
-        return $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)] ?? throw RdbmsSagaNotFoundException::withSagaId($sagaName, $sagaId);
+        foreach ($sagaIds as $sagaId) {
+            if (isset($this->sagas[sprintf('%s-%s', $sagaName, $sagaId)])) {
+                return $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)];
+            }
+        }
+
+        throw RdbmsSagaNotFoundException::create($sagaName, ...$sagaIds);
     }
 
-    public function save(string $sagaName, Stringable|string $sagaId, string $payload, DateTimeImmutable $now): RdbmsSaga
+    public function save(string $sagaName, string $payload, DateTimeImmutable $now, Stringable|string ...$sagaIds): RdbmsSaga
     {
         $rdbmsSaga = new RdbmsSaga(
+            '',
             $sagaName,
-            $sagaId,
+            array_values($sagaIds),
             $payload,
             $now,
             null,
         );
 
-        $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)] = $rdbmsSaga;
+        foreach ($sagaIds as $sagaId) {
+            $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)] = $rdbmsSaga;
+        }
 
         return $rdbmsSaga;
     }
