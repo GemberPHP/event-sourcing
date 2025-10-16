@@ -1,25 +1,29 @@
 ## Use cases / aggregates
 
-Like mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**.
+As mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**.
 
-The setup for both are pretty much the same; they just need to implement the `EventSourcedUseCase` interface.
-A trait `EventSourcedUseCaseBehaviorTrait` is available for all required interface logic.
+### Basic setup
+
+Both use cases and aggregates follow the same setup approach: they implement the `EventSourcedUseCase` interface.
+A trait `EventSourcedUseCaseBehaviorTrait` is available to provide all required interface logic.
 
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
-    // Do your magic
+    // Your business logic goes here
 }
 ```
 
-When using DCB, each model is built from a specific stream of events tied to a set of **domain tags**.
+### Domain tags
 
-To make this work behind the scenes (e.g. optimistic lock guards), the model needs to define all domain tags it is connected to.
-This can be done with the `#[DomainTag]` attribute on one or more (private) properties.
+When using DCB, each use case is built from a stream of events tied to a set of **domain tags**. Domain tags are identifiers that link events to specific domain concepts (e.g., `CourseId`, `StudentId`).
 
-> Note: For a traditional aggregate, this is always just **one** domain tag.
+To enable this (including features like optimistic locking), the use case needs to define all domain tags it is connected to.
+This is done with the `#[DomainTag]` attribute on one or more properties.
+
+> **Note:** For a traditional aggregate, there is always exactly **one** domain tag representing the aggregate's identity.
 
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
@@ -32,28 +36,55 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
     #[DomainTag]
     private AnotherId $anotherId;
 
-    // Do your magic
+    // Your business logic goes here
 }
 ```
 
-Next up is to add behavior to the model; primarily done in the form of methods.
-These methods typically consists of three main steps:
+### Behavioral methods
 
-1. Check for idempotency
-2. Protect invariants (business rules)
-3. Apply a domain event
+Use cases and aggregates contain behavioral methods that execute business logic.
+These methods typically follow three main steps:
 
-To trigger these behavioral methods, you can use command handlers. See [Command handlers](/docs/command-handlers.md) for more details on how to set up command handling.
+1. Check for idempotency - Ensure the action hasn't already been performed
+2. Protect invariants - Validate business rules
+3. Apply a domain event - Record what happened by calling `$this->apply($event)`
 
-In order to check for idempotency and protect invariants, the model needs maintain a domain state.
-This basically means that it needs to keep all data required to make these decisions.
+The `apply()` method does two things:
+- In the current request: Immediately calls any matching event subscriber to update state
+- For persistence: Queues the event to be saved to the event store
 
-Therefore, the model can define **event subscribers** with the `#[DomainEventSubscriber]` attribute.
-Any event subscribed in this way is automatically loaded from the event store when building the model.
+```php
+public function doSomething(): void
+{
+    // 1. Check for idempotency
+    if ($this->alreadyDone) {
+        return;
+    }
 
-> Note: The model doesn't have to be the one that applied the event. It just needs to be related to at least one of the model's domain tags.
->
-> Also, the model doesn't need to have an event subscriber for each applied message. Just for the events which are required to maintain domain state.
+    // 2. Protect invariants (business rules)
+    if (!$this->isValid()) {
+        throw new InvalidOperationException();
+    }
+
+    // 3. Apply a domain event
+    $this->apply(new SomethingDoneEvent(/*...*/));
+}
+```
+
+To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/command-handlers.md) for details on how to set up command handling.
+
+### Event subscribers and state management
+
+To check for idempotency and protect invariants, the use case needs to maintain a **domain state**.
+This means keeping all data required to make business decisions.
+
+The use case defines **event subscribers** using the `#[DomainEventSubscriber]` attribute.
+When the use case is loaded from the repository, all events matching the domain tags are replayed through these subscribers to rebuild the state.
+
+**Key points:**
+- The use case doesn't have to be the one that applied the event - it just needs to be related to at least one of the use case's domain tags
+- The use case doesn't need an event subscriber for each applied event - only for events required to maintain decision-making state
+- Event subscriber method names can be anything; the event type itself is used for matching (unlike some libraries that rely on method naming conventions)
 
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
@@ -66,31 +97,50 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
     #[DomainTag]
     private AnotherId $anotherId;
 
-    // All required data to make decisions with
+    // State properties - all data required to make decisions
+    private bool $alreadyDone = false;
     private SomeStatus $status;
-    // ...
 
     #[DomainEventSubscriber]
-    private function applyModelOpenedEvent(ModelOpenedEvent $event) : void
+    private function onSomethingDoneEvent(SomethingDoneEvent $event): void
     {
-        // Update state
+        $this->someId = new SomeId($event->someId);
+        $this->alreadyDone = true;
     }
 
-    /*
-     * FYI: In a lot of event sourcing libraries, the method name is used to match the event.
-     * That's not needed here. The event type itself is used. The method name can be anything.
-     */
     #[DomainEventSubscriber]
-    private function applyModelArchivedEvent(ModelArchivedEvent $event) : void
+    private function onStatusChangedEvent(StatusChangedEvent $event): void
     {
-        // Update state
+        $this->status = SomeStatus::from($event->status);
     }
 }
 ```
+
+### How it works
+
+When you retrieve a use case from the repository:
+
+1. The repository queries the event store for all events matching the domain tags
+2. Events are replayed in chronological order through the event subscribers
+3. Each subscriber updates the internal state
+4. The fully reconstructed use case is returned, ready for business logic execution
+
+When you save a use case:
+
+1. All events applied during the request (via `$this->apply()`) are persisted to the event store
+2. These events are linked to the domain tags defined in the use case
+3. An optimistic lock prevents concurrent modifications to the same event stream
 
 ### Examples
 
-A simple example of a business decision model using several domain tags and events:
+#### Example 1: DCB use case with multiple domain tags
+
+This example demonstrates a use case using DCB. It tracks whether a student is subscribed to a course by listening to events from both the `Course` and `Student` concepts.
+
+**Key characteristics:**
+- Uses **two domain tags** (`CourseId` and `StudentId`)
+- Subscribes to events from concepts Course and Student
+- Makes a business decision based on multiple contexts
 
 ```php
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
@@ -104,22 +154,28 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
 
     #[DomainTag]
     private CourseId $courseId;
+
     #[DomainTag]
     private StudentId $studentId;
 
-    private bool $isStudentSubscribedToCourse;
+    private bool $isStudentSubscribedToCourse = false;
 
     public function subscribe(): void
     {
-        // Check idempotency
+        // 1. Check idempotency
         if ($this->isStudentSubscribedToCourse) {
             return;
         }
 
-        // Protect invariants
+        // 2. Protect invariants (business rules)
+        // For example: check if course has capacity, student is eligible, etc.
         // ...
 
-        $this->apply(new StudentSubscribedToCourseEvent((string) $this->courseId, (string) $this->studentId));
+        // 3. Apply domain event
+        $this->apply(new StudentSubscribedToCourseEvent(
+            (string) $this->courseId,
+            (string) $this->studentId,
+        ));
     }
 
     #[DomainEventSubscriber]
@@ -148,7 +204,14 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
 }
 ```
 
-A simple example of a traditional aggregate root:
+#### Example 2: Traditional aggregate root
+
+This example shows a traditional aggregate root pattern. The `Course` aggregate is the single source of truth for course data and manages its own lifecycle.
+
+**Key characteristics:**
+- Uses **one domain tag** (`CourseId`) representing the aggregate identity
+- Only subscribes to its own events
+- Manages its own complete state
 
 ```php
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
@@ -164,9 +227,11 @@ final class Course implements EventSourcedUseCase
     private CourseId $courseId;
 
     private string $name;
+    private int $capacity;
 
     public static function create(CourseId $courseId, string $name, int $capacity): self
     {
+        // Static factory method for creating new aggregates
         $course = new self();
         $course->apply(new CourseCreatedEvent((string) $courseId, $name, $capacity));
 
@@ -175,15 +240,34 @@ final class Course implements EventSourcedUseCase
 
     public function rename(string $name): void
     {
-        // Check idempotency
+        // 1. Check idempotency
         if ($this->name === $name) {
             return;
         }
 
-        // Protect invariants
-        // ...
+        // 2. Protect invariants (business rules)
+        if (empty($name)) {
+            throw new InvalidArgumentException('Course name cannot be empty');
+        }
 
+        // 3. Apply domain event
         $this->apply(new CourseRenamedEvent((string) $this->courseId, $name));
+    }
+
+    public function changeCapacity(int $capacity): void
+    {
+        // 1. Check idempotency
+        if ($this->capacity === $capacity) {
+            return;
+        }
+
+        // 2. Protect invariants
+        if ($capacity < 1) {
+            throw new InvalidArgumentException('Course capacity must be at least 1');
+        }
+
+        // 3. Apply domain event
+        $this->apply(new CourseCapacityChangedEvent((string) $this->courseId, $capacity));
     }
 
     #[DomainEventSubscriber]
@@ -191,12 +275,19 @@ final class Course implements EventSourcedUseCase
     {
         $this->courseId = new CourseId($event->courseId);
         $this->name = $event->name;
+        $this->capacity = $event->capacity;
     }
 
     #[DomainEventSubscriber]
-    private function onCourseNameChangedEvent(CourseRenamedEvent $event): void
+    private function onCourseRenamedEvent(CourseRenamedEvent $event): void
     {
         $this->name = $event->name;
+    }
+
+    #[DomainEventSubscriber]
+    private function onCourseCapacityChangedEvent(CourseCapacityChangedEvent $event): void
+    {
+        $this->capacity = $event->capacity;
     }
 }
 ```
