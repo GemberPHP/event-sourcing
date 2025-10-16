@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\Registry\Saga\Reflector;
 
 use Gember\EventSourcing\Common\CreationPolicy;
-use Gember\EventSourcing\Registry\Saga\SagaNotRegisteredException;
 use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
 use Gember\EventSourcing\Resolver\Saga\Default\DefaultSagaResolver;
@@ -61,11 +60,9 @@ final class ReflectorSagaRegistryTest extends TestCase
     }
 
     #[Test]
-    public function itShouldThrowWhenIdNotRegistered(): void
+    public function itShouldReturnEmptyListWhenIdNotRegistered(): void
     {
-        self::expectException(SagaNotRegisteredException::class);
-
-        $this->registry->retrieve('someId');
+        self::assertSame([], $this->registry->retrieve('someId'));
     }
 
     #[Test]
@@ -77,7 +74,10 @@ final class ReflectorSagaRegistryTest extends TestCase
             new SagaDefinition(
                 TestSaga::class,
                 'saga.test',
-                new SagaIdDefinition('anotherName', 'someId'),
+                [
+                    new SagaIdDefinition('anotherName', 'someId'),
+                    new SagaIdDefinition('anotherId', 'anotherId'),
+                ],
                 [
                     new SagaEventSubscriberDefinition(
                         TestUseCaseCreatedEvent::class,

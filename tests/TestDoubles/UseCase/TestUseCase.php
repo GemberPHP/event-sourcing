@@ -40,7 +40,7 @@ final class TestUseCase implements EventSourcedUseCase
     #[DomainEventSubscriber]
     private function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event): void
     {
-        $this->domainTag = new TestDomainTag($event->id);
+        $this->domainTag = new TestDomainTag((string) $event->id);
         $this->secondaryTag = $event->secondaryId;
         $this->testAppliedEvents[] = $event;
     }

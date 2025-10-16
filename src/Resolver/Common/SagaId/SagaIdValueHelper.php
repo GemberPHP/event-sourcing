@@ -8,7 +8,7 @@ use Stringable;
 
 final readonly class SagaIdValueHelper
 {
-    public static function getSagaIdValue(object $object, SagaIdDefinition $sagaIdDefinition): string|Stringable
+    public static function getSagaIdValue(object $object, SagaIdDefinition $sagaIdDefinition): string|Stringable|null
     {
         return $object->{$sagaIdDefinition->propertyName};
     }

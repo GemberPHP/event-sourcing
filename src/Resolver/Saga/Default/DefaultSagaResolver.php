@@ -29,14 +29,10 @@ final readonly class DefaultSagaResolver implements SagaResolver
             throw UnresolvableSagaException::missingSagaId($sagaClassName);
         }
 
-        if (count($sagaIdDefinitions) > 1) {
-            throw UnresolvableSagaException::tooManySagaIds($sagaClassName);
-        }
-
         return new SagaDefinition(
             $sagaClassName,
             $this->sagaNameResolver->resolve($sagaClassName),
-            $sagaIdDefinitions[array_key_first($sagaIdDefinitions)],
+            $sagaIdDefinitions,
             $this->sagaEventSubscriberResolver->resolve($sagaClassName),
         );
     }

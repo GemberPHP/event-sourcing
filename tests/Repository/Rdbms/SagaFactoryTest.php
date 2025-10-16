@@ -37,8 +37,9 @@ final class SagaFactoryTest extends TestCase
         $saga = $this->factory->createFromRdbmsSaga(
             TestSaga::class,
             new RdbmsSaga(
+                '08e5d180-20d7-4f01-885c-c7e997fab31d',
                 'saga.test',
-                'a7a0fa85-32cc-49ea-aa54-12ff609fc43b',
+                ['f400964e-1381-4e0e-85b3-14121e4af730', '9a1035c0-7e87-4eba-a4bb-db809423e6be'],
                 '{}',
                 new DateTimeImmutable(),
                 null,

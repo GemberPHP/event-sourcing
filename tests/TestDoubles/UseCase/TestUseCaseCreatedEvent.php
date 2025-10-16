@@ -14,7 +14,7 @@ final readonly class TestUseCaseCreatedEvent
     public function __construct(
         #[DomainTag]
         #[SagaId]
-        public string $id,
+        public ?string $id,
         #[DomainTag]
         public string $secondaryId,
     ) {}

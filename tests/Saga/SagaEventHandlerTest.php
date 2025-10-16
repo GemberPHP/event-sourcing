@@ -114,7 +114,7 @@ final class SagaEventHandlerTest extends TestCase
 
         $rdbmsSaga = $this->repository->sagas['saga.test-event-handler-3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'];
         self::assertSame('saga.test-event-handler', $rdbmsSaga->sagaName);
-        self::assertSame('3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', $rdbmsSaga->sagaId);
+        self::assertSame(['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'], $rdbmsSaga->sagaIds);
 
         // Verify saga was created and method was called by deserializing the payload
         $saga = unserialize($rdbmsSaga->payload);

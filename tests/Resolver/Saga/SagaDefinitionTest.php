@@ -25,9 +25,15 @@ final class SagaDefinitionTest extends TestCase
         $definition = SagaDefinition::fromPayload([
             'sagaClassName' => TestSaga::class,
             'sagaName' => 'test.saga',
-            'sagaId' => [
-                'sagaIdName' => 'id',
-                'propertyName' => 'someId',
+            'sagaIds' => [
+                [
+                    'sagaIdName' => 'id',
+                    'propertyName' => 'someId',
+                ],
+                [
+                    'sagaIdName' => 'anotherId',
+                    'propertyName' => 'anotherId',
+                ],
             ],
             'eventSubscribers' => [
                 [
@@ -47,7 +53,10 @@ final class SagaDefinitionTest extends TestCase
             new SagaDefinition(
                 TestSaga::class,
                 'test.saga',
-                new SagaIdDefinition('id', 'someId'),
+                [
+                    new SagaIdDefinition('id', 'someId'),
+                    new SagaIdDefinition('anotherId', 'anotherId'),
+                ],
                 [
                     new SagaEventSubscriberDefinition(
                         TestUseCaseCreatedEvent::class,
@@ -71,7 +80,10 @@ final class SagaDefinitionTest extends TestCase
         $definition = new SagaDefinition(
             TestSaga::class,
             'test.saga',
-            new SagaIdDefinition('id', 'someId'),
+            [
+                new SagaIdDefinition('id', 'someId'),
+                new SagaIdDefinition('anotherId', 'anotherId'),
+            ],
             [
                 new SagaEventSubscriberDefinition(
                     TestUseCaseCreatedEvent::class,
@@ -89,9 +101,15 @@ final class SagaDefinitionTest extends TestCase
         self::assertSame([
             'sagaClassName' => TestSaga::class,
             'sagaName' => 'test.saga',
-            'sagaId' => [
-                'sagaIdName' => 'id',
-                'propertyName' => 'someId',
+            'sagaIds' => [
+                [
+                    'sagaIdName' => 'id',
+                    'propertyName' => 'someId',
+                ],
+                [
+                    'sagaIdName' => 'anotherId',
+                    'propertyName' => 'anotherId',
+                ],
             ],
             'eventSubscribers' => [
                 [

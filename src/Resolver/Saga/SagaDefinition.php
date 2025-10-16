@@ -14,7 +14,7 @@ use Gember\EventSourcing\Util\Serialization\Serializable;
  * @phpstan-type SagaDefinitionPayload array{
  *     sagaClassName: class-string,
  *     sagaName: string,
- *     sagaId: SagaIdDefinitionPayload,
+ *     sagaIds: list<SagaIdDefinitionPayload>,
  *     eventSubscribers: list<SagaEventSubscriberDefinitionPayload>
  * }
  *
@@ -24,12 +24,13 @@ final readonly class SagaDefinition implements Serializable
 {
     /**
      * @param class-string $sagaClassName
+     * @param list<SagaIdDefinition> $sagaIds
      * @param list<SagaEventSubscriberDefinition> $eventSubscribers
      */
     public function __construct(
         public string $sagaClassName,
         public string $sagaName,
-        public SagaIdDefinition $sagaId,
+        public array $sagaIds,
         public array $eventSubscribers,
     ) {}
 
@@ -38,7 +39,7 @@ final readonly class SagaDefinition implements Serializable
         return [
             'sagaClassName' => $this->sagaClassName,
             'sagaName' => $this->sagaName,
-            'sagaId' => $this->sagaId->toPayload(),
+            'sagaIds' => array_map(fn($sagaId) => $sagaId->toPayload(), $this->sagaIds),
             'eventSubscribers' => array_map(fn($eventSubscriber) => $eventSubscriber->toPayload(), $this->eventSubscribers),
         ];
     }
@@ -48,7 +49,7 @@ final readonly class SagaDefinition implements Serializable
         return new self(
             $payload['sagaClassName'],
             $payload['sagaName'],
-            SagaIdDefinition::fromPayload($payload['sagaId']),
+            array_map(fn($sagaId) => SagaIdDefinition::fromPayload($sagaId), $payload['sagaIds']),
             array_map(fn($eventSubscriber) => SagaEventSubscriberDefinition::fromPayload($eventSubscriber), $payload['eventSubscribers']),
         );
     }

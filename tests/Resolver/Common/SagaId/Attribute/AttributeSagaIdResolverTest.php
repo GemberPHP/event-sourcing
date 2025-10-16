@@ -58,6 +58,7 @@ final class AttributeSagaIdResolverTest extends TestCase
 
         self::assertEquals([
             new SagaIdDefinition('anotherName', 'someId'),
+            new SagaIdDefinition('anotherId', 'anotherId'),
         ], $definitions);
     }
 
