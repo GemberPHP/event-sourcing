@@ -12,6 +12,10 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
 - [Background](/docs/background.md)
 - [Installation](/docs/installation.md)
 - [Usage](/docs/usage.md)
+  - [Use cases / aggregates](/docs/use-cases.md) - Model business logic using event-sourced use cases and traditional aggregates with DCB (Domain Centric Business logic) or aggregate patterns
+  - [Command handlers](/docs/command-handlers.md) - Trigger behavioral actions on use cases using command handlers
+  - [Domain events](/docs/domain-events.md) - Define and work with domain events, including naming, serialization, and domain tags
+  - [Sagas](/docs/sagas.md) - Implement long-running business processes that coordinate complex workflows across multiple domain events
 - Library architecture
 - Library reference
 - Hooking into the library
