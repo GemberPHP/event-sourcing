@@ -23,7 +23,7 @@
         "php": "^8.3",
         "ext-mbstring": "*",
         "ext-tokenizer": "*",
-        "gember/dependency-contracts": "^0.2",
+        "gember/dependency-contracts": "^0.3",
         "psr/log": "^3.0",
         "psr/simple-cache": "^3.0"
     },

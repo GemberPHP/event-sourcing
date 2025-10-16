@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e6f09f6dba9ff0f9c1eca822ecf90269",
+    "content-hash": "ddc84e501d9b366129903b5a2c9950fc",
     "packages": [
         {
             "name": "gember/dependency-contracts",
-            "version": "0.2.1",
+            "version": "0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/GemberPHP/dependency-contracts.git",
-                "reference": "dba36626a596e8ef49c1a12ed234a4c874d335b9"
+                "reference": "d5dc317687f4e2f0e1c7f60159348d257ceb9f4a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/GemberPHP/dependency-contracts/zipball/dba36626a596e8ef49c1a12ed234a4c874d335b9",
-                "reference": "dba36626a596e8ef49c1a12ed234a4c874d335b9",
+                "url": "https://api.github.com/repos/GemberPHP/dependency-contracts/zipball/d5dc317687f4e2f0e1c7f60159348d257ceb9f4a",
+                "reference": "d5dc317687f4e2f0e1c7f60159348d257ceb9f4a",
                 "shasum": ""
             },
             "require": {
@@ -58,9 +58,9 @@
             ],
             "support": {
                 "issues": "https://github.com/GemberPHP/dependency-contracts/issues",
-                "source": "https://github.com/GemberPHP/dependency-contracts/tree/0.2.1"
+                "source": "https://github.com/GemberPHP/dependency-contracts/tree/0.3.0"
             },
-            "time": "2025-10-10T07:33:21+00:00"
+            "time": "2025-10-16T17:02:30+00:00"
         },
         {
             "name": "psr/log",
