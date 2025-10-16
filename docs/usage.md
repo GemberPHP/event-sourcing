@@ -458,7 +458,7 @@ Sagas are particularly useful for:
 
 **Command dispatching**: Sagas orchestrate workflows by dispatching commands to other parts of the system through the `CommandBus`. This allows sagas to trigger actions in aggregates or use cases without directly coupling to them.
 
-**Saga linking**: The connection between a domain event and a saga is established through **Saga IDs**. This is the key mechanism that determines which saga instance should handle which event.
+**Saga linking**: The connection between a domain event and a saga is established through **Saga IDs**. This is the key mechanism that determines which saga instance should handle which event. A saga can have multiple Saga IDs, allowing it to subscribe to events with different identifiers.
 
 #### Configuring a Saga
 
@@ -562,20 +562,25 @@ final class OrderFulfillmentSaga
 
 The connection between a domain event and a saga instance is established through **Saga IDs**. This is a crucial mechanism that ensures the correct saga instance processes the correct events.
 
-**Step 1**: Define a Saga ID property in your saga with a specific name using `#[SagaId(name: 'someName')]` or omit the custom ID name; then the property name will the Saga ID name:
+A saga can have **multiple Saga ID properties**, each marked with the `#[SagaId]` attribute. This allows a saga to subscribe to events with different identifiers, making it easier to coordinate complex workflows that involve multiple domain concepts.
+
+**Step 1**: Define one or more Saga ID properties in your saga with specific names using `#[SagaId(name: 'someName')]` or omit the custom ID name; then the property name will be the Saga ID name:
 
 ```php
 #[Saga(name: 'order.fulfillment')]
 final class OrderFulfillmentSaga
 {
     #[SagaId(name: 'orderId')]
-    public ?string $orderId = null;
+    public string $orderId;
+
+    #[SagaId] // property name 'customerId' will be used as Saga ID name
+    public string $customerId;
 
     // ... rest of saga
 }
 ```
 
-**Step 2**: Mark the corresponding property in your domain events with the **same Saga ID name** or omit the custom ID name; then the property name will the Saga ID name:
+**Step 2**: Mark the corresponding properties in your domain events with the **same Saga ID names** or omit the custom ID names; then the property names will be the Saga ID names:
 
 ```php
 #[DomainEvent(name: 'order.placed')]
@@ -585,6 +590,9 @@ final readonly class OrderPlacedEvent
         #[DomainTag]
         #[SagaId(name: 'orderId')]
         public string $id,
+        #[DomainTag]
+        #[SagaId] // Links to 'customerId' Saga ID
+        public string $customerId,
         public float $amount,
     ) {}
 }
@@ -596,6 +604,7 @@ final readonly class PaymentReceivedEvent
         #[DomainTag]
         #[SagaId]
         public string $orderId,
+        // No customerId here - this event only routes via orderId
     ) {}
 }
 ```
@@ -603,7 +612,9 @@ final readonly class PaymentReceivedEvent
 **How it works**:
 
 1. When a domain event is published, the `SagaEventHandler` extracts all Saga ID values from the event
-2. For each Saga ID name (e.g., `'orderId'`), it finds all saga classes registered for that name
+2. For each Saga ID in the event (e.g., `'orderId'`, `'customerId'`):
+   - If the Saga ID value is **null**, that routing path is skipped
+   - Otherwise, it finds all saga classes registered for that Saga ID name
 3. For each matching saga class, it checks if there's an event subscriber for this specific event type
 4. It retrieves the saga instance from the saga store using the Saga ID value from the event
 5. If the saga doesn't exist:
@@ -612,13 +623,19 @@ final readonly class PaymentReceivedEvent
 6. The saga's event subscriber method is invoked
 7. The saga instance is persisted back to the saga store
 
-This mechanism allows multiple events with the same Saga ID to be routed to the same saga instance, enabling the saga to coordinate a multi-step process.
+This mechanism allows:
+- Multiple events with the same Saga ID to be routed to the same saga instance
+- A single saga to be triggered by events with **different** Saga IDs (e.g., both order events and customer events)
+- Flexible saga coordination across multiple domain concepts
 
-> **Note**: A single domain event can have multiple Saga IDs, and therefore can trigger multiple different sagas. Each Saga ID acts as an independent routing mechanism.
+> **Note**: Both domain events and sagas can have multiple Saga IDs. 
+> A domain event with multiple Saga IDs can trigger multiple different sagas, 
+> and a saga with multiple Saga IDs can be triggered by events with any of those IDs. 
+> Each Saga ID acts as an independent routing mechanism.
 
 #### Examples
 
-A complete example of an order fulfillment saga:
+A complete example of an order fulfillment saga with multiple Saga IDs:
 
 ```php
 use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
@@ -633,6 +650,9 @@ final class OrderFulfillmentSaga
     #[SagaId]
     public ?string $orderId = null;
 
+    #[SagaId]
+    public ?string $customerId = null;
+
     private bool $paymentReceived = false;
     private bool $inventoryReserved = false;
     private bool $itemsShipped = false;
@@ -641,6 +661,7 @@ final class OrderFulfillmentSaga
     public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandBus $commandBus): void
     {
         $this->orderId = $event->orderId;
+        $this->customerId = $event->customerId;
 
         // Start the fulfillment process
         $commandBus->handle(new ProcessPaymentCommand($event->orderId, $event->amount));
@@ -699,5 +720,19 @@ final class OrderFulfillmentSaga
         // Notify customer and complete the saga
         $commandBus->handle(new SendShippingNotificationCommand($event->orderId));
     }
+
+    #[SagaEventSubscriber]
+    public function onCustomerAddressChangedEvent(CustomerAddressChangedEvent $event, CommandBus $commandBus): void
+    {
+        // This saga can also respond to customer events via the customerId Saga ID
+        // If shipping hasn't occurred yet, update the shipping address
+        if (!$this->itemsShipped && $this->inventoryReserved) {
+            $commandBus->handle(new UpdateShippingAddressCommand($this->orderId, $event->newAddress));
+        }
+    }
 }
 ```
+
+This example demonstrates how a saga with multiple Saga IDs (`orderId` and `customerId`) can:
+- Be triggered by order-related events (via `orderId`)
+- Be triggered by customer-related events (via `customerId`)
