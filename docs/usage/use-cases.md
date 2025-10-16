@@ -71,7 +71,7 @@ public function doSomething(): void
 }
 ```
 
-To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/command-handlers.md) for details on how to set up command handling.
+To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/usage/command-handlers.mders.md) for details on how to set up command handling.
 
 ### Event subscribers and state management
 
