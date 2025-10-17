@@ -38,3 +38,156 @@ Domain concepts are modeled through use cases.
 - A use case can relate to one or more domain concepts
 
 <img width="495" alt="use-case-driven-event-sourcing" src="/docs/images/use-case-driven-event-sourcing.png" />
+
+## A simple example
+
+This example demonstrates all key features of the library: a DCB use case with command handler, domain events, and a saga coordinating a workflow.
+
+**Scenario**: A student subscribes to a course. When subscription succeeds, a saga automatically sends a welcome email.
+
+### Domain Events
+
+```php
+use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
+use Gember\EventSourcing\Saga\Attribute\SagaId;
+
+#[DomainEvent(name: 'course.created')]
+final readonly class CourseCreatedEvent
+{
+    public function __construct(
+        #[DomainTag]
+        public string $courseId,
+        public string $name,
+    ) {}
+}
+
+#[DomainEvent(name: 'student.registered')]
+final readonly class StudentRegisteredEvent
+{
+    public function __construct(
+        #[DomainTag]
+        public string $studentId,
+        public string $email,
+    ) {}
+}
+
+#[DomainEvent(name: 'student.subscribed')]
+final readonly class StudentSubscribedEvent
+{
+    public function __construct(
+        #[DomainTag]
+        #[SagaId]  // Links to SubscriptionWelcomeSaga
+        public string $courseId,
+        #[DomainTag]
+        #[SagaId]
+        public string $studentId,
+    ) {}
+}
+```
+
+### Use Case with Command Handler
+
+```php
+use Gember\EventSourcing\Common\CreationPolicy;
+use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
+use Gember\EventSourcing\UseCase\EventSourcedUseCase;
+use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
+
+final class SubscribeStudentToCourse implements EventSourcedUseCase
+{
+    use EventSourcedUseCaseBehaviorTrait;
+
+    #[DomainTag]
+    private CourseId $courseId;
+
+    #[DomainTag]
+    private StudentId $studentId;
+
+    private bool $isSubscribed = false;
+
+    /**
+     * Subscribes a student to a course (DCB pattern with multiple domain tags).
+     * Uses __invoke to emphasize this is a single-purpose use case.
+     */
+    #[DomainCommandHandler(policy: CreationPolicy::IfMissing)]
+    public function __invoke(SubscribeStudentCommand $command): void
+    {
+        // 1. Check idempotency
+        if ($this->isSubscribed) {
+            return;
+        }
+
+        // 2. Protect invariants (simplified for example)
+        // In real scenarios: check capacity, prerequisites, etc.
+
+        // 3. Apply domain event
+        $this->apply(new StudentSubscribedEvent(
+            $command->courseId,
+            $command->studentId,
+        ));
+    }
+
+    #[DomainEventSubscriber]
+    private function onCourseCreated(CourseCreatedEvent $event): void
+    {
+        $this->courseId = new CourseId($event->courseId);
+    }
+
+    #[DomainEventSubscriber]
+    private function onStudentRegistered(StudentRegisteredEvent $event): void
+    {
+        $this->studentId = new StudentId($event->studentId);
+    }
+
+    #[DomainEventSubscriber]
+    private function onStudentSubscribed(StudentSubscribedEvent $event): void
+    {
+        $this->isSubscribed = true;
+    }
+}
+```
+
+### Saga
+
+```php
+use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
+use Gember\EventSourcing\Common\CreationPolicy;
+use Gember\EventSourcing\Saga\Attribute\Saga;
+use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
+use Gember\EventSourcing\Saga\Attribute\SagaId;
+
+#[Saga(name: 'subscription.welcome')]
+final class SubscriptionWelcomeSaga
+{
+    #[SagaId]
+    public ?string $courseId = null;
+
+    #[SagaId]
+    public ?string $studentId = null;
+
+    private bool $welcomeEmailSent = false;
+
+    /**
+     * When a student subscribes, automatically send a welcome email.
+     */
+    #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
+    public function onStudentSubscribed(StudentSubscribedEvent $event, CommandBus $commandBus): void
+    {
+        $this->courseId = $event->courseId;
+        $this->studentId = $event->studentId;
+
+        // Dispatch command to send welcome email
+        $commandBus->handle(new SendWelcomeEmailCommand(
+            $event->studentId,
+            $event->courseId,
+        ));
+
+        $this->welcomeEmailSent = true;
+    }
+}
+```
+
+For more extended examples and complete implementations, check out the demo application [gember/example-event-sourcing-dcb](https://github.com/GemberPHP/example-event-sourcing-dcb).
