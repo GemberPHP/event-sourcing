@@ -144,8 +144,6 @@ final readonly class SubscribeStudentToCourseHandler
 {
     public function __construct(
         private UseCaseRepository $repository,
-        private CourseCapacityChecker $capacityChecker,
-        private StudentEligibilityService $eligibilityService,
     ) {}
 
     #[AsMessageHandler(bus: 'command.bus')]

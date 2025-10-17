@@ -71,7 +71,7 @@ public function doSomething(): void
 }
 ```
 
-To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/usage/command-handlers.mders.md) for details on how to set up command handling.
+> **Note:** To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/usage/command-handlers.md) for details on how to set up command handling.
 
 ### Event subscribers and state management
 
@@ -141,6 +141,9 @@ This example demonstrates a use case using DCB. It tracks whether a student is s
 - Uses **two domain tags** (`CourseId` and `StudentId`)
 - Subscribes to events from concepts Course and Student
 - Makes a business decision based on multiple contexts
+
+> **Note:** When modeling your use case using DCB, it is recommended to only have one behavioral method reflecting the use case.
+> To make this explicit and very clear, you can use `__invoke` as method name.
 
 ```php
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
