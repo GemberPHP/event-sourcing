@@ -1,59 +1,44 @@
 ## Background
-PHP has some nice libraries available for event sourcing, like [Broadway](https://github.com/broadway), [EventSauce](https://github.com/EventSaucePHP), [Prooph](https://github.com/prooph) and [Ecotone](https://github.com/ecotoneframework).
-They all have the "aggregate" as the primary citizen of event sourcing,
-with a strict one-to-one relation between a domain event and the aggregate.
 
-In a 'traditional' event sourced application, aggregates have strict boundaries,
-meaning that it disallows re-using domain events by multiple different aggregates.
-A common rule in event sourcing is that all business logic belonging to an aggregate should reside within that aggregate.
+PHP has several excellent libraries for event sourcing: [Broadway](https://github.com/broadway), [EventSauce](https://github.com/EventSaucePHP), [Prooph](https://github.com/prooph), and [Ecotone](https://github.com/ecotoneframework). They all treat the "aggregate" as the primary building block of event sourcing, with a strict one-to-one relationship between domain events and aggregates.
 
-Since aggregates are consistent internally, each behavioral change to an aggregate locks other behavioral changes, 
-even if the changes aren’t really related from a domain perspective.
+In traditional event-sourced applications, aggregates have strict boundaries. This means domain events cannot be reused by multiple aggregates. A common rule in event sourcing is that all business logic for an aggregate must reside within that aggregate.
 
-An aggregate as described by Evans in his 'blue book':
+Because aggregates are internally consistent, any behavioral change locks the aggregate from other changes, even when those changes are unrelated from a domain perspective.
 
-> Cluster the ENTITIES and VALUE OBJECTS into AGGREGATES and define boundaries around each.
-> Choose one ENTITY to be the root of each AGGREGATE, and control all access to the objects inside the boundary through the root.
-> Allow external objects to hold reference to the root only.
+Evans described aggregates in his 'blue book' as:
 
-_From "Domain-Driven Design: Tackling Complexity in the Heart of Software" by Eric Evans (the 'blue book')._
+> Cluster the ENTITIES and VALUE OBJECTS into AGGREGATES and define boundaries around each. Choose one ENTITY to be the root of each AGGREGATE, and control all access to the objects inside the boundary through the root. Allow external objects to hold reference to the root only.
 
-However, over time, this often leads to "fat aggregates" (the new fat controller? 😛).
+_From "Domain-Driven Design: Tackling Complexity in the Heart of Software" by Eric Evans._
 
-Also, the aggregate is a highly technical concept, which makes it difficult to explain to non-technical stakeholders,
-e.g. during [EventStorming](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet) sessions.
+However, this approach often leads to "fat aggregates" over time.
+
+Additionally, the aggregate is a technical concept that can be difficult to explain to non-technical stakeholders, such as during [EventStorming](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet) sessions.
 
 ## Gember Event Sourcing
-Gember addresses these issues and takes a different approach, by using a new concept called "Dynamic Consistency Boundary" (DCB) pattern in mind.
 
-**Gember Event Sourcing is still in the experimental stage, exploring how the DCB pattern works in practice.**
+Gember addresses these issues by taking a different approach, using the "Dynamic Consistency Boundary" (DCB) pattern.
+
+> **Gember Event Sourcing is experimental**, exploring how the DCB pattern works in practice.
 
 ## The Dynamic Consistency Boundary (DCB) pattern
-Introduced by Sara Pellegrini in 2023, the DCB pattern rethinks the traditional approach in event sourcing,
-which she explains well in her talk: ["The Aggregate is dead. Long live the Aggregate!"](https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html) (a must-read).
 
-**In a nutshell, the DCB pattern removes the strict one-to-one relation between an aggregate and a domain event.**
+Sara Pellegrini introduced the DCB pattern in 2023, rethinking the traditional approach to event sourcing. She explains it thoroughly in her talk: ["The Aggregate is dead. Long live the Aggregate!"](https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html) (highly recommended).
 
-As a consequence, a domain event can now be reused by multiple different aggregates, or better called now, "business decision models".
-This allows us to create business decision models based on a subset of domain events,
-or even on domain events from different aggregates, or better called now, "domain tags".
+> **In a nutshell:** the DCB pattern removes the strict one-to-one relationship between aggregates and domain events.
 
-This aligns well with the way EventStorming looks at aggregates nowadays.
-What they used to call aggregates are often seen as "systems" or "consistent business rules",
-making the problem space more understandable to non-technical stakeholders.
+This means domain events can be reused by multiple "use cases" (the aggregates). Use cases can be built from a subset of domain events, or even from events across different "domain tags" (the aggregate identifiers).
 
-With domain events now sharable across multiple different business decision models, synchronization between aggregates is no longer necessary.
-This means that e.g. domain services, which are usually created to manage business logic across aggregates, are not needed anymore.
-Similarly, "sagas", when used to subscribe to events in order to synchronize between aggregates, are also no longer necessary.
+This aligns well with how EventStorming views aggregates today. What were once called aggregates are now often seen as "systems" or "consistent business rules", making the problem space easier to understand for non-technical stakeholders.
 
-Replacing "fat aggregates" with multiple business decision models also resolves consistency issues (optimistic locking)
-between behavioral changes that seem unrelated from a domain point of view.
-A business decision model is consistent only for the specific subset of domain events relevant to its domain tag.
+When domain events can be shared across multiple use cases, synchronization between aggregates is no longer necessary. Domain services, typically used to manage business logic across aggregates, are no longer needed. Sagas, when used for synchronizing the same behavior between aggregates (e.g. subscribe _student_ to _course_), are also no longer required.
 
-> For example, splitting into different business decision models allows behavioral changes to a course title
-> without blocking a student from subscribing to that course (referring to Sara Pellegrini’s example).
+Replacing fat aggregates with multiple use cases also resolves consistency issues (optimistic locking) between behavioral changes that are unrelated from a domain perspective. A use case is consistent only for the specific subset of domain events relevant to its domain tags.
 
-Overall, the DCB pattern reduces the "accidental complexity" introduced by aggregates, letting us build software that better reflects the real world.
+> For example, splitting into different use cases allows a course title to be changed without blocking a student from enrolling in that course (from Sara Pellegrini's example).
+
+Overall, the DCB pattern reduces the accidental complexity introduced by aggregates, allowing us to build software that better reflects the real world.
 
 **More information about the DCB pattern:**
 
