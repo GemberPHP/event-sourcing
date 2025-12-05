@@ -167,16 +167,16 @@
     "packages-dev": [
         {
             "name": "captainhook/captainhook",
-            "version": "5.26.0",
+            "version": "5.27.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/captainhook-git/captainhook.git",
-                "reference": "25f4a8a1ab0ed315952007fa26ca4357c0213d13"
+                "reference": "a4f836f6185b87066ce3388f6c944883eb248022"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/captainhook-git/captainhook/zipball/25f4a8a1ab0ed315952007fa26ca4357c0213d13",
-                "reference": "25f4a8a1ab0ed315952007fa26ca4357c0213d13",
+                "url": "https://api.github.com/repos/captainhook-git/captainhook/zipball/a4f836f6185b87066ce3388f6c944883eb248022",
+                "reference": "a4f836f6185b87066ce3388f6c944883eb248022",
                 "shasum": ""
             },
             "require": {
@@ -187,10 +187,10 @@
                 "php": ">=8.0",
                 "sebastianfeldmann/camino": "^0.9.2",
                 "sebastianfeldmann/cli": "^3.3",
-                "sebastianfeldmann/git": "^3.14",
-                "symfony/console": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0",
-                "symfony/filesystem": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0",
-                "symfony/process": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0"
+                "sebastianfeldmann/git": "^3.15.3",
+                "symfony/console": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0 || ^8.0",
+                "symfony/filesystem": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0 || ^8.0",
+                "symfony/process": "^2.7 || ^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0 || ^8.0"
             },
             "replace": {
                 "sebastianfeldmann/captainhook": "*"
@@ -239,7 +239,7 @@
             ],
             "support": {
                 "issues": "https://github.com/captainhook-git/captainhook/issues",
-                "source": "https://github.com/captainhook-git/captainhook/tree/5.26.0"
+                "source": "https://github.com/captainhook-git/captainhook/tree/5.27.3"
             },
             "funding": [
                 {
@@ -247,7 +247,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-11-18T23:47:11+00:00"
+            "time": "2025-11-27T13:11:01+00:00"
         },
         {
             "name": "captainhook/secrets",
@@ -4287,16 +4287,16 @@
         },
         {
             "name": "sebastianfeldmann/git",
-            "version": "3.15.1",
+            "version": "3.15.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianfeldmann/git.git",
-                "reference": "90cb5a32f54dbb0d7dcd87d02e664ec2b50c0c96"
+                "reference": "601fd0fbb7d1a784e009a4f8f40975e777ad334a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianfeldmann/git/zipball/90cb5a32f54dbb0d7dcd87d02e664ec2b50c0c96",
-                "reference": "90cb5a32f54dbb0d7dcd87d02e664ec2b50c0c96",
+                "url": "https://api.github.com/repos/sebastianfeldmann/git/zipball/601fd0fbb7d1a784e009a4f8f40975e777ad334a",
+                "reference": "601fd0fbb7d1a784e009a4f8f40975e777ad334a",
                 "shasum": ""
             },
             "require": {
@@ -4337,7 +4337,7 @@
             ],
             "support": {
                 "issues": "https://github.com/sebastianfeldmann/git/issues",
-                "source": "https://github.com/sebastianfeldmann/git/tree/3.15.1"
+                "source": "https://github.com/sebastianfeldmann/git/tree/3.15.3"
             },
             "funding": [
                 {
@@ -4345,7 +4345,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-09-05T08:07:09+00:00"
+            "time": "2025-11-20T21:33:45+00:00"
         },
         {
             "name": "shipmonk/composer-dependency-analyser",
