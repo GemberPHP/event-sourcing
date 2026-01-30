@@ -1,4 +1,4 @@
-## Architecture overview
+## How it works
 
 This section explains how the core concepts of _Gember Event Sourcing_ fit together, from command dispatch to event persistence and read model updates.
 
@@ -117,32 +117,3 @@ Sagas are persisted directly (not event-sourced) in a saga store with two struct
 | Saga store relations | Links Saga ID values to saga instances for routing |
 
 When a domain event is published, the saga framework extracts `#[SagaId]` values from the event and uses the saga store relations to find the correct saga instance to invoke.
-
-### Component relationships
-
-```mermaid
-flowchart LR
-    subgraph domain ["Domain layer"]
-        Command["**Command**
-        _#[DomainTag] → load events_"]
-        UseCase["**Use Case**
-        _#[DomainTag] → lock scope_
-        _#[DomainEventSubscriber] → rebuild state_
-        _#[DomainCommandHandler] → handle command_"]
-        Event["**Domain Event**
-        _#[DomainTag] → index event_"]
-    end
-
-    Command --> UseCase --> Event
-
-    Event --> Relations["Event Store Relations"]
-    Relations --> Store["Event Store"]
-    Store --> Bus["Event Bus"]
-
-    Bus --> Projector["Projector
-    _(read model)_"]
-    Bus --> Saga["Saga
-    _(workflow)_"]
-    Bus --> Other["Other
-    _subscribers_"]
-```

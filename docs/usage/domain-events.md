@@ -23,25 +23,17 @@ Domain tags appear on commands, use cases, and events, each serving a different 
 | **Use case** | **Optimistic lock** scope (must match command) |
 | **Event** | How to **index** the event for future retrieval |
 
-When loading a use case, Gember builds a **stream query** combining the domain tags (from the command) with the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods). Only events matching at least one tag **and** a subscribed type are loaded.
+> When loading a use case, Gember builds a **stream query** combining the domain tags (from the command) with the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods). Only events matching at least one tag **and** a subscribed type are loaded.
 
 An event's domain tags do not need to match the command's domain tags. They serve independent purposes. A command tag determines what gets loaded; an event tag determines how the event is discoverable in the future.
 
 #### Choosing event domain tags
 
-Add a domain tag for each use case that will need to load this event in the future:
+Add a domain tag for each use case that will need to load this event in the future. For example:
 
 - If `CreateTimeslot` needs to see `TimeslotDiscardedEvent` via `practitionerId`, the event must have `practitionerId` as a domain tag
 - If `PreReserveTimeslot` needs to see `TimeslotCreatedEvent` via `timeslotId`, the event must have `timeslotId` as a domain tag
 - An event can have multiple domain tags if multiple use cases need it via different identifiers
-
-**Example:** A `TimeslotCreatedEvent` might need both `timeslotId` and `practitionerId` as domain tags:
-- `timeslotId` - so `PreReserveTimeslot` can load it when querying by timeslot
-- `practitionerId` - so `CreateTimeslot` can load it when querying all timeslots for a practitioner
-
-Conversely, a `TimeslotPreReservedEvent` might only need `timeslotId`:
-- `timeslotId` - so `PreReserveTimeslot` can see it
-- No `practitionerId` - because `CreateTimeslot` does not need to know about pre-reservations
 
 There are two ways to define domain tags on events:
 

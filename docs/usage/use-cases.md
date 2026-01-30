@@ -190,115 +190,12 @@ It is recommended to document each event subscriber with a docblock explaining:
 /**
  * Tracks active time periods for the practitioner to validate
  * that a new timeslot does not overlap with existing ones.
- *
  * Loaded via domain tag: practitionerId.
  */
 #[DomainEventSubscriber]
 private function onTimeslotCreated(TimeslotCreatedEvent $event): void
 {
     // ...
-}
-```
-
-### Validators
-
-When protecting invariants, it is recommended to extract business rules into dedicated validator classes. Each validator enforces a single rule and throws a `DomainException` when violated:
-
-```php
-final readonly class TimePeriodShouldNotStartInThePastValidator
-{
-    public static function validate(TimePeriod $timePeriod, DateTimeImmutable $now): void
-    {
-        if ($timePeriod->startAt < $now) {
-            throw new DomainException('Time period cannot start in the past.');
-        }
-    }
-}
-```
-
-Validators are called in the behavioral method before applying the event:
-
-```php
-#[DomainCommandHandler(policy: CreationPolicy::IfMissing)]
-public function __invoke(CreateTimeslotCommand $command): void
-{
-    // 1. Validate against command data
-    TimePeriodShouldNotStartInThePastValidator::validate(
-        $command->timePeriod,
-        $command->now,
-    );
-
-    // 2. Validate against reconstructed state
-    PractitionerShouldNotHaveOverlappingTimePeriodsValidator::validate(
-        $this->activeTimePeriodsForPractitioner,
-        $command->timePeriod,
-    );
-
-    // 3. Apply event only after all validations pass
-    $this->apply(new TimeslotCreatedEvent(/* ... */));
-}
-```
-
-**Validation order:**
-1. Validate against command data (temporal rules, format rules, basic constraints)
-2. Validate against reconstructed state (uniqueness, conflicts, business invariants)
-3. Apply event only after all validations pass
-
-### Helper objects for complex state
-
-When a use case needs to manage complex state for validation, use dedicated helper objects rather than primitive properties:
-
-```php
-final class ActiveTimePeriodsForPractitioner implements IteratorAggregate
-{
-    /** @var array<string, TimePeriod> */
-    private array $timePeriods = [];
-
-    public function add(TimeslotId $timeslotId, TimePeriod $timePeriod): void
-    {
-        $this->timePeriods[(string) $timeslotId] = $timePeriod;
-    }
-
-    public function remove(TimeslotId $timeslotId): void
-    {
-        unset($this->timePeriods[(string) $timeslotId]);
-    }
-
-    public function getIterator(): Traversable
-    {
-        yield from $this->timePeriods;
-    }
-}
-```
-
-Helper objects are initialized in the use case constructor and updated by event subscribers during state reconstruction:
-
-```php
-final class CreateTimeslot implements EventSourcedUseCase
-{
-    use EventSourcedUseCaseBehaviorTrait;
-
-    private ActiveTimePeriodsForPractitioner $activeTimePeriodsForPractitioner;
-
-    public function __construct()
-    {
-        $this->activeTimePeriodsForPractitioner = new ActiveTimePeriodsForPractitioner();
-    }
-
-    #[DomainEventSubscriber]
-    private function onTimeslotCreated(TimeslotCreatedEvent $event): void
-    {
-        $this->activeTimePeriodsForPractitioner->add(
-            new TimeslotId($event->timeslotId),
-            new TimePeriod($event->startAt, $event->endAt),
-        );
-    }
-
-    #[DomainEventSubscriber]
-    private function onTimeslotDiscarded(TimeslotDiscardedEvent $event): void
-    {
-        $this->activeTimePeriodsForPractitioner->remove(new TimeslotId($event->timeslotId));
-    }
 }
 ```
 

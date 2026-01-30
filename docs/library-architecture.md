@@ -2,7 +2,7 @@
 
 This document explains the internal code organization of _Gember Event Sourcing_. It is intended for developers who want to understand, extend, or contribute to the library.
 
-For the conceptual end-to-end flow from a user's perspective, see [Architecture overview](/docs/architecture.md). For usage instructions, see [Usage](/docs/usage.md).
+For the conceptual end-to-end flow from a user's perspective, see [How it works](/docs/how-it-works.md). For usage instructions, see [Usage](/docs/usage.md).
 
 ### Source directory overview
 
@@ -129,58 +129,6 @@ Definition types used across the library:
 ### Resolver layer
 
 The resolver layer is the largest part of the library. It uses PHP reflection to read attributes from user classes and produces Definition DTOs that describe the metadata the library needs at runtime.
-
-#### Overview
-
-```mermaid
-flowchart TD
-    subgraph uc ["UseCase/"]
-        UCR["UseCaseResolver"] --> UCD(["UseCaseDefinition"])
-        UCR --- DefaultUCR["DefaultUseCaseResolver"]
-        DefaultUCR --> DTR1["DomainTagResolver (Common)"]
-        DefaultUCR --> CHR["CommandHandlerResolver
-        reads #[DomainCommandHandler]"]
-        DefaultUCR --> ESR["EventSubscriberResolver
-        reads #[DomainEventSubscriber]"]
-    end
-
-    subgraph dc ["DomainCommand/"]
-        DCR["DomainCommandResolver"] --> DCD(["DomainCommandDefinition"])
-        DCR --- DefaultDCR["DefaultDomainCommandResolver"]
-        DefaultDCR --> DTR2["DomainTagResolver (Common)"]
-    end
-
-    subgraph de ["DomainEvent/"]
-        DER["DomainEventResolver"] --> DED(["DomainEventDefinition"])
-        DER --- DefaultDER["DefaultDomainEventResolver"]
-        DefaultDER --> ENR["EventNameResolver (stacked)"]
-        DefaultDER --> DTR3["DomainTagResolver (Common)"]
-        DefaultDER --> SIR1["SagaIdResolver (Common)"]
-    end
-
-    subgraph saga ["Saga/"]
-        SR["SagaResolver"] --> SD(["SagaDefinition"])
-        SR --- DefaultSR["DefaultSagaResolver"]
-        DefaultSR --> SNR["SagaNameResolver (stacked)"]
-        DefaultSR --> SIR2["SagaIdResolver (Common)"]
-        DefaultSR --> SESR["SagaEventSubscriberResolver
-        reads #[SagaEventSubscriber]"]
-    end
-
-    subgraph common ["Common/"]
-        DTRi["DomainTagResolver"]
-        DTRi --- AttrDTR["AttributeDomainTagResolver
-        reads #[DomainTag]"]
-        DTRi --- IntfDTR["InterfaceDomainTagResolver
-        reads SpecifiedDomainTags"]
-        DTRi --- StackDTR["StackedDomainTagResolver
-        tries Attribute, then Interface"]
-
-        SIRi["SagaIdResolver"]
-        SIRi --- AttrSIR["AttributeSagaIdResolver
-        reads #[SagaId]"]
-    end
-```
 
 #### How resolving works
 

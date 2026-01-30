@@ -17,10 +17,8 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
   - [Command handlers](/docs/usage/command-handlers.md) - Trigger behavioral actions on use cases using command handlers
   - [Domain events](/docs/usage/domain-events.md) - Define and work with domain events, including naming, serialization, and domain tags
   - [Sagas](/docs/usage/sagas.md) - Implement long-running business processes that coordinate complex workflows across multiple domain events
-- [Architecture overview](/docs/architecture.md) - End-to-end flow, event store structure, CQRS, and the read side
+- [How it works](/docs/how-it-works.md) - End-to-end flow, event store structure, CQRS, and the read side
 - [Library architecture](/docs/library-architecture.md) - Internal code organization, design patterns, resolver and registry layers
-- Library reference
-- Hooking into the library
 
 ## In a nutshell
 
