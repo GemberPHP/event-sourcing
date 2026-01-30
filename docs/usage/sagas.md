@@ -20,6 +20,15 @@ Sagas are particularly useful for:
 
 **Saga linking**: The connection between a domain event and a saga is established through **Saga IDs**. This is the key mechanism that determines which saga instance should handle which event. A saga can have multiple Saga IDs, allowing it to subscribe to events with different identifiers.
 
+**Saga IDs vs Domain Tags**: These are independent concepts that serve different purposes:
+
+| Attribute | Purpose | Used by | Storage |
+|-----------|---------|---------|---------|
+| `#[DomainTag]` | Event store indexing for use case loading | Use cases | Event store relations |
+| `#[SagaId]` | Saga routing and identification | Sagas | Saga store relations |
+
+A property on a domain event can have both `#[DomainTag]` and `#[SagaId]`, one, or neither. They do not affect each other.
+
 ### Defining a saga
 
 A saga is a simple PHP class that can be configured in two ways:
@@ -74,7 +83,9 @@ Saga IDs link events to specific saga instances. Each saga must have at least on
 
 **Requirements for Saga ID properties:**
 - **Must be public** - Saga ID properties must have public visibility
-- **Must be serializable** - Values must be serializable, either primitive, `Stringable` or a serializable Value Object.
+- **May be uninitialized** - A new saga instance is created before the first event subscriber populates the Saga ID properties, so they can be uninitialized at that point. Use `isset()` to check, or make the property nullable (`?string`) and initialize to `null` as an alternative
+- **Must be serializable** - Values must be serializable, either primitive, `Stringable` or a serializable Value Object
+- **Must be set in the first subscriber** - The event subscriber with `CreationPolicy::IfMissing` must assign all Saga ID properties from the triggering event
 
 **Custom naming:**
 - Use `#[SagaId(name: 'customName')]` to specify a custom Saga ID name
@@ -96,6 +107,12 @@ final class OrderFulfillmentSaga
     // Saga can be triggered by events with either orderId or customerId
 }
 ```
+
+Events route to sagas using **OR logic**: if any of the event's `#[SagaId]` properties match a saga's registered Saga ID name, the saga receives the event. This means different events can find the same saga instance through different identifiers. For example:
+- `OrderPlacedEvent` (with `#[SagaId] $orderId`) routes via `orderId`
+- `CustomerAddressChangedEvent` (with `#[SagaId] $customerId`) routes via `customerId`
+
+Both reach the same `OrderFulfillmentSaga` type, but locate the saga instance through different Saga ID values. Each Saga ID value is stored as a separate relation in the saga store, enabling lookup by any of them.
 
 ### Saga event subscribers
 
@@ -263,6 +280,17 @@ When a domain event is published, the following process occurs:
 - Flexible saga coordination across multiple domain concepts
 
 > **Note:** When a Saga ID value on an event is null, that routing path is skipped and won't trigger the saga. Only non-null Saga ID values are used for saga storage and retrieval.
+
+### Saga persistence
+
+Unlike event-sourced use cases, sagas are persisted directly. The saga store saves the entire saga instance after each event is processed. This involves two storage structures:
+
+| Table | Purpose |
+|-------|---------|
+| Saga store | Stores serialized saga instances (ID, name, payload, timestamps) |
+| Saga store relations | Links Saga ID values to saga instances for routing |
+
+When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, the old relations are replaced with the current set, allowing Saga ID values to change over the saga's lifetime.
 
 ### Examples
 

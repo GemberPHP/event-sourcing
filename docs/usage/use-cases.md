@@ -40,6 +40,43 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
+#### Domain tag purposes
+
+Domain tags appear on commands, use cases, and events, each serving a different purpose:
+
+| Component | Domain tag purpose |
+|-----------|-------------------|
+| **Command** | Which events to **load** from the event store |
+| **Use case** | **Optimistic lock** scope (must match command) |
+| **Event** | How to **index** the event for future retrieval |
+
+> **Important:** The use case's domain tags **must match the command's domain tags exactly**. The use case tags determine the optimistic lock scope; the command tags determine which events are loaded. If they differ, the lock scope won't match what was loaded, leading to incorrect concurrency behavior.
+
+See [Commands](/docs/usage/commands.md) for more detail on command domain tags.
+
+#### Choosing domain tags
+
+Use as few domain tags as possible. Each tag widens the optimistic lock scope - more tags mean more events are loaded and more potential for concurrency conflicts. Only add a tag when the use case genuinely needs events from that scope for validation.
+
+#### Documenting domain tag choices
+
+It is recommended to add a class-level docblock to each use case explaining what it does and why each domain tag was chosen:
+
+```php
+/**
+ * Creates a timeslot for a practitioner at a location.
+ *
+ * PractitionerId is a domain tag to load all timeslot events for this practitioner,
+ * enabling overlap validation across timeslots.
+ *
+ * LocationId is a domain tag to load LocationCreatedEvent and validate location existence.
+ */
+final class CreateTimeslot implements EventSourcedUseCase
+{
+    // ...
+}
+```
+
 ### Behavioral methods
 
 Use cases and aggregates contain behavioral methods that execute business logic.
@@ -79,7 +116,7 @@ To check for idempotency and protect invariants, the use case needs to maintain 
 This means keeping all data required to make business decisions.
 
 The use case defines **event subscribers** using the `#[DomainEventSubscriber]` attribute.
-When the use case is loaded from the repository, all events matching the domain tags are replayed through these subscribers to rebuild the state.
+When the use case is loaded from the repository, events matching the domain tags **and** the subscribed event types are replayed through these subscribers to rebuild the state.
 
 **Key points:**
 - The use case doesn't have to be the one that applied the event - it just needs to be related to at least one of the use case's domain tags
@@ -116,11 +153,160 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
+#### Cross-aggregate event subscriptions
+
+A use case can subscribe to events applied by **other** use cases or aggregates. The event store query is built from both the domain tags and the subscribed event types (via `#[DomainEventSubscriber]`). If the use case subscribes to an event type that shares at least one domain tag, those events are loaded automatically - regardless of which use case originally applied them.
+
+For example, a `CreateTimeslot` use case with `practitionerId` as a domain tag will automatically receive `PractitionerCreatedEvent` (applied by a different use case) because that event is also tagged with `practitionerId`:
+
+```php
+final class CreateTimeslot implements EventSourcedUseCase
+{
+    use EventSourcedUseCaseBehaviorTrait;
+
+    #[DomainTag]
+    private PractitionerId $practitionerId;
+
+    // This event was applied by a different use case (e.g., CreatePractitioner),
+    // but it shares the practitionerId domain tag, so it's included when
+    // this use case is loaded.
+    #[DomainEventSubscriber]
+    private function onPractitionerCreated(PractitionerCreatedEvent $event): void
+    {
+        $this->practitionerId = new PractitionerId($event->practitionerId);
+    }
+}
+```
+
+This is a key benefit of the DCB pattern: events are not locked to a single aggregate and can be reused across multiple use cases through shared domain tags.
+
+#### Documenting event subscribers
+
+It is recommended to document each event subscriber with a docblock explaining:
+1. **Why** it exists (what state it reconstructs and for what validation)
+2. **Which domain tag** causes the event to be loaded for this use case
+
+```php
+/**
+ * Tracks active time periods for the practitioner to validate
+ * that a new timeslot does not overlap with existing ones.
+ *
+ * Loaded via domain tag: practitionerId.
+ */
+#[DomainEventSubscriber]
+private function onTimeslotCreated(TimeslotCreatedEvent $event): void
+{
+    // ...
+}
+```
+
+### Validators
+
+When protecting invariants, it is recommended to extract business rules into dedicated validator classes. Each validator enforces a single rule and throws a `DomainException` when violated:
+
+```php
+final readonly class TimePeriodShouldNotStartInThePastValidator
+{
+    public static function validate(TimePeriod $timePeriod, DateTimeImmutable $now): void
+    {
+        if ($timePeriod->startAt < $now) {
+            throw new DomainException('Time period cannot start in the past.');
+        }
+    }
+}
+```
+
+Validators are called in the behavioral method before applying the event:
+
+```php
+#[DomainCommandHandler(policy: CreationPolicy::IfMissing)]
+public function __invoke(CreateTimeslotCommand $command): void
+{
+    // 1. Validate against command data
+    TimePeriodShouldNotStartInThePastValidator::validate(
+        $command->timePeriod,
+        $command->now,
+    );
+
+    // 2. Validate against reconstructed state
+    PractitionerShouldNotHaveOverlappingTimePeriodsValidator::validate(
+        $this->activeTimePeriodsForPractitioner,
+        $command->timePeriod,
+    );
+
+    // 3. Apply event only after all validations pass
+    $this->apply(new TimeslotCreatedEvent(/* ... */));
+}
+```
+
+**Validation order:**
+1. Validate against command data (temporal rules, format rules, basic constraints)
+2. Validate against reconstructed state (uniqueness, conflicts, business invariants)
+3. Apply event only after all validations pass
+
+### Helper objects for complex state
+
+When a use case needs to manage complex state for validation, use dedicated helper objects rather than primitive properties:
+
+```php
+final class ActiveTimePeriodsForPractitioner implements IteratorAggregate
+{
+    /** @var array<string, TimePeriod> */
+    private array $timePeriods = [];
+
+    public function add(TimeslotId $timeslotId, TimePeriod $timePeriod): void
+    {
+        $this->timePeriods[(string) $timeslotId] = $timePeriod;
+    }
+
+    public function remove(TimeslotId $timeslotId): void
+    {
+        unset($this->timePeriods[(string) $timeslotId]);
+    }
+
+    public function getIterator(): Traversable
+    {
+        yield from $this->timePeriods;
+    }
+}
+```
+
+Helper objects are initialized in the use case constructor and updated by event subscribers during state reconstruction:
+
+```php
+final class CreateTimeslot implements EventSourcedUseCase
+{
+    use EventSourcedUseCaseBehaviorTrait;
+
+    private ActiveTimePeriodsForPractitioner $activeTimePeriodsForPractitioner;
+
+    public function __construct()
+    {
+        $this->activeTimePeriodsForPractitioner = new ActiveTimePeriodsForPractitioner();
+    }
+
+    #[DomainEventSubscriber]
+    private function onTimeslotCreated(TimeslotCreatedEvent $event): void
+    {
+        $this->activeTimePeriodsForPractitioner->add(
+            new TimeslotId($event->timeslotId),
+            new TimePeriod($event->startAt, $event->endAt),
+        );
+    }
+
+    #[DomainEventSubscriber]
+    private function onTimeslotDiscarded(TimeslotDiscardedEvent $event): void
+    {
+        $this->activeTimePeriodsForPractitioner->remove(new TimeslotId($event->timeslotId));
+    }
+}
+```
+
 ### How it works
 
 When you retrieve a use case from the repository:
 
-1. The repository queries the event store for all events matching the domain tags
+1. The repository builds a stream query from the domain tags and the use case's subscribed event types, then queries the event store
 2. Events are replayed in chronological order through the event subscribers
 3. Each subscriber updates the internal state
 4. The fully reconstructed use case is returned, ready for business logic execution
@@ -129,7 +315,7 @@ When you save a use case:
 
 1. All events applied during the request (via `$this->apply()`) are persisted to the event store
 2. These events are linked to the domain tags defined in the use case
-3. An optimistic lock prevents concurrent modifications to the same event stream
+3. An optimistic lock check is performed using a stream query built from the use case's domain tags and subscribed event types - the same query used during loading. If new events matching this query have been added since the use case was loaded, the save is rejected
 
 ### Examples
 
