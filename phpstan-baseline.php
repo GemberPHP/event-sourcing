@@ -26,24 +26,6 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/src/Resolver/Common/SagaId/SagaIdValueHelper.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Parameter \\#4 \\$sagaEventSubscriberResolver of class Gember\\\\EventSourcing\\\\Registry\\\\Saga\\\\Reflector\\\\ReflectorSagaRegistry constructor expects Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\Default\\\\EventSubscriber\\\\SagaEventSubscriberResolver, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Registry/Saga/Cached/CachedSagaRegistryDecoratorTest.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Parameter \\#4 \\$sagaEventSubscriberResolver of class Gember\\\\EventSourcing\\\\Registry\\\\Saga\\\\Reflector\\\\ReflectorSagaRegistry constructor expects Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\Default\\\\EventSubscriber\\\\SagaEventSubscriberResolver, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Registry/Saga/Reflector/ReflectorSagaRegistryTest.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Parameter \\#4 \\$serializer of class Gember\\\\EventSourcing\\\\Repository\\\\Rdbms\\\\RdbmsSagaStore constructor expects Gember\\\\DependencyContracts\\\\Util\\\\Serialization\\\\Serializer\\\\Serializer, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Repository/Rdbms/RdbmsSagaStoreTest.php',
-];
-$ignoreErrors[] = [
 	'message' => '#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#',
 	'identifier' => 'argument.type',
 	'count' => 1,
@@ -90,18 +72,6 @@ $ignoreErrors[] = [
 	'identifier' => 'argument.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Parameter \\#4 \\$sagaEventSubscriberResolver of class Gember\\\\EventSourcing\\\\Registry\\\\Saga\\\\Reflector\\\\ReflectorSagaRegistry constructor expects Gember\\\\EventSourcing\\\\Resolver\\\\Saga\\\\Default\\\\EventSubscriber\\\\SagaEventSubscriberResolver, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Saga/SagaEventHandlerTest.php',
-];
-$ignoreErrors[] = [
-	'message' => '#^Parameter \\#4 \\$serializer of class Gember\\\\EventSourcing\\\\Repository\\\\Rdbms\\\\RdbmsSagaStore constructor expects Gember\\\\DependencyContracts\\\\Util\\\\Serialization\\\\Serializer\\\\Serializer, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Saga/SagaEventHandlerTest.php',
 ];
 $ignoreErrors[] = [
 	'message' => '#^Class Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\InvalidSaga\\\\TestInvalidSagaWithPrivateSagaId has an uninitialized readonly property \\$id\\. Assign it in the constructor\\.$#',
