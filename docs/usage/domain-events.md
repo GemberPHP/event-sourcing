@@ -13,6 +13,36 @@ Domain tags are identifiers that link events to specific domain concepts (e.g., 
 - Query events by domain context
 - Support DCB patterns with multiple domain concepts per use case
 
+#### How domain tags work across components
+
+Domain tags appear on commands, use cases, and events, each serving a different purpose:
+
+| Component | Domain tag purpose |
+|-----------|-------------------|
+| **Command** | Which events to **load** from the event store |
+| **Use case** | **Optimistic lock** scope (must match command) |
+| **Event** | How to **index** the event for future retrieval |
+
+When loading a use case, Gember builds a **stream query** combining the domain tags (from the command) with the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods). Only events matching at least one tag **and** a subscribed type are loaded.
+
+An event's domain tags do not need to match the command's domain tags. They serve independent purposes. A command tag determines what gets loaded; an event tag determines how the event is discoverable in the future.
+
+#### Choosing event domain tags
+
+Add a domain tag for each use case that will need to load this event in the future:
+
+- If `CreateTimeslot` needs to see `TimeslotDiscardedEvent` via `practitionerId`, the event must have `practitionerId` as a domain tag
+- If `PreReserveTimeslot` needs to see `TimeslotCreatedEvent` via `timeslotId`, the event must have `timeslotId` as a domain tag
+- An event can have multiple domain tags if multiple use cases need it via different identifiers
+
+**Example:** A `TimeslotCreatedEvent` might need both `timeslotId` and `practitionerId` as domain tags:
+- `timeslotId` - so `PreReserveTimeslot` can load it when querying by timeslot
+- `practitionerId` - so `CreateTimeslot` can load it when querying all timeslots for a practitioner
+
+Conversely, a `TimeslotPreReservedEvent` might only need `timeslotId`:
+- `timeslotId` - so `PreReserveTimeslot` can see it
+- No `practitionerId` - because `CreateTimeslot` does not need to know about pre-reservations
+
 There are two ways to define domain tags on events:
 
 #### Option 1: Using the #[DomainTag] attribute
@@ -236,15 +266,42 @@ This means you can mix both approaches in your application - some events with ex
 
 #### Best practices for event properties
 
-When designing events, follow these guidelines for serialization:
+Events are serialized and stored permanently in the event store. Use **primitive types** (`string`, `int`, `float`, `bool`, `DateTimeImmutable`) for all properties rather than domain Value Objects. This ensures:
 
-1. **Use primitive types** - Prefer `string`, `int`, `float` and `bool` for all properties
-2. **Keep events flat** - Avoid deeply nested structures
-3. **Make events readonly** - Use `readonly` classes or properties to ensure immutability
-4. **Avoid Value Objects** - While tempting, using domain Value Objects in events creates several issues:
-   - **Serialization complexity** - Value Objects need custom serialization logic
-   - **Version evolution** - If a Value Object's structure changes, historical events may break
-   - **Coupling** - Events become coupled to domain model changes
+- **Simple serialization** - Primitives serialize to JSON without custom logic
+- **Schema evolution** - Historical events remain readable even when domain classes change
+- **No replay dependencies** - Events can be deserialized without depending on domain model classes
+
+```php
+// Good: primitive types
+#[DomainEvent(name: 'timeslot.created')]
+final readonly class TimeslotCreatedEvent
+{
+    public function __construct(
+        #[DomainTag]
+        public string $timeslotId,
+        #[DomainTag]
+        public string $practitionerId,
+        public DateTimeImmutable $startAt,
+        public DateTimeImmutable $endAt,
+    ) {}
+}
+
+// Avoid: Value Objects in events
+final readonly class TimeslotCreatedEvent
+{
+    public function __construct(
+        public TimeslotId $timeslotId,      // couples event to domain class
+        public TimePeriod $timePeriod,       // breaks if TimePeriod structure changes
+    ) {}
+}
+```
+
+Additional guidelines:
+
+1. **Keep events flat** - Avoid deeply nested structures
+2. **Make events readonly** - Use `readonly` classes or properties to ensure immutability
+3. **Include all data** - An event should carry everything needed to describe the change, so consumers don't need to look up additional data
 
 #### Choosing between approaches
 
@@ -262,3 +319,51 @@ When designing events, follow these guidelines for serialization:
 #### Custom serializers
 
 For advanced scenarios (e.g., encryption, compression, custom formats), you can provide custom serializer implementations by implementing the `Serializer` interface from `gember/dependency-contracts`. These can be added to the `StackedSerializer` chain alongside the built-in serializers.
+
+### Saga IDs on events
+
+When using [Sagas](/docs/usage/sagas.md), domain events can carry `#[SagaId]` attributes to route events to the correct saga instance. The `#[SagaId]` and `#[DomainTag]` attributes are independent concerns - a property can have both, one, or neither:
+
+| Attribute | Purpose | Used by | Storage |
+|-----------|---------|---------|---------|
+| `#[DomainTag]` | Event store indexing for use case loading | Use cases | Event store relations |
+| `#[SagaId]` | Saga routing and identification | Sagas | Saga store relations |
+
+```php
+use Gember\EventSourcing\Saga\Attribute\SagaId;
+use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
+use Gember\EventSourcing\UseCase\Attribute\DomainTag;
+
+#[DomainEvent(name: 'student.subscribed')]
+final readonly class StudentSubscribedEvent
+{
+    public function __construct(
+        #[DomainTag]
+        #[SagaId]  // Routes to saga AND indexes in event store
+        public string $courseId,
+        #[DomainTag]
+        #[SagaId]
+        public string $studentId,
+    ) {}
+}
+```
+
+A property with only `#[SagaId]` (no `#[DomainTag]`) routes to a saga but is not indexed for use case loading. A property with only `#[DomainTag]` (no `#[SagaId]`) is indexed in the event store but does not trigger any saga.
+
+See [Sagas](/docs/usage/sagas.md) for complete documentation on saga routing.
+
+### Event envelope
+
+When stored, events are wrapped in a `DomainEventEnvelope` containing:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `eventId` | `string` | Unique event ID |
+| `domainTags` | `array` | Identifiers from `#[DomainTag]` properties |
+| `event` | `object` | The actual event instance |
+| `metadata` | `Metadata` | Additional context (e.g., user, correlation ID) |
+| `appliedAt` | `DateTimeImmutable` | When the event was applied |
+
+The event store persists two types of data:
+- The **event** itself (ID, name, serialized payload, metadata, timestamp)
+- The **domain tag relations** linking the event to its domain tags, enabling efficient retrieval by tag
