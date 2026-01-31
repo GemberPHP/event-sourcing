@@ -199,6 +199,40 @@ private function onTimeslotCreated(TimeslotCreatedEvent $event): void
 }
 ```
 
+#### Accessing the event's `appliedAt` timestamp
+
+Event subscribers can optionally receive the `appliedAt` timestamp as a second parameter. This is the `DateTimeImmutable` that records when the event was persisted to the event store.
+
+```php
+use DateTimeImmutable;
+
+#[DomainEventSubscriber]
+private function onTimeslotCreated(TimeslotCreatedEvent $event, ?DateTimeImmutable $appliedAt): void
+{
+    $this->timeslots[] = new Timeslot(
+        $event->timeslotId,
+        $event->startsAt,
+        $event->endsAt,
+        $appliedAt,
+    );
+}
+```
+
+This is useful for time-based decision making, such as checking whether a trial period has expired, determining if a cooldown has passed, or enforcing time-limited business rules based on when events actually occurred.
+
+**The parameter is nullable.** When a new event is applied during the current request (via `$this->apply()`), the event has not yet been persisted, so `appliedAt` is `null`. When the use case is reconstituted from the event store, `appliedAt` contains the actual timestamp from the stored event. This means your subscriber should account for the `null` case when processing newly applied events.
+
+**The parameter is optional.** If a subscriber does not need the timestamp, simply omit the second parameter. Existing subscribers with only the event parameter continue to work without any changes:
+
+```php
+// This still works fine - no changes needed
+#[DomainEventSubscriber]
+private function onSomethingDoneEvent(SomethingDoneEvent $event): void
+{
+    $this->alreadyDone = true;
+}
+```
+
 ### How it works
 
 When you retrieve a use case from the repository:

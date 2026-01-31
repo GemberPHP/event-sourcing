@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\UseCase;
 
+use DateTimeImmutable;
+
 /**
  * @phpstan-require-implements EventSourcedUseCase
  */
@@ -49,14 +51,25 @@ trait EventSourcedUseCaseBehaviorTrait
         $useCase = new self();
 
         foreach ($envelopes as $envelope) {
-            $useCase->applyEventInUseCase($envelope->event);
+            $useCase->applyEventInUseCase($envelope->event, $envelope->appliedAt);
             $useCase->lastEventId = $envelope->eventId;
         }
 
         return $useCase;
     }
 
-    private function applyEventInUseCase(object $event): void
+    /**
+     * Apply the event to matching subscriber methods in this use case.
+     *
+     * The $appliedAt parameter is null when the event is newly applied (via apply()),
+     * as the event has not yet been persisted. During reconstitution from the event store,
+     * $appliedAt contains the DateTimeImmutable timestamp from the DomainEventEnvelope.
+     *
+     * Subscriber methods may optionally accept $appliedAt as a second parameter.
+     * PHP silently ignores extra arguments, so existing subscribers with only
+     * one parameter remain backward compatible.
+     */
+    private function applyEventInUseCase(object $event, ?DateTimeImmutable $appliedAt = null): void
     {
         $useCaseDefinition = UseCaseAttributeRegistry::getUseCaseDefinition($this::class);
         foreach ($useCaseDefinition->eventSubscribers as $eventSubscriber) {
@@ -64,7 +77,7 @@ trait EventSourcedUseCaseBehaviorTrait
                 continue;
             }
 
-            $this->{$eventSubscriber->methodName}($event);
+            $this->{$eventSubscriber->methodName}($event, $appliedAt);
         }
     }
 }

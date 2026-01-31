@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\UseCase;
 
-use DateTimeImmutable;
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
 
-final class TestUseCase implements EventSourcedUseCase
+final class TestUseCaseWithoutAppliedAt implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
@@ -25,11 +24,6 @@ final class TestUseCase implements EventSourcedUseCase
      */
     public array $testAppliedEvents = [];
 
-    /**
-     * @var list<DateTimeImmutable|null>
-     */
-    public array $testAppliedAts = [];
-
     public static function create(TestDomainTag $domainTag, string $secondaryTag): self
     {
         $useCase = new self();
@@ -38,17 +32,11 @@ final class TestUseCase implements EventSourcedUseCase
         return $useCase;
     }
 
-    public function modify(): void
-    {
-        $this->apply(new TestUseCaseModifiedEvent());
-    }
-
     #[DomainEventSubscriber]
-    private function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event, ?DateTimeImmutable $appliedAt = null): void
+    private function onTestUseCaseCreatedEvent(TestUseCaseCreatedEvent $event): void
     {
         $this->domainTag = new TestDomainTag((string) $event->id);
         $this->secondaryTag = $event->secondaryId;
         $this->testAppliedEvents[] = $event;
-        $this->testAppliedAts[] = $appliedAt;
     }
 }

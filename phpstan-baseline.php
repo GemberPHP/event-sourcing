@@ -122,6 +122,12 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestUseCaseWithCommandHandler.php',
 ];
 $ignoreErrors[] = [
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestUseCaseWithoutAppliedAt\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
+	'identifier' => 'return.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/TestDoubles/UseCase/TestUseCaseWithoutAppliedAt.php',
+];
+$ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\TestDoubles\\\\UseCase\\\\TestUseCaseWithCommandHandler\\:\\:invalidWithParameterType\\(\\) has parameter \\$command with no type specified\\.$#',
 	'identifier' => 'missingType.parameter',
 	'count' => 1,
