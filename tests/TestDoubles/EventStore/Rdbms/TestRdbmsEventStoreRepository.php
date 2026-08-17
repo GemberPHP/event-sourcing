@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEvent;
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEventStoreRepository;
 use Override;
@@ -29,14 +30,12 @@ final class TestRdbmsEventStoreRepository implements RdbmsEventStoreRepository
     }
 
     #[Override]
-    public function getLastEventIdPersisted(array $domainTags, array $eventNames): ?string
+    public function saveEvents(array $domainTags, array $eventNames, ?string $lastEventId, array $events): void
     {
-        return $this->lastEventIdPersisted;
-    }
+        if ($this->lastEventIdPersisted !== null && $this->lastEventIdPersisted !== $lastEventId) {
+            throw OptimisticLockException::create();
+        }
 
-    #[Override]
-    public function saveEvents(array $events): void
-    {
         if ($this->throwException !== null) {
             throw $this->throwException;
         }

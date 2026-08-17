@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore;
 
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 
 interface EventStore

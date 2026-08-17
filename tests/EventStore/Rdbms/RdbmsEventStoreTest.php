@@ -13,7 +13,7 @@ use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
-use Gember\EventSourcing\EventStore\OptimisticLockException;
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
@@ -196,7 +196,7 @@ final class RdbmsEventStoreTest extends TestCase
                     '5ae5484d-9890-4bbe-95e8-b828bfea2f9e',
                     '1b34e6a1-bfde-4995-a3d2-1aac53f6b124',
                 ],
-                new stdClass(),
+                new TestUseCaseCreatedEvent('5ae5484d-9890-4bbe-95e8-b828bfea2f9e', '1b34e6a1-bfde-4995-a3d2-1aac53f6b124'),
                 new Metadata(),
                 new DateTimeImmutable(),
             ),
@@ -204,8 +204,9 @@ final class RdbmsEventStoreTest extends TestCase
                 '97faca2a-5b97-4dc0-a21e-a9dac5bff98e',
                 [
                     '9b71b0b4-2c17-493a-980f-6d8d29182e15',
+                    '8784010b-b13c-4c3d-869a-80b1790f0122',
                 ],
-                new stdClass(),
+                new TestUseCaseCreatedEvent('9b71b0b4-2c17-493a-980f-6d8d29182e15', '8784010b-b13c-4c3d-869a-80b1790f0122'),
                 new Metadata(),
                 new DateTimeImmutable(),
             ),
