@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\EventStore\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\DependencyContracts\EventStore\Rdbms\RdbmsEventStoreRepository;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\EventStore\EventStore;
 use Gember\EventSourcing\EventStore\EventStoreFailedException;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
-use Gember\EventSourcing\EventStore\OptimisticLockException;
 use Gember\EventSourcing\EventStore\StreamQuery;
 use Throwable;
 use Override;
@@ -58,39 +58,19 @@ final readonly class RdbmsEventStore implements EventStore
         }
 
         try {
-            $this->guardOptimisticLock($streamQuery, $lastEventId);
+            $this->repository->saveEvents(
+                $streamQuery->domainTags,
+                $this->getEventNamesFromStreamQuery($streamQuery),
+                $lastEventId,
+                array_map(
+                    fn($envelope) => $this->rdbmsEventFactory->createFromDomainEventEnvelope($envelope),
+                    $envelopes,
+                ),
+            );
         } catch (OptimisticLockException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
             throw EventStoreFailedException::withException($exception);
-        }
-
-        try {
-            $this->repository->saveEvents(array_map(
-                fn($envelope) => $this->rdbmsEventFactory->createFromDomainEventEnvelope($envelope),
-                $envelopes,
-            ));
-        } catch (Throwable $exception) {
-            throw EventStoreFailedException::withException($exception);
-        }
-    }
-
-    /**
-     * @throws OptimisticLockException
-     */
-    private function guardOptimisticLock(StreamQuery $streamQuery, ?string $lastEventId): void
-    {
-        $lastEventIdPersisted = $this->repository->getLastEventIdPersisted(
-            $streamQuery->domainTags,
-            $this->getEventNamesFromStreamQuery($streamQuery),
-        );
-
-        if ($lastEventIdPersisted === null) {
-            return;
-        }
-
-        if ($lastEventIdPersisted !== $lastEventId) {
-            throw OptimisticLockException::create();
         }
     }
 
