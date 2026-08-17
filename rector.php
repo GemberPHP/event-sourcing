@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Rector\CodeQuality\Rector\FuncCall\RemoveSoleValueSprintfRector;
 use Rector\CodeQuality\Rector\FuncCall\UnwrapSprintfOneArgumentRector;
 use Rector\CodeQuality\Rector\FunctionLike\SimplifyUselessVariableRector;
-use Rector\CodingStyle\Rector\FuncCall\CountArrayToEmptyArrayComparisonRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\Array_\RemoveDuplicatedArrayKeyRector;
 use Rector\DeadCode\Rector\Cast\RecastingRemovalRector;
@@ -44,7 +43,6 @@ $config = RectorConfig::configure()
         PrivatizeFinalClassMethodRector::class,
         UnwrapSprintfOneArgumentRector::class,
         RemoveSoleValueSprintfRector::class,
-        CountArrayToEmptyArrayComparisonRector::class,
         // See withConfiguredRule below for more
 
         // Misc - Deadcode
