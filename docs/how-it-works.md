@@ -17,7 +17,7 @@ flowchart TD
     E["5. Command handler method invoked on the use case"]
     F["6. Business rules validated against reconstructed state"]
     G["7. Domain event applied via apply()"]
-    H["8. Event persisted to event store (with optimistic locking)"]
+    H["8. Event persisted to event store (with concurrency control)"]
     I["9. Event published to event bus"]
     J[/"Projectors update read model tables"/]
     K[/"Sagas coordinate cross-aggregate workflows"/]
@@ -50,6 +50,12 @@ Events are persisted in two storage structures:
 | `event_id` | Reference to the event |
 | `domain_tag` | A domain tag value from the event |
 
+**Event store lock** - Serializes concurrent writes per consistency boundary:
+
+| Field | Description |
+|-------|-------------|
+| `boundary_hash` | SHA-256 hash of the domain tags + event types |
+
 When an event is persisted, a relation row is created for each `#[DomainTag]` property on the event. This allows the event store to efficiently query events when loading a use case. The query is scoped by both the domain tags (from the command) and the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods), so only relevant events are loaded.
 
 ### Domain tags across components
@@ -59,21 +65,55 @@ Domain tags appear on commands, use cases, and events, each serving a different 
 | Component | Domain tag purpose | Example |
 |-----------|-------------------|---------|
 | **Command** | Which events to **load** from the event store | _"Load subscribed events tagged with this practitionerId"_ |
-| **Use case** | **Optimistic lock** scope (must match command) | _"Ensure no concurrent changes to subscribed events for this practitioner"_ |
+| **Use case** | **Consistency boundary** scope (must match command) | _"Ensure no concurrent changes to subscribed events for this practitioner"_ |
 | **Event** | How to **index** the event for future retrieval | _"Index this event under both timeslotId and practitionerId"_ |
 
 The command and use case tags must match exactly. The event tags are independent and determined by which use cases will need to load the event in the future.
 
-### Optimistic locking
+### Concurrency control
 
-When a use case is saved, _Gember Event Sourcing_ builds a stream query from the use case's domain tags and its subscribed event types (the same query used when loading). It checks whether any new events matching this query have been added since the use case was loaded. If so, the save is rejected to prevent conflicting state changes.
+_Gember Event Sourcing_ uses a two-layer concurrency strategy to ensure consistency without unnecessary contention.
 
-This means the lock scope is determined by **both** the domain tags and the subscribed event types:
+#### Consistency boundaries
+
+The domain tags and subscribed event types of a use case together define its **consistency boundary** — the set of events it depends on. This boundary determines the lock scope:
+
 - **Broader tags** (e.g., `practitionerId`) widen the scope across more events
 - **Narrower tags** (e.g., `timeslotId`) limit the scope to fewer events
-- **Subscribed event types** further narrow the scope - two use cases with the same domain tags but different subscribed event types will not conflict with each other
+- **Subscribed event types** further narrow the scope — two use cases with the same domain tags but different subscribed event types will not conflict with each other
 
 Using the DCB pattern, unrelated changes can proceed concurrently. For example, renaming a course and enrolling a student happen through different use cases with different subscribed event types and domain tags, so they never conflict.
+
+#### How writes are serialized
+
+When a use case is saved, the event store performs the following steps atomically within a single database transaction:
+
+1. **Acquire a boundary lock** — A dedicated lock table holds one row per consistency boundary (identified by a deterministic hash of the domain tags and event types). The row is created if it doesn't exist yet, then locked with `SELECT ... FOR UPDATE`. This ensures concurrent writers targeting the same boundary are serialized — one blocks until the other commits.
+
+2. **Check the optimistic lock** — With the boundary lock held, the event store queries the last persisted event ID for this boundary and compares it to the `lastEventId` the caller saw when loading. If they don't match, another writer committed events in between and an `OptimisticLockException` is thrown.
+
+3. **Persist events** — If the check passes, the new events are inserted within the same transaction.
+
+4. **Commit** — The transaction commits, releasing the boundary lock.
+
+```
+Writer A                                Writer B
+────────                                ────────
+BEGIN TRANSACTION                       BEGIN TRANSACTION
+Acquire boundary lock ✓                 Acquire boundary lock → blocks...
+Check lastEventId ✓                         │
+Insert events                               │
+COMMIT (releases lock)                      │
+                                        ...resumes
+                                        Check lastEventId → mismatch!
+                                        ROLLBACK + OptimisticLockException
+```
+
+This two-layer approach avoids the classic time-of-check-time-of-use (TOCTOU) race condition that would occur if the lock check and the write were separate operations.
+
+#### Saga concurrency
+
+The saga store uses the same boundary lock mechanism. When a saga is saved, the store acquires an exclusive lock on the saga's boundary (based on saga name and saga IDs), then performs the get-modify-save cycle within a single transaction. This prevents concurrent events for the same saga from overwriting each other's state changes.
 
 ### CQRS and the read side
 
@@ -81,7 +121,7 @@ _Gember Event Sourcing_ implements the write side of CQRS (Command Query Respons
 
 #### Write side (event store)
 
-The event store is the single source of truth. State is reconstructed by replaying events through use case event subscribers. This provides strong consistency through optimistic locking.
+The event store is the single source of truth. State is reconstructed by replaying events through use case event subscribers. This provides strong consistency through boundary locking and optimistic lock checks.
 
 #### Read side (projections)
 
@@ -102,18 +142,19 @@ Projectors are not part of the _Gember Event Sourcing_ library itself - they are
 
 | Side | Consistency | Description |
 |------|-------------|-------------|
-| Write (event store) | Strong | Atomic writes with optimistic locking per stream query (domain tags + subscribed event types) |
+| Write (event store) | Strong | Atomic writes with boundary locking per stream query (domain tags + subscribed event types) |
 | Read (projections) | Eventual | Updated after events are persisted and published |
 
 With synchronous event transport, read models are updated immediately after the write completes. Asynchronous transport introduces a delay but improves throughput.
 
 ### Saga store
 
-Sagas are persisted directly (not event-sourced) in a saga store with two structures:
+Sagas are persisted directly (not event-sourced) in a saga store with three structures:
 
 | Structure | Purpose |
 |-----------|---------|
 | Saga store | Stores serialized saga instances (ID, name, payload, timestamps) |
 | Saga store relations | Links Saga ID values to saga instances for routing |
+| Saga store lock | Serializes concurrent writes per saga boundary (same mechanism as the event store) |
 
 When a domain event is published, the saga framework extracts `#[SagaId]` values from the event and uses the saga store relations to find the correct saga instance to invoke.
