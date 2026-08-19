@@ -9,6 +9,7 @@ use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Repository\SagaNotFoundException;
 use Gember\EventSourcing\Repository\SagaStore;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
+use Gember\EventSourcing\Saga\CommandRecorder;
 use Gember\EventSourcing\Saga\SagaEventExecutor;
 use Override;
 use Stringable;
@@ -39,10 +40,15 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
             $saga = new $sagaClassName();
         }
 
-        // Run saga
-        $saga->{$methodName}($event, $this->commandBus);
+        // Run saga with command recorder to defer command dispatching until after save
+        $commandRecorder = new CommandRecorder($this->commandBus);
+
+        $saga->{$methodName}($event, $commandRecorder);
 
         // Save saga in repository
         $this->sagaStore->save($saga);
+
+        // Dispatch recorded commands after saga state is persisted
+        $commandRecorder->flush();
     }
 }

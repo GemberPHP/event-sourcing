@@ -16,7 +16,7 @@ Sagas are particularly useful for:
 
 **Domain event subscribing**: Sagas react to domain events using the `#[SagaEventSubscriber]` attribute. When a relevant event occurs, the saga is loaded from the store, processes the event, and is saved again.
 
-**Command dispatching**: Sagas orchestrate workflows by dispatching commands to other parts of the system through the `CommandBus`. This allows sagas to trigger actions in aggregates or use cases without directly coupling to them.
+**Command recording**: Sagas orchestrate workflows by recording commands through the `CommandRecorder`. Recorded commands are dispatched after the saga state is persisted, preventing re-entrancy issues where synchronous command handling could overwrite saga state. This allows sagas to trigger actions in aggregates or use cases without directly coupling to them.
 
 **Saga linking**: The connection between a domain event and a saga is established through **Saga IDs**. This is the key mechanism that determines which saga instance should handle which event. A saga can have multiple Saga IDs, allowing it to subscribe to events with different identifiers.
 
@@ -124,12 +124,12 @@ Event subscriber methods must follow this signature:
 
 ```php
 #[SagaEventSubscriber]
-public function methodName(EventClass $event, CommandBus $commandBus): void
+public function methodName(EventClass $event, CommandRecorder $commandRecorder): void
 ```
 
 **Parameters:**
 - **First parameter** - The domain event (type-hinted with the event class)
-- **Second parameter** - Instance of `CommandBus` for dispatching commands (required)
+- **Second parameter** - Instance of `CommandRecorder` for recording commands to be dispatched after saga persistence (required)
 - **Return type** - Must be `void`
 
 #### CreationPolicy
@@ -145,7 +145,7 @@ The `#[SagaEventSubscriber]` attribute accepts a `policy` parameter that control
   - A new saga instance is created and then the event is processed
 
 ```php
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
+use Gember\EventSourcing\Saga\CommandRecorder;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Saga\Attribute\Saga;
 use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
@@ -165,12 +165,12 @@ final class OrderFulfillmentSaga
      * Uses IfMissing to create a new saga instance.
      */
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandBus $commandBus): void
+    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->orderId = $event->orderId;
 
         // Dispatch commands to start the fulfillment process
-        $commandBus->handle(new ProcessPaymentCommand($event->orderId, $event->amount));
+        $commandRecorder->record(new ProcessPaymentCommand($event->orderId, $event->amount));
     }
 
     /**
@@ -178,24 +178,24 @@ final class OrderFulfillmentSaga
      * Uses Never (default) - saga must already exist.
      */
     #[SagaEventSubscriber]
-    public function onPaymentReceivedEvent(PaymentReceivedEvent $event, CommandBus $commandBus): void
+    public function onPaymentReceivedEvent(PaymentReceivedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->paymentReceived = true;
 
         // Dispatch command to ship the order
-        $commandBus->handle(new ShipOrderCommand($event->orderId));
+        $commandRecorder->record(new ShipOrderCommand($event->orderId));
     }
 
     /**
      * Completes the saga when order is shipped.
      */
     #[SagaEventSubscriber]
-    public function onOrderShippedEvent(OrderShippedEvent $event, CommandBus $commandBus): void
+    public function onOrderShippedEvent(OrderShippedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->itemsShipped = true;
 
         // Dispatch command to notify the customer
-        $commandBus->handle(new SendShippingNotificationCommand($event->orderId));
+        $commandRecorder->record(new SendShippingNotificationCommand($event->orderId));
     }
 }
 ```
@@ -270,7 +270,7 @@ When a domain event is published, the following process occurs:
 5. **Handle missing sagas**:
    - With `CreationPolicy::IfMissing` - A new saga instance is created
    - With `CreationPolicy::Never` - Processing is skipped
-6. **Invoke subscriber** - The saga's event subscriber method is invoked with the event and CommandBus
+6. **Invoke subscriber** - The saga's event subscriber method is invoked with the event and CommandRecorder
 7. **Persist saga** - The saga instance is persisted back to the saga store
 
 **What this enables:**
@@ -299,7 +299,7 @@ When a saga instance is saved, all current Saga ID values are persisted as relat
 A basic saga that coordinates a simple order fulfillment process:
 
 ```php
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
+use Gember\EventSourcing\Saga\CommandRecorder;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Saga\Attribute\Saga;
 use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
@@ -315,30 +315,30 @@ final class OrderProcessingSaga
     private bool $orderShipped = false;
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandBus $commandBus): void
+    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->orderId = $event->orderId;
 
         // Start payment processing
-        $commandBus->handle(new ProcessPaymentCommand($event->orderId, $event->amount));
+        $commandRecorder->record(new ProcessPaymentCommand($event->orderId, $event->amount));
     }
 
     #[SagaEventSubscriber]
-    public function onPaymentProcessedEvent(PaymentProcessedEvent $event, CommandBus $commandBus): void
+    public function onPaymentProcessedEvent(PaymentProcessedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->paymentProcessed = true;
 
         // Proceed to shipping
-        $commandBus->handle(new ShipOrderCommand($event->orderId));
+        $commandRecorder->record(new ShipOrderCommand($event->orderId));
     }
 
     #[SagaEventSubscriber]
-    public function onOrderShippedEvent(OrderShippedEvent $event, CommandBus $commandBus): void
+    public function onOrderShippedEvent(OrderShippedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->orderShipped = true;
 
         // Notify customer
-        $commandBus->handle(new NotifyCustomerCommand($event->orderId));
+        $commandRecorder->record(new NotifyCustomerCommand($event->orderId));
     }
 }
 ```
@@ -353,7 +353,7 @@ final class OrderProcessingSaga
 A more complex saga demonstrating multiple Saga IDs, parallel processing, and compensating transactions:
 
 ```php
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
+use Gember\EventSourcing\Saga\CommandRecorder;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Saga\Attribute\Saga;
 use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
@@ -373,76 +373,76 @@ final class OrderFulfillmentSaga
     private bool $itemsShipped = false;
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandBus $commandBus): void
+    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->orderId = $event->orderId;
         $this->customerId = $event->customerId;
 
         // Start the fulfillment process
-        $commandBus->handle(new ProcessPaymentCommand($event->orderId, $event->amount));
-        $commandBus->handle(new ReserveInventoryCommand($event->orderId, $event->items));
+        $commandRecorder->record(new ProcessPaymentCommand($event->orderId, $event->amount));
+        $commandRecorder->record(new ReserveInventoryCommand($event->orderId, $event->items));
     }
 
     #[SagaEventSubscriber]
-    public function onPaymentReceivedEvent(PaymentReceivedEvent $event, CommandBus $commandBus): void
+    public function onPaymentReceivedEvent(PaymentReceivedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->paymentReceived = true;
 
         // Check if we can proceed to shipping
         if ($this->inventoryReserved) {
-            $commandBus->handle(new ShipOrderCommand($event->orderId));
+            $commandRecorder->record(new ShipOrderCommand($event->orderId));
         }
     }
 
     #[SagaEventSubscriber]
-    public function onInventoryReservedEvent(InventoryReservedEvent $event, CommandBus $commandBus): void
+    public function onInventoryReservedEvent(InventoryReservedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->inventoryReserved = true;
 
         // Check if we can proceed to shipping
         if ($this->paymentReceived) {
-            $commandBus->handle(new ShipOrderCommand($event->orderId));
+            $commandRecorder->record(new ShipOrderCommand($event->orderId));
         }
     }
 
     #[SagaEventSubscriber]
-    public function onPaymentFailedEvent(PaymentFailedEvent $event, CommandBus $commandBus): void
+    public function onPaymentFailedEvent(PaymentFailedEvent $event, CommandRecorder $commandRecorder): void
     {
         // Compensating transaction: release inventory
         if ($this->inventoryReserved) {
-            $commandBus->handle(new ReleaseInventoryCommand($event->orderId));
+            $commandRecorder->record(new ReleaseInventoryCommand($event->orderId));
         }
 
-        $commandBus->handle(new CancelOrderCommand($event->orderId));
+        $commandRecorder->record(new CancelOrderCommand($event->orderId));
     }
 
     #[SagaEventSubscriber]
-    public function onInventoryUnavailableEvent(InventoryUnavailableEvent $event, CommandBus $commandBus): void
+    public function onInventoryUnavailableEvent(InventoryUnavailableEvent $event, CommandRecorder $commandRecorder): void
     {
         // Compensating transaction: refund payment
         if ($this->paymentReceived) {
-            $commandBus->handle(new RefundPaymentCommand($event->orderId));
+            $commandRecorder->record(new RefundPaymentCommand($event->orderId));
         }
 
-        $commandBus->handle(new CancelOrderCommand($event->orderId));
+        $commandRecorder->record(new CancelOrderCommand($event->orderId));
     }
 
     #[SagaEventSubscriber]
-    public function onOrderShippedEvent(OrderShippedEvent $event, CommandBus $commandBus): void
+    public function onOrderShippedEvent(OrderShippedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->itemsShipped = true;
 
         // Notify customer and complete the saga
-        $commandBus->handle(new SendShippingNotificationCommand($event->orderId));
+        $commandRecorder->record(new SendShippingNotificationCommand($event->orderId));
     }
 
     #[SagaEventSubscriber]
-    public function onCustomerAddressChangedEvent(CustomerAddressChangedEvent $event, CommandBus $commandBus): void
+    public function onCustomerAddressChangedEvent(CustomerAddressChangedEvent $event, CommandRecorder $commandRecorder): void
     {
         // This saga can also respond to customer events via the customerId Saga ID
         // If shipping hasn't occurred yet, update the shipping address
         if (!$this->itemsShipped && $this->inventoryReserved) {
-            $commandBus->handle(new UpdateShippingAddressCommand($this->orderId, $event->newAddress));
+            $commandRecorder->record(new UpdateShippingAddressCommand($this->orderId, $event->newAddress));
         }
     }
 }
