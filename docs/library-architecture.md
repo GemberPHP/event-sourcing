@@ -430,7 +430,7 @@ These interfaces must be implemented by a framework integration package (e.g., [
 | `RdbmsEventStoreRepository` | Database persistence for events | `RdbmsEventStore` |
 | `RdbmsSagaStoreRepository` | Database persistence for sagas | `RdbmsSagaStore` |
 | `Serializer` | Object serialization/deserialization | `RdbmsEventFactory`, `RdbmsDomainEventEnvelopeFactory`, `RdbmsSagaStore`, `SagaFactory` |
-| `CommandBus` | Dispatch commands from sagas | `DefaultSagaEventExecutor` |
+| `CommandBus` | Dispatch recorded commands after saga persistence | `CommandRecorder` (via `DefaultSagaEventExecutor`) |
 | `EventBus` | Publish domain events after persistence | `EventSourcedUseCaseRepository` |
 | `IdentityGenerator` | Generate unique event IDs | `DomainEventEnvelopeFactory` |
 

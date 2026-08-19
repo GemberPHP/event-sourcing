@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\TestDoubles\Saga;
 
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Saga\Attribute\Saga;
+use Gember\EventSourcing\Saga\CommandRecorder;
 use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
 use Gember\EventSourcing\Saga\Attribute\SagaId;
 
@@ -28,14 +28,14 @@ final class TestSagaForEventHandler
     }
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onTestSagaEvent(TestSagaEvent $event, CommandBus $commandBus): void
+    public function onTestSagaEvent(TestSagaEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->isCalled[] = __METHOD__;
         $this->sagaId = $event->sagaId;
     }
 
     #[SagaEventSubscriber(policy: CreationPolicy::Never)]
-    public function onTestSagaSecondEvent(TestSagaSecondEvent $event, CommandBus $commandBus): void
+    public function onTestSagaSecondEvent(TestSagaSecondEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->isCalled[] = __METHOD__;
     }
