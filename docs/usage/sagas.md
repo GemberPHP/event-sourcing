@@ -292,6 +292,99 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 
 When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, the old relations are replaced with the current set, allowing Saga ID values to change over the saga's lifetime.
 
+### Serialization
+
+Sagas are serialized when persisted to the saga store and deserialized when loaded. _Gember Event Sourcing_ uses the same configurable `Serializer` as domain events, supporting two approaches.
+
+#### Option 1: Automatic serialization (Recommended)
+
+When using framework integrations like [gember/event-sourcing-symfony-bundle](https://github.com/GemberPHP/event-sourcing-symfony-bundle), sagas are automatically serialized using the Symfony Serializer component. This means **you don't need to implement any interface** - just define your saga as a regular class:
+
+```php
+use Gember\EventSourcing\Saga\Attribute\Saga;
+use Gember\EventSourcing\Saga\Attribute\SagaId;
+
+#[Saga(name: 'order.fulfillment')]
+final class OrderFulfillmentSaga
+{
+    #[SagaId]
+    public ?string $orderId = null;
+
+    private bool $paymentReceived = false;
+    private bool $itemsShipped = false;
+
+    // Event subscribers...
+}
+```
+
+Public properties are automatically serialized and deserialized. Note that **private properties are not serialized** by the default Symfony Serializer — if your saga uses private properties for state, use the `Serializable` interface (Option 2) instead.
+
+This is the **recommended approach** for sagas that use only public properties.
+
+#### Option 2: Explicit serialization with Serializable interface
+
+For more control over which properties are persisted and how, implement the `Serializable` interface:
+
+```php
+use Gember\EventSourcing\Saga\Attribute\Saga;
+use Gember\EventSourcing\Saga\Attribute\SagaId;
+use Gember\EventSourcing\Util\Serialization\Serializable;
+
+/**
+ * @implements Serializable<array{
+ *     orderId: ?string,
+ *     paymentReceived: bool,
+ *     itemsShipped: bool
+ * }, OrderFulfillmentSaga>
+ */
+#[Saga(name: 'order.fulfillment')]
+final class OrderFulfillmentSaga implements Serializable
+{
+    #[SagaId]
+    public ?string $orderId = null;
+
+    private bool $paymentReceived = false;
+    private bool $itemsShipped = false;
+
+    // Event subscribers...
+
+    public function toPayload(): array
+    {
+        return [
+            'orderId' => $this->orderId,
+            'paymentReceived' => $this->paymentReceived,
+            'itemsShipped' => $this->itemsShipped,
+        ];
+    }
+
+    public static function fromPayload(array $payload): self
+    {
+        $saga = new self();
+        $saga->orderId = $payload['orderId'];
+        $saga->paymentReceived = $payload['paymentReceived'];
+        $saga->itemsShipped = $payload['itemsShipped'];
+
+        return $saga;
+    }
+}
+```
+
+**When to use explicit serialization:**
+- Your saga has **private properties** that need to be persisted (the default Symfony Serializer only handles public properties)
+- You need control over the serialization format (e.g., excluding transient properties)
+- You want to handle schema evolution when saga structure changes
+- You prefer explicit, testable serialization logic
+
+#### How the StackedSerializer works
+
+When using the Symfony bundle, both serialization approaches work together via the `StackedSerializer`:
+
+1. **First**, it tries `SerializableInterfaceSerializer` - for sagas implementing `Serializable`
+2. **Then**, it falls back to `SymfonySerializer` - for automatic serialization
+3. **Finally**, if both fail, it throws an exception with detailed error information
+
+This is the same mechanism used for [domain event serialization](/docs/usage/domain-events.md#serialization), and you can mix both approaches across different sagas in the same application.
+
 ### Examples
 
 #### Example 1: Simple order processing saga
