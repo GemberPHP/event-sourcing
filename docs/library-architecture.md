@@ -10,6 +10,7 @@ For the conceptual end-to-end flow from a user's perspective, see [How it works]
 src/
 ├── Common/           Shared enums and value types
 ├── EventStore/       Event persistence abstraction and RDBMS implementation
+├── Outbox/           Transactional outbox for reliable message delivery
 ├── Registry/         Runtime class-discovery registries
 ├── Repository/       Use case and saga persistence
 ├── Resolver/         Attribute-based metadata extraction (reflection)
@@ -22,6 +23,7 @@ src/
 |-----------|---------------|----------------|---------------------|
 | `Common/` | Shared types used across the library | — | `CreationPolicy` enum |
 | `EventStore/` | Persist and load domain events | `EventStore` | `RdbmsEventStore`, `LoggableEventStoreDecorator` |
+| `Outbox/` | Reliable message delivery via transactional outbox | `OutboxStore`, `OutboxProcessor` | `RdbmsOutboxStore`, `OutboxEventBus`, `OutboxCommandBus`, `DefaultOutboxProcessor` |
 | `Registry/` | Map commands, events, and sagas to their definitions at runtime | `CommandHandlerRegistry`, `EventRegistry`, `SagaRegistry` | `Reflector*Registry`, `Cached*RegistryDecorator` |
 | `Repository/` | Load and save use cases and sagas | `UseCaseRepository`, `SagaStore` | `EventSourcedUseCaseRepository`, `RdbmsSagaStore` |
 | `Resolver/` | Extract metadata from PHP attributes via reflection | `UseCaseResolver`, `DomainEventResolver`, `DomainCommandResolver`, `SagaResolver` | `Default*Resolver`, `Cached*ResolverDecorator` |
@@ -433,6 +435,8 @@ These interfaces must be implemented by a framework integration package (e.g., [
 | `CommandBus` | Dispatch recorded commands after saga persistence | `CommandRecorder` (via `DefaultSagaEventExecutor`) |
 | `EventBus` | Publish domain events after persistence | `EventSourcedUseCaseRepository` |
 | `IdentityGenerator` | Generate unique event IDs | `DomainEventEnvelopeFactory` |
+| `RdbmsOutboxRepository` | Database persistence for outbox messages | `RdbmsOutboxStore` |
+| `Transactional` | Database transaction wrapper | `TransactionalUseCaseRepositoryDecorator`, `TransactionalSagaEventExecutorDecorator` |
 
 #### PSR interfaces
 
@@ -443,7 +447,7 @@ These interfaces must be implemented by a framework integration package (e.g., [
 
 #### Internal interfaces
 
-All other interfaces are defined and implemented within this library: `EventStore`, `UseCaseRepository`, `SagaStore`, `UseCaseCommandExecutor`, `SagaEventExecutor`, all resolvers, all registries, `Finder`, `Reflector`, `Clock`, `AttributeResolver`, and `FriendlyClassNamer`.
+All other interfaces are defined and implemented within this library: `EventStore`, `UseCaseRepository`, `SagaStore`, `UseCaseCommandExecutor`, `SagaEventExecutor`, `OutboxStore`, `OutboxProcessor`, all resolvers, all registries, `Finder`, `Reflector`, `Clock`, `AttributeResolver`, and `FriendlyClassNamer`.
 
 ### Extending the library
 
