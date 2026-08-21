@@ -147,6 +147,8 @@ Projectors are not part of the _Gember Event Sourcing_ library itself - they are
 
 With synchronous event transport, read models are updated immediately after the write completes. Asynchronous transport introduces a delay but improves throughput.
 
+> **Note:** By default, events are dispatched synchronously after persistence. If the process crashes between persisting and dispatching, events can be lost. The [Outbox](/docs/usage/outbox.md) pattern solves this by writing events to an outbox table atomically with the event store, then dispatching them via a background processor with at-least-once delivery guarantees.
+
 ### Saga store
 
 Sagas are persisted directly (not event-sourced) in a saga store with three structures:
