@@ -17,6 +17,9 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
   - [Command handlers](/docs/usage/command-handlers.md) - Trigger behavioral actions on use cases using command handlers
   - [Domain events](/docs/usage/domain-events.md) - Define and work with domain events, including naming, serialization, and domain tags
   - [Sagas](/docs/usage/sagas.md) - Implement long-running business processes that coordinate complex workflows across multiple domain events
+  - [Outbox](/docs/usage/outbox.md) - Ensure reliable delivery of domain events and saga commands using the transactional outbox pattern
+  - [Observability](/docs/usage/observability.md) - Structured logging for event store, command handling, and saga execution
+  - [Caching](/docs/usage/caching.md) - Cache resolver and registry metadata to avoid runtime reflection overhead
 - [How it works](/docs/how-it-works.md) - End-to-end flow, event store structure, CQRS, and the read side
 - [Library architecture](/docs/library-architecture.md) - Internal code organization, design patterns, resolver and registry layers
 
@@ -153,11 +156,11 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
 ### Saga
 
 ```php
-use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Saga\Attribute\Saga;
 use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
 use Gember\EventSourcing\Saga\Attribute\SagaId;
+use Gember\EventSourcing\Saga\CommandRecorder;
 
 #[Saga(name: 'subscription.welcome')]
 final class SubscriptionWelcomeSaga
@@ -174,13 +177,13 @@ final class SubscriptionWelcomeSaga
      * When a student subscribes, automatically send a welcome email.
      */
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onStudentSubscribed(StudentSubscribedEvent $event, CommandBus $commandBus): void
+    public function onStudentSubscribed(StudentSubscribedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->courseId = $event->courseId;
         $this->studentId = $event->studentId;
 
-        // Dispatch command to send welcome email
-        $commandBus->handle(new SendWelcomeEmailCommand(
+        // Record command to send welcome email (dispatched after saga is persisted)
+        $commandRecorder->record(new SendWelcomeEmailCommand(
             $event->studentId,
             $event->courseId,
         ));
