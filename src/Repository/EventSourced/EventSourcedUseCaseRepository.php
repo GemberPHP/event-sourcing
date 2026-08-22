@@ -102,6 +102,12 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
             throw UseCaseRepositoryFailedException::withException($exception);
         }
 
+        if ($eventEnvelopes !== []) {
+            $useCase->setLastEventId(end($eventEnvelopes)->eventId);
+        }
+
+        $useCase->clearAppliedEvents();
+
         // todo: make event bus + event store atomic
         foreach ($appliedEvents as $appliedEvent) {
             $this->eventBus->handle($appliedEvent);
