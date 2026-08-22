@@ -10,6 +10,8 @@ This section covers the core concepts of _Gember Event Sourcing_ and how to use 
 - [Domain events](/docs/usage/domain-events.md) - Define and work with domain events, including naming, serialization, and domain tags
 - [Sagas](/docs/usage/sagas.md) - Implement long-running business processes that coordinate complex workflows across multiple domain events
 - [Outbox](/docs/usage/outbox.md) - Ensure reliable delivery of domain events and saga commands using the transactional outbox pattern
+- [Observability](/docs/usage/observability.md) - Structured logging for event store, command handling, and saga execution
+- [Caching](/docs/usage/caching.md) - Cache resolver and registry metadata to avoid runtime reflection overhead
 
 ### Related resources
 - For more extended examples and complete implementations, check out the demo application [gember/example-event-sourcing-dcb](https://github.com/GemberPHP/example-event-sourcing-dcb)

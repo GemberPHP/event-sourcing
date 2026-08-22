@@ -359,3 +359,41 @@ When stored, events are wrapped in a `DomainEventEnvelope` containing:
 The event store persists two types of data:
 - The **event** itself (ID, name, serialized payload, metadata, timestamp)
 - The **domain tag relations** linking the event to its domain tags, enabling efficient retrieval by tag
+
+### Metadata
+
+The `Metadata` class is an immutable key-value container attached to each `DomainEventEnvelope`. It allows you to enrich events with contextual information that is not part of the domain event itself, such as correlation IDs, user context, or request tracing data.
+
+#### How metadata flows
+
+1. **Created empty** — When a domain event is applied via `$this->apply()`, the `DomainEventEnvelopeFactory` wraps it in an envelope with empty metadata
+2. **Enriched before persistence** — Metadata can be added to the envelope before it reaches the event store, typically via middleware or a decorator on the repository
+3. **Stored alongside the event** — The metadata array is persisted as part of the event record
+4. **Available during reconstitution** — When events are replayed, the metadata is available on each `DomainEventEnvelope`
+
+#### Enriching events with metadata
+
+The `DomainEventEnvelope` provides a `withMetadata()` method that returns a new envelope with replaced metadata. This is typically used in a repository decorator or middleware to enrich events before they are persisted:
+
+```php
+use Gember\EventSourcing\UseCase\DomainEventEnvelope;
+use Gember\EventSourcing\UseCase\Metadata;
+
+// Create enriched envelope (immutable - returns a new instance)
+$enrichedEnvelope = $envelope->withMetadata(
+    $envelope->metadata->addMetadata([
+        'correlationId' => $this->correlationIdProvider->get(),
+        'userId' => $this->securityContext->getUserId(),
+    ]),
+);
+```
+
+#### Common metadata use cases
+
+| Key | Purpose |
+|-----|---------|
+| `correlationId` | Links related events across use cases and services |
+| `causationId` | Identifies the event that caused this event |
+| `userId` | The user who triggered the action |
+| `requestId` | Traces the originating HTTP request |
+| `userAgent` | Client information for audit trails |

@@ -248,6 +248,24 @@ When you save a use case:
 2. These events are linked to the domain tags defined in the use case
 3. An optimistic lock check is performed using a stream query built from the use case's domain tags and subscribed event types - the same query used during loading. If new events matching this query have been added since the use case was loaded, the save is rejected
 
+### Concurrency control
+
+When a use case is loaded from the repository, the event store records the ID of the last event in the stream (`lastEventId`). When the use case is saved, this ID is sent back to the event store as an optimistic lock token. If another process has written events to the same consistency boundary in the meantime, the IDs won't match and an `OptimisticLockException` is thrown.
+
+For a detailed explanation of the two-layer concurrency mechanism (boundary locks + optimistic lock check), see [How it works - Concurrency control](/docs/how-it-works.md#concurrency-control).
+
+#### Handling OptimisticLockException
+
+When a concurrent write conflict occurs, the event store throws an `OptimisticLockException`. This means the use case's state is stale — it was loaded before another process wrote to the same boundary.
+
+The typical strategy is to **retry the entire operation**: reload the use case (which now includes the other process's events), re-execute the business logic, and save again.
+
+> **Note:** The retry must reload the use case — you cannot simply retry the `save()` call, because the use case's internal state is based on stale events.
+
+#### First write
+
+When a use case is created for the first time (no prior events exist), `getLastEventId()` returns `null`. The event store treats `null` as "no prior events expected" — if any events already exist for that boundary, the write will fail with an `OptimisticLockException`, preventing duplicate creation.
+
 ### Examples
 
 #### Example 1: DCB use case with multiple domain tags
