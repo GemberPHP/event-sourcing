@@ -15,5 +15,6 @@ final readonly class StreamQuery
     public function __construct(
         public array $domainTags,
         public array $eventClassNames = [],
+        public ?string $afterEventId = null,
     ) {}
 }

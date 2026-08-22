@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\UseCase;
 
 use DateTimeImmutable;
+use RuntimeException;
 
 /**
  * @phpstan-require-implements EventSourcedUseCase
@@ -37,18 +38,45 @@ trait EventSourcedUseCaseBehaviorTrait
         return $this->lastEventId;
     }
 
+    public function setLastEventId(string $lastEventId): void
+    {
+        $this->lastEventId = $lastEventId;
+    }
+
     public function getAppliedEvents(): array
     {
-        $appliedEvents = $this->appliedEvents;
+        return $this->appliedEvents;
+    }
 
+    public function clearAppliedEvents(): void
+    {
         $this->appliedEvents = [];
-
-        return $appliedEvents;
     }
 
     public static function reconstitute(DomainEventEnvelope ...$envelopes): self
     {
         $useCase = new self();
+
+        foreach ($envelopes as $envelope) {
+            $useCase->applyEventInUseCase($envelope->event, $envelope->appliedAt);
+            $useCase->lastEventId = $envelope->eventId;
+        }
+
+        return $useCase;
+    }
+
+    public static function reconstituteFromSnapshot(object $snapshotState, DomainEventEnvelope ...$envelopes): self
+    {
+        if (!$snapshotState instanceof self) {
+            throw new RuntimeException(sprintf(
+                'Snapshot state is not an instance of %s, got %s',
+                self::class,
+                $snapshotState::class,
+            ));
+        }
+
+        $useCase = $snapshotState;
+        $useCase->appliedEvents = [];
 
         foreach ($envelopes as $envelope) {
             $useCase->applyEventInUseCase($envelope->event, $envelope->appliedAt);
