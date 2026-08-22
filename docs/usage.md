@@ -16,6 +16,7 @@ These topics are listed in recommended reading order — each builds on the prev
 
 ### Operational
 
+- [Snapshotting](/docs/usage/snapshotting.md) - Optimize reconstitution performance by capturing point-in-time use case state
 - [Outbox](/docs/usage/outbox.md) - Ensure reliable delivery of domain events and saga commands using the transactional outbox pattern
 - [Observability](/docs/usage/observability.md) - Structured logging for event store, command handling, and saga execution
 - [Caching](/docs/usage/caching.md) - Cache resolver and registry metadata to avoid runtime reflection overhead
