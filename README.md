@@ -11,6 +11,7 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
 
 - [Background](/docs/background.md)
 - [Installation](/docs/installation.md)
+- [Getting started](/docs/getting-started.md) - Build your first use case in 5 minutes
 - [Usage](/docs/usage.md)
   - [Commands](/docs/usage/commands.md) - Define commands that carry intent and domain tags for event retrieval
   - [Use cases / aggregates](/docs/usage/use-cases.md) - Model business logic using event-sourced use cases and traditional aggregates with DCB or aggregate patterns
