@@ -16,7 +16,7 @@ The outbox introduces three mechanisms:
 
 1. **Outbox bus implementations** — `OutboxEventBus` and `OutboxCommandBus` implement the standard `EventBus` and `CommandBus` interfaces, but write messages to the outbox table instead of dispatching them. They are swapped in via dependency injection — no changes to existing application code.
 
-2. **Transactional decorators** — `TransactionalUseCaseRepositoryDecorator` wraps the use case repository's `save()` in a database transaction, ensuring the event store append and the outbox writes commit atomically. `TransactionalSagaEventExecutorDecorator` does the same for saga state persistence and command outbox writes.
+2. **Transactional decorators** — `TransactionalUseCaseRepositoryDecorator` wraps the use case repository's `save()` in a database transaction, ensuring the event store append and the outbox writes commit atomically. `TransactionalSagaEventExecutorDecorator` does the same for saga state persistence and command outbox writes. These decorators can also be used independently of the outbox — for example, to wrap event store writes and event bus dispatching in a single transaction without using the outbox pattern.
 
 3. **Outbox processor** — A background worker that polls the outbox table, dispatches messages via the real event bus and command bus, and marks them as processed.
 

@@ -93,7 +93,13 @@ final readonly class ComplexEvent implements SpecifiedDomainTags
 - Provides full control over domain tag extraction
 - Can return computed or transformed values
 - **Completely replaces attribute-based resolution** - if this interface is implemented, `#[DomainTag]` attributes are ignored
-- Useful when domain tags don't map directly to properties or require transformation
+
+**When to use `SpecifiedDomainTags` over `#[DomainTag]` attributes:**
+- Domain tags need to be **derived or computed** from multiple properties (e.g., a composite key)
+- Domain tags require **conditional logic** (e.g., only include a tag when a property is non-null)
+- Domain tags need **transformation** before use (e.g., prefixing, hashing, or formatting)
+
+For most events where domain tags map directly to constructor properties, the `#[DomainTag]` attribute is simpler and recommended.
 
 ### Event naming
 
