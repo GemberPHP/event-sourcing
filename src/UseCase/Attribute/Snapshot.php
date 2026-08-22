@@ -6,6 +6,7 @@ namespace Gember\EventSourcing\UseCase\Attribute;
 
 use Attribute;
 use Gember\EventSourcing\Util\Time\Duration;
+use InvalidArgumentException;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class Snapshot
@@ -26,7 +27,7 @@ final readonly class Snapshot
         ?array $onEvents = null,
     ) {
         if ($afterEvents !== null && $afterEvents < 1) {
-            throw new \InvalidArgumentException('afterEvents must be at least 1');
+            throw new InvalidArgumentException('afterEvents must be at least 1');
         }
 
         $this->onEvents = match (true) {

@@ -8,6 +8,7 @@ use Gember\EventSourcing\UseCase\Attribute\Snapshot;
 use Gember\EventSourcing\Util\Time\Duration;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use InvalidArgumentException;
 
 /**
  * @internal
@@ -77,7 +78,7 @@ final class SnapshotTest extends TestCase
     #[Test]
     public function itShouldRejectZeroAfterEvents(): void
     {
-        self::expectException(\InvalidArgumentException::class);
+        self::expectException(InvalidArgumentException::class);
 
         new Snapshot(afterEvents: 0);
     }
@@ -85,7 +86,7 @@ final class SnapshotTest extends TestCase
     #[Test]
     public function itShouldRejectNegativeAfterEvents(): void
     {
-        self::expectException(\InvalidArgumentException::class);
+        self::expectException(InvalidArgumentException::class);
 
         new Snapshot(afterEvents: -1);
     }
