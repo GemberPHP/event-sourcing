@@ -2,6 +2,8 @@
 
 This section covers the core concepts of _Gember Event Sourcing_ and how to use them in your application.
 
+The typical flow is: define **domain events** that describe what happens in your domain, create **commands** that carry the intent to trigger changes, build **use cases** that protect business rules and apply events, and wire them together with **command handlers**. For cross-boundary workflows, add **sagas**.
+
 ### Core concepts
 
 These topics are listed in recommended reading order — each builds on the previous:
