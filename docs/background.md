@@ -20,8 +20,6 @@ Additionally, the aggregate is a technical concept that can be difficult to expl
 
 Gember addresses these issues by taking a different approach, using the "Dynamic Consistency Boundary" (DCB) pattern.
 
-> **Gember Event Sourcing is experimental**, exploring how the DCB pattern works in practice.
-
 ## The Dynamic Consistency Boundary (DCB) pattern
 
 Sara Pellegrini introduced the DCB pattern in 2023, rethinking the traditional approach to event sourcing. She explains it thoroughly in her talk: ["The Aggregate is dead. Long live the Aggregate!"](https://sara.event-thinking.io/2023/04/kill-aggregate-chapter-1-I-am-here-to-kill-the-aggregate.html) (highly recommended).
