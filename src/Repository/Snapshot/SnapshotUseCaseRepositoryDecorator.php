@@ -102,7 +102,7 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
                         ));
 
                         // Events exist but afterEventId returned nothing — snapshot is stale
-                        $this->logger->warning('[Snapshot] Stale snapshot detected, falling back to full replay', [
+                        $this->logger->info('[Snapshot] Stale snapshot detected, falling back to full replay', [
                             'lastEventId' => $snapshot->lastEventId,
                             'domainTags' => $domainTagStrings,
                         ]);
