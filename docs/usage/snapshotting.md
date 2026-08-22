@@ -117,7 +117,36 @@ Snapshots serialize the use case's state using the same `Serializer` used for do
 1. **`SerializableInterfaceSerializer`** — tried first. If the use case implements `Serializable`, it uses `toPayload()`/`fromPayload()` for full control over the snapshot format.
 2. **Symfony/default serializer** — fallback. Handles use cases without `Serializable` automatically.
 
-Note that the default Symfony Serializer only serializes **public properties**. If your use case has private properties that hold state, implement the `Serializable` interface:
+Note that the default Symfony Serializer only serializes **public properties**. Most use cases have private state properties, which means the default serializer will produce incomplete snapshots. There are two solutions:
+
+#### Option A: Configure Symfony to serialize private properties
+
+Register the `PropertyNormalizer` in your Symfony serializer configuration. This normalizer uses reflection to access private properties:
+
+```yaml
+# config/packages/framework.yaml
+framework:
+    serializer:
+        default_context:
+            # No additional config needed — PropertyNormalizer is auto-registered
+            # when symfony/property-info is installed
+```
+
+Or register it explicitly as a service with higher priority:
+
+```yaml
+# config/services.yaml
+services:
+    Symfony\Component\Serializer\Normalizer\PropertyNormalizer:
+        tags:
+            - { name: serializer.normalizer, priority: -500 }
+```
+
+This handles all use cases transparently without any code changes.
+
+#### Option B: Implement the Serializable interface
+
+For explicit control over which properties are persisted and how:
 
 ```php
 use Gember\EventSourcing\Util\Serialization\Serializable;
@@ -157,6 +186,8 @@ final class ManageAccount implements EventSourcedUseCase, Serializable
     }
 }
 ```
+
+> **Which to choose?** Option A is simpler — no code changes needed. Option B gives explicit control and works without a framework. For sagas, the same choice applies (see [Sagas - Serialization](/docs/usage/sagas.md#serialization)).
 
 For more details on serialization approaches, see [Domain events - Serialization](/docs/usage/domain-events.md#serialization).
 
