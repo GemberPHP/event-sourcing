@@ -18,6 +18,7 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
   - [Use cases / aggregates](/docs/usage/use-cases.md) - Model business logic using event-sourced use cases and traditional aggregates with DCB or aggregate patterns
   - [Command handlers](/docs/usage/command-handlers.md) - Trigger behavioral actions on use cases using command handlers
   - [Sagas](/docs/usage/sagas.md) - Implement long-running business processes that coordinate complex workflows across multiple domain events
+  - [Snapshotting](/docs/usage/snapshotting.md) - Optimize reconstitution performance by capturing point-in-time use case state
   - [Outbox](/docs/usage/outbox.md) - Reliable delivery of domain events and saga commands using the transactional outbox pattern
   - [Observability](/docs/usage/observability.md) - Structured logging for event store, command handling, and saga execution
   - [Caching](/docs/usage/caching.md) - Cache resolver and registry metadata to avoid runtime reflection overhead
