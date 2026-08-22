@@ -8,6 +8,7 @@ use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagDefinition;
 use Gember\EventSourcing\Resolver\Common\DomainTag\DomainTagType;
 use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\Resolver\UseCase\EventSubscriberDefinition;
+use Gember\EventSourcing\Resolver\UseCase\SnapshotDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSecondUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
@@ -85,6 +86,37 @@ final class UseCaseDefinitionTest extends TestCase
                     'eventClassName' => TestUseCaseModifiedEvent::class,
                     'methodName' => 'execute',
                 ],
+            ],
+            'snapshotDefinition' => null,
+        ], $serialized);
+
+        $deserialized = UseCaseDefinition::fromPayload($serialized);
+
+        self::assertEquals($deserialized, $definition);
+    }
+
+    #[Test]
+    public function itShouldSerializeAndDeserializeWithSnapshotDefinition(): void
+    {
+        $definition = new UseCaseDefinition(
+            TestUseCase::class,
+            [],
+            [],
+            [],
+            new SnapshotDefinition(500, 1000, [TestUseCaseCreatedEvent::class]),
+        );
+
+        $serialized = $definition->toPayload();
+
+        self::assertSame([
+            'useCaseClassName' => TestUseCase::class,
+            'domainTags' => [],
+            'commandHandlers' => [],
+            'eventSubscribers' => [],
+            'snapshotDefinition' => [
+                'afterEvents' => 500,
+                'afterSourcingTimeMs' => 1000,
+                'onEvents' => [TestUseCaseCreatedEvent::class],
             ],
         ], $serialized);
 
