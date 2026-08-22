@@ -10,6 +10,7 @@ use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
@@ -44,6 +45,7 @@ final class ReflectorCommandHandlerRegistryTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
             'path',
         );

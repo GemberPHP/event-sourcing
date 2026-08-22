@@ -17,6 +17,7 @@ use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Stacked\StackedE
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
@@ -59,6 +60,7 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
         );
 
@@ -117,6 +119,7 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
             new TestEventBus(),
         );
@@ -226,5 +229,17 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 $this->clock->time,
             ),
         ], $this->eventStoreRepository->events);
+    }
+
+    #[Test]
+    public function itShouldUpdateLastEventIdAfterSave(): void
+    {
+        $useCase = TestUseCase::create(new TestDomainTag('1dcdf55b-f518-419f-abad-768afa56e6bb'), 'ded58226-d3bf-4a7e-a9eb-cc7d7b7603ce');
+
+        self::assertNull($useCase->getLastEventId());
+
+        $this->repository->save($useCase);
+
+        self::assertSame('be07b19b-c7ab-429e-a9c3-6b7d942122c0', $useCase->getLastEventId());
     }
 }

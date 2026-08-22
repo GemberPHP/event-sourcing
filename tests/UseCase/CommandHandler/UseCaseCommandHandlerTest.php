@@ -13,6 +13,7 @@ use Gember\EventSourcing\Resolver\DomainCommand\Default\DefaultDomainCommandReso
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\Test\TestDoubles\Repository\TestUseCaseRepository;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSecondUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
@@ -45,6 +46,7 @@ final class UseCaseCommandHandlerTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
         );
 

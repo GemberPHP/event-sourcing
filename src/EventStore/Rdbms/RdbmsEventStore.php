@@ -31,6 +31,7 @@ final readonly class RdbmsEventStore implements EventStore
             $rdbmsEvents = $this->repository->getEvents(
                 $streamQuery->domainTags,
                 $this->getEventNamesFromStreamQuery($streamQuery),
+                $streamQuery->afterEventId,
             );
 
             $eventEnvelopes = array_map(
