@@ -11,12 +11,14 @@ use Gember\EventSourcing\Util\Serialization\Serializable;
  * @phpstan-import-type DomainTagDefinitionPayload from DomainTagDefinition
  * @phpstan-import-type CommandHandlerDefinitionPayload from CommandHandlerDefinition
  * @phpstan-import-type EventSubscriberDefinitionPayload from EventSubscriberDefinition
+ * @phpstan-import-type SnapshotDefinitionPayload from SnapshotDefinition
  *
  * @phpstan-type UseCaseDefinitionPayload array{
  *     useCaseClassName: class-string,
  *     domainTags: list<DomainTagDefinitionPayload>,
  *     commandHandlers: list<CommandHandlerDefinitionPayload>,
- *     eventSubscribers: list<EventSubscriberDefinitionPayload>
+ *     eventSubscribers: list<EventSubscriberDefinitionPayload>,
+ *     snapshotDefinition: ?SnapshotDefinitionPayload
  * }
  *
  * @implements Serializable<UseCaseDefinitionPayload, UseCaseDefinition>
@@ -34,6 +36,7 @@ final readonly class UseCaseDefinition implements Serializable
         public array $domainTags,
         public array $commandHandlers,
         public array $eventSubscribers,
+        public ?SnapshotDefinition $snapshotDefinition = null,
     ) {}
 
     public function toPayload(): array
@@ -43,6 +46,7 @@ final readonly class UseCaseDefinition implements Serializable
             'domainTags' => array_map(fn($domainTag) => $domainTag->toPayload(), $this->domainTags),
             'commandHandlers' => array_map(fn($commandHandler) => $commandHandler->toPayload(), $this->commandHandlers),
             'eventSubscribers' => array_map(fn($eventSubscriber) => $eventSubscriber->toPayload(), $this->eventSubscribers),
+            'snapshotDefinition' => $this->snapshotDefinition?->toPayload(),
         ];
     }
 
@@ -53,6 +57,7 @@ final readonly class UseCaseDefinition implements Serializable
             array_map(fn($domainTagPayload) => DomainTagDefinition::fromPayload($domainTagPayload), $payload['domainTags']),
             array_map(fn($commandHandlerPayload) => CommandHandlerDefinition::fromPayload($commandHandlerPayload), $payload['commandHandlers']),
             array_map(fn($eventSubscriberPayload) => EventSubscriberDefinition::fromPayload($eventSubscriberPayload), $payload['eventSubscribers']),
+            isset($payload['snapshotDefinition']) ? SnapshotDefinition::fromPayload($payload['snapshotDefinition']) : null,
         );
     }
 }

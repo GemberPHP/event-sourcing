@@ -18,6 +18,7 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Common\CreationPolicy;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -40,6 +41,7 @@ final class DefaultUseCaseResolverTest extends TestCase
             new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
             new AttributeCommandHandlerResolver($attributeResolver),
             new AttributeEventSubscriberResolver($attributeResolver),
+            new AttributeSnapshotResolver($attributeResolver),
         );
     }
 

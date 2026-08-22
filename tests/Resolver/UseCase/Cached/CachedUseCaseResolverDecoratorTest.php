@@ -11,6 +11,7 @@ use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\Resolver\UseCase\EventSubscriberDefinition;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSecondUseCaseWithCommand;
@@ -47,6 +48,7 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
             $this->cache = new TestCache(),
             new NativeFriendlyClassNamer(new NativeInflector()),
