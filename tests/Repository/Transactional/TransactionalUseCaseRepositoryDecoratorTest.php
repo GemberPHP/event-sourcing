@@ -99,7 +99,16 @@ final class StubUseCase implements EventSourcedUseCase
         return [];
     }
 
+    public function clearAppliedEvents(): void {}
+
+    public function setLastEventId(string $lastEventId): void {}
+
     public static function reconstitute(DomainEventEnvelope ...$envelopes): self
+    {
+        return new self();
+    }
+
+    public static function reconstituteFromSnapshot(object $snapshotState, DomainEventEnvelope ...$envelopes): self
     {
         return new self();
     }

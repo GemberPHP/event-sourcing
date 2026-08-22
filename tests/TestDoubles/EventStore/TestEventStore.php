@@ -16,24 +16,37 @@ final class TestEventStore implements EventStore
 {
     /**
      * @param list<DomainEventEnvelope> $envelopesToReturn
+     * @param list<list<DomainEventEnvelope>|Exception> $loadResults
      * @param list<DomainEventEnvelope> $lastAppendEventEnvelopes
      */
     public function __construct(
         public bool $loadWasCalled = false,
         public ?StreamQuery $lastLoadStreamQuery = null,
         public array $envelopesToReturn = [],
+        public array $loadResults = [],
         public ?Exception $loadShouldThrow = null,
         public bool $appendWasCalled = false,
         public ?StreamQuery $lastAppendStreamQuery = null,
         public ?string $lastAppendLastEventId = null,
         public array $lastAppendEventEnvelopes = [],
         public ?Exception $appendShouldThrow = null,
+        private int $loadCallCount = 0,
     ) {}
 
     public function load(StreamQuery $streamQuery): array
     {
         $this->loadWasCalled = true;
         $this->lastLoadStreamQuery = $streamQuery;
+
+        if ($this->loadResults !== []) {
+            $result = $this->loadResults[$this->loadCallCount++] ?? $this->envelopesToReturn;
+
+            if ($result instanceof Exception) {
+                throw $result;
+            }
+
+            return $result;
+        }
 
         if ($this->loadShouldThrow !== null) {
             throw $this->loadShouldThrow;

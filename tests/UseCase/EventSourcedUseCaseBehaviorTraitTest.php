@@ -9,6 +9,7 @@ use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagR
 use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\AttributeCommandHandlerResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
+use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\UseCase\UseCaseAttributeRegistry;
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;
 use Gember\EventSourcing\UseCase\Metadata;
@@ -20,6 +21,8 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use stdClass;
 
 /**
  * @internal
@@ -35,6 +38,7 @@ final class EventSourcedUseCaseBehaviorTraitTest extends TestCase
                 new AttributeDomainTagResolver($attributeResolver = new ReflectorAttributeResolver()),
                 new AttributeCommandHandlerResolver($attributeResolver),
                 new AttributeEventSubscriberResolver($attributeResolver),
+                new AttributeSnapshotResolver($attributeResolver),
             ),
         );
     }
@@ -54,13 +58,16 @@ final class EventSourcedUseCaseBehaviorTraitTest extends TestCase
             ),
         ], $useCase->getAppliedEvents());
 
+        $useCase->clearAppliedEvents();
+
         $useCase->modify();
 
         self::assertEquals([
             new TestUseCaseModifiedEvent(),
         ], $useCase->getAppliedEvents());
 
-        // Should be cleared with previous ^ getAppliedEvents()
+        $useCase->clearAppliedEvents();
+
         self::assertEquals([], $useCase->getAppliedEvents());
     }
 
@@ -223,5 +230,47 @@ final class EventSourcedUseCaseBehaviorTraitTest extends TestCase
                 '2da4dd9d-7235-423b-8803-71c0099bc97e',
             ),
         ], $useCase->testAppliedEvents);
+    }
+
+    #[Test]
+    public function itShouldReconstituteFromSnapshot(): void
+    {
+        $snapshotState = TestUseCase::reconstitute(
+            new DomainEventEnvelope(
+                'event-1',
+                [],
+                new TestUseCaseCreatedEvent(
+                    'aaa-111',
+                    'bbb-222',
+                ),
+                new Metadata(),
+                new DateTimeImmutable(),
+            ),
+        );
+
+        $useCase = TestUseCase::reconstituteFromSnapshot(
+            $snapshotState,
+            new DomainEventEnvelope(
+                'event-2',
+                [],
+                new TestUseCaseModifiedEvent(),
+                new Metadata(),
+                new DateTimeImmutable(),
+            ),
+        );
+
+        self::assertSame('event-2', $useCase->getLastEventId());
+        self::assertEquals([
+            new TestDomainTag('aaa-111'),
+            'bbb-222',
+        ], $useCase->getDomainTags());
+    }
+
+    #[Test]
+    public function itShouldThrowWhenSnapshotStateIsWrongType(): void
+    {
+        self::expectException(RuntimeException::class);
+
+        TestUseCase::reconstituteFromSnapshot(new stdClass());
     }
 }
