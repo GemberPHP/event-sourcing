@@ -6,15 +6,18 @@ namespace Gember\EventSourcing\Snapshot\Rdbms;
 
 use Gember\DependencyContracts\EventStore\Snapshot\RdbmsSnapshot;
 use Gember\DependencyContracts\EventStore\Snapshot\RdbmsSnapshotStoreRepository;
+use Gember\DependencyContracts\Util\Generator\Identity\IdentityGenerator;
 use Gember\EventSourcing\Snapshot\SnapshotEnvelope;
 use Gember\EventSourcing\Snapshot\SnapshotStore;
+use Gember\EventSourcing\Util\Time\Clock\Clock;
 use Override;
-use DateTimeImmutable;
 
 final readonly class RdbmsSnapshotStore implements SnapshotStore
 {
     public function __construct(
         private RdbmsSnapshotStoreRepository $repository,
+        private IdentityGenerator $identityGenerator,
+        private Clock $clock,
     ) {}
 
     #[Override]
@@ -42,12 +45,13 @@ final readonly class RdbmsSnapshotStore implements SnapshotStore
     public function save(SnapshotEnvelope $snapshot): void
     {
         $this->repository->save(new RdbmsSnapshot(
+            $this->identityGenerator->generate(),
             $snapshot->domainTags,
             $snapshot->eventNames,
             $snapshot->lastEventId,
             $snapshot->eventCount,
             $snapshot->state,
-            new DateTimeImmutable(),
+            $this->clock->now(),
         ));
     }
 }
