@@ -34,7 +34,7 @@ $ignoreErrors[] = [
 $ignoreErrors[] = [
 	'message' => '#^Cannot access property \\$afterEventId on Gember\\\\EventSourcing\\\\EventStore\\\\StreamQuery\\|null\\.$#',
 	'identifier' => 'property.nonObject',
-	'count' => 1,
+	'count' => 2,
 	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
 ];
 $ignoreErrors[] = [
@@ -70,6 +70,18 @@ $ignoreErrors[] = [
 $ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\SourcingTimeSnapshotTestUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
 	'identifier' => 'return.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\MultiplePolicyMatchTestUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
+	'identifier' => 'return.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\MultiplePolicyMatchTestUseCase\\:\\:\\$id \\(string\\) does not accept string\\|null\\.$#',
+	'identifier' => 'assign.propertyType',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
 ];

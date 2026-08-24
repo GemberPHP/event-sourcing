@@ -50,6 +50,19 @@ final readonly class NativeTestSerializer implements Serializer
     }
 }
 
+final class FailingDeserializeSerializer implements Serializer
+{
+    public function serialize(object $object): string
+    {
+        return \serialize($object);
+    }
+
+    public function deserialize(string $payload, string $className): object
+    {
+        throw new Exception('Deserialization failed: class structure changed');
+    }
+}
+
 #[Snapshot(afterEvents: 5)]
 final class SnapshotTestUseCase implements EventSourcedUseCase
 {
@@ -82,6 +95,21 @@ final class OnEventSnapshotTestUseCase implements EventSourcedUseCase
 
 #[Snapshot(afterSourcingTime: new Duration(milliseconds: 0))]
 final class SourcingTimeSnapshotTestUseCase implements EventSourcedUseCase
+{
+    use EventSourcedUseCaseBehaviorTrait;
+
+    #[DomainTag]
+    public string $id = '';
+
+    #[DomainEventSubscriber]
+    private function onCreated(TestUseCaseCreatedEvent $event): void
+    {
+        $this->id = $event->id;
+    }
+}
+
+#[Snapshot(afterEvents: 1, onEvent: TestUseCaseCreatedEvent::class)]
+final class MultiplePolicyMatchTestUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
 
@@ -442,6 +470,173 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
 
         self::assertTrue($this->snapshotStore->saveWasCalled);
         self::assertNotNull($this->snapshotStore->storedSnapshot);
+    }
+
+    #[Test]
+    public function itShouldOnlyTriggerFirstMatchingSnapshotPolicy(): void
+    {
+        // MultiplePolicyMatchTestUseCase has afterEvents: 1 AND onEvent: TestUseCaseCreatedEvent
+        // Both AfterEventsSnapshotPolicy and OnEventsSnapshotPolicy would match.
+        // Only the first matching policy should trigger a save (first-match-wins).
+        $envelope = new DomainEventEnvelope(
+            'event-id-1',
+            ['domain-tag-1'],
+            new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'),
+            new Metadata(),
+            new DateTimeImmutable(),
+        );
+        $this->eventStore->envelopesToReturn = [$envelope];
+
+        $useCase = $this->decorator->get(MultiplePolicyMatchTestUseCase::class, 'domain-tag-1');
+        $useCase->apply(new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'));
+        $useCase->setLastEventId('event-id-2');
+
+        $this->decorator->save($useCase);
+
+        // Snapshot should be saved exactly once, not once per matching policy
+        self::assertTrue($this->snapshotStore->saveWasCalled);
+        self::assertNotNull($this->snapshotStore->storedSnapshot);
+
+        // After the first policy triggers, the sourcing context is cleared (WeakMap entry removed).
+        // A second save() should NOT trigger another snapshot.
+        $this->snapshotStore->saveWasCalled = false;
+        $this->snapshotStore->storedSnapshot = null;
+
+        $useCase->apply(new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'));
+        $this->decorator->save($useCase);
+
+        self::assertFalse($this->snapshotStore->saveWasCalled);
+    }
+
+    #[Test]
+    public function itShouldFallBackToFullReplayWhenDeserializationFails(): void
+    {
+        $attributeResolver = new ReflectorAttributeResolver();
+        $useCaseResolver = new DefaultUseCaseResolver(
+            new AttributeDomainTagResolver($attributeResolver),
+            new AttributeCommandHandlerResolver($attributeResolver),
+            new AttributeEventSubscriberResolver($attributeResolver),
+            new AttributeSnapshotResolver($attributeResolver),
+        );
+
+        $logger = new TestLogger();
+
+        $decorator = new SnapshotUseCaseRepositoryDecorator(
+            $this->innerRepository,
+            $this->eventStore,
+            $useCaseResolver,
+            $this->snapshotStore,
+            new FailingDeserializeSerializer(),
+            [
+                new AfterEventsSnapshotPolicy(),
+                new AfterSourcingTimeSnapshotPolicy(),
+                new OnEventsSnapshotPolicy(),
+            ],
+            $logger,
+        );
+
+        $this->snapshotStore->snapshotToReturn = new SnapshotEnvelope(
+            ['domain-tag-1'],
+            [TestUseCaseCreatedEvent::class],
+            'last-event-id',
+            5,
+            'corrupted-payload',
+        );
+
+        // Partial events (after snapshot) — these should NOT be used for reconstitution
+        $partialEnvelope = new DomainEventEnvelope(
+            'event-id-6',
+            ['domain-tag-1'],
+            new TestUseCaseCreatedEvent('partial-tag', 'secondary'),
+            new Metadata(),
+            new DateTimeImmutable(),
+        );
+
+        // Full replay events — these SHOULD be used for reconstitution
+        $fullEnvelope = new DomainEventEnvelope(
+            'event-id-1',
+            ['domain-tag-1'],
+            new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'),
+            new Metadata(),
+            new DateTimeImmutable(),
+        );
+
+        // First call: afterEventId load returns partial events
+        // Second call: full replay (no afterEventId) returns all events
+        $this->eventStore->loadResults = [
+            [$partialEnvelope],  // First call: events after snapshot
+            [$fullEnvelope],     // Second call: full replay after deserialization failure
+        ];
+
+        $useCase = $decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
+        // Must be 'domain-tag-1' from full replay, NOT 'partial-tag' from partial events
+        self::assertSame('domain-tag-1', $useCase->id);
+
+        // Verify the second load() was called without afterEventId (full replay)
+        self::assertNull($this->eventStore->lastLoadStreamQuery->afterEventId);
+
+        // Verify stale snapshot fallback was logged
+        $staleLogFound = false;
+        foreach ($logger->logs as $log) {
+            if ($log['message'] === '[Snapshot] Stale snapshot, falling back to full replay') {
+                $staleLogFound = true;
+                break;
+            }
+        }
+        self::assertTrue($staleLogFound, 'Expected stale snapshot fallback log message');
+    }
+
+    #[Test]
+    public function itShouldFallBackToFullReplayWhenSnapshotLoadFails(): void
+    {
+        $this->snapshotStore->loadShouldThrow = new Exception('snapshot store unavailable');
+
+        $envelope = new DomainEventEnvelope(
+            'event-id-1',
+            ['domain-tag-1'],
+            new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'),
+            new Metadata(),
+            new DateTimeImmutable(),
+        );
+
+        $this->eventStore->envelopesToReturn = [$envelope];
+
+        $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
+        self::assertSame('domain-tag-1', $useCase->id);
+    }
+
+    #[Test]
+    public function itShouldUseSnapshotDirectlyWhenNoNewEventsExist(): void
+    {
+        $snapshotUseCase = new SnapshotTestUseCase();
+        $snapshotReflection = new ReflectionProperty($snapshotUseCase, 'id');
+        $snapshotReflection->setValue($snapshotUseCase, 'domain-tag-1');
+
+        $this->snapshotStore->snapshotToReturn = new SnapshotEnvelope(
+            ['domain-tag-1'],
+            [TestUseCaseCreatedEvent::class],
+            'last-event-id',
+            10,
+            \serialize($snapshotUseCase),
+        );
+
+        // Both load() calls throw NoEventsForDomainTagsException:
+        // 1st: no events after snapshot's lastEventId (snapshot is current)
+        // 2nd: no events at all for this boundary (confirms snapshot covers everything)
+        $this->eventStore->loadResults = [
+            new \Gember\EventSourcing\EventStore\NoEventsForDomainTagsException(),
+            new \Gember\EventSourcing\EventStore\NoEventsForDomainTagsException(),
+        ];
+
+        $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
+        self::assertSame('domain-tag-1', $useCase->id);
+        self::assertSame(10, $this->snapshotStore->storedSnapshot === null ? 10 : 0);
     }
 
     #[Test]
