@@ -100,7 +100,7 @@ Create a snapshot when a specific event type is applied. Useful for milestone ev
 
 ### Combining triggers
 
-All triggers can be combined. Any of them fires a snapshot (OR logic):
+All triggers can be combined. Any of them fires a snapshot (OR logic, first-match-wins):
 
 ```php
 #[Snapshot(
@@ -109,6 +109,8 @@ All triggers can be combined. Any of them fires a snapshot (OR logic):
     onEvents: [AccountClosed::class, MonthEnded::class],
 )]
 ```
+
+When multiple policies match on the same save, only the first matching policy triggers a snapshot. Exactly one snapshot is created per save at most.
 
 ### Serialization
 
@@ -221,7 +223,7 @@ When using the Symfony bundle, custom policies are automatically picked up when 
 
 ### Snapshot resilience
 
-Snapshot creation is non-critical — if it fails (e.g., database unavailable), the failure is logged at `warning` level and the command completes normally. The next load will simply do a full event replay. Snapshots are an optimization, never a requirement for correctness.
+Snapshots are an optimization, never a requirement for correctness. Both loading and saving snapshots are non-critical — if either fails (e.g., database unavailable, corrupted data), the failure is logged and the system continues normally. A failed load falls back to full event replay. A failed save is skipped. The next successful operation will recover automatically.
 
 #### Automatic stale snapshot recovery
 
