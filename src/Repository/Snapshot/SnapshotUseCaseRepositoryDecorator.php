@@ -76,7 +76,16 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         );
 
         try {
-            $snapshot = $this->snapshotStore->load($domainTagStrings, $eventClassNames);
+            try {
+                $snapshot = $this->snapshotStore->load($domainTagStrings, $eventClassNames);
+            } catch (Throwable $exception) {
+                $this->logger->warning('[Snapshot] Failed loading snapshot, falling back to full replay', [
+                    'exception' => $exception->getMessage(),
+                    'exceptionClass' => $exception::class,
+                    'domainTags' => $domainTagStrings,
+                ]);
+                $snapshot = null;
+            }
 
             $startTime = microtime(true);
 
@@ -115,14 +124,36 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
                 }
 
                 if ($snapshotIsValid) {
+                    try {
+                        $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
+                    } catch (Throwable $exception) {
+                        $this->logger->info('[Snapshot] Stale snapshot, falling back to full replay', [
+                            'exception' => $exception->getMessage(),
+                            'exceptionClass' => $exception::class,
+                            'domainTags' => $domainTagStrings,
+                        ]);
+                        $snapshotIsValid = false;
+                        $eventEnvelopes = [];
+                    }
+                }
+
+                if ($snapshotIsValid) {
                     $useCase = $useCaseClassName::reconstituteFromSnapshot(
-                        $this->serializer->deserialize($snapshot->state, $useCaseClassName),
+                        $deserialized,
                         ...$eventEnvelopes,
                     );
 
                     $eventCount = $snapshot->eventCount + count($eventEnvelopes);
                 } else {
                     $eventCountAtLastSnapshot = 0;
+
+                    if ($eventEnvelopes === []) {
+                        $eventEnvelopes = $this->eventStore->load(new StreamQuery(
+                            $domainTags,
+                            $eventClassNames,
+                        ));
+                    }
+
                     $useCase = $useCaseClassName::reconstitute(...$eventEnvelopes);
                     $eventCount = count($eventEnvelopes);
                 }
