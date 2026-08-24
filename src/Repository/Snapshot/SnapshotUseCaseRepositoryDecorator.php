@@ -76,112 +76,22 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         );
 
         try {
-            try {
-                $snapshot = $this->snapshotStore->load($domainTagStrings, $eventClassNames);
-            } catch (Throwable $exception) {
-                $this->logger->warning('[Snapshot] Failed loading snapshot, falling back to full replay', [
-                    'exception' => $exception->getMessage(),
-                    'exceptionClass' => $exception::class,
-                    'domainTags' => $domainTagStrings,
-                ]);
-                $snapshot = null;
-            }
-
             $startTime = microtime(true);
 
-            if ($snapshot !== null) {
-                $eventCountAtLastSnapshot = $snapshot->eventCount;
-                $snapshotIsValid = true;
-
-                try {
-                    $eventEnvelopes = $this->eventStore->load(new StreamQuery(
-                        $domainTags,
-                        $eventClassNames,
-                        $snapshot->lastEventId,
-                    ));
-                } catch (NoEventsForDomainTagsException) {
-                    // No events after snapshot — either snapshot is current, or lastEventId is invalid.
-                    // Verify by checking if any events exist at all for this boundary.
-                    $eventEnvelopes = [];
-
-                    try {
-                        $allEnvelopes = $this->eventStore->load(new StreamQuery(
-                            $domainTags,
-                            $eventClassNames,
-                        ));
-
-                        // Events exist but afterEventId returned nothing — snapshot is stale
-                        $this->logger->info('[Snapshot] Stale snapshot detected, falling back to full replay', [
-                            'lastEventId' => $snapshot->lastEventId,
-                            'domainTags' => $domainTagStrings,
-                        ]);
-
-                        $snapshotIsValid = false;
-                        $eventEnvelopes = $allEnvelopes;
-                    } catch (NoEventsForDomainTagsException) {
-                        // No events at all — snapshot is genuinely current (or use case was deleted)
-                    }
-                }
-
-                if ($snapshotIsValid) {
-                    try {
-                        $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
-                    } catch (Throwable $exception) {
-                        $this->logger->info('[Snapshot] Stale snapshot, falling back to full replay', [
-                            'exception' => $exception->getMessage(),
-                            'exceptionClass' => $exception::class,
-                            'domainTags' => $domainTagStrings,
-                        ]);
-                        $snapshotIsValid = false;
-                        $eventEnvelopes = [];
-                    }
-                }
-
-                if ($snapshotIsValid) {
-                    $useCase = $useCaseClassName::reconstituteFromSnapshot(
-                        $deserialized,
-                        ...$eventEnvelopes,
-                    );
-
-                    $eventCount = $snapshot->eventCount + count($eventEnvelopes);
-                } else {
-                    $eventCountAtLastSnapshot = 0;
-
-                    if ($eventEnvelopes === []) {
-                        $eventEnvelopes = $this->eventStore->load(new StreamQuery(
-                            $domainTags,
-                            $eventClassNames,
-                        ));
-                    }
-
-                    $useCase = $useCaseClassName::reconstitute(...$eventEnvelopes);
-                    $eventCount = count($eventEnvelopes);
-                }
-            } else {
-                $eventCountAtLastSnapshot = 0;
-
-                $eventEnvelopes = $this->eventStore->load(new StreamQuery(
-                    $domainTags,
-                    $eventClassNames,
-                ));
-
-                $useCase = $useCaseClassName::reconstitute(...$eventEnvelopes);
-
-                $eventCount = count($eventEnvelopes);
-            }
+            $result = $this->reconstituteWithSnapshot($useCaseClassName, $domainTags, $domainTagStrings, $eventClassNames);
 
             $sourcingDurationMs = (microtime(true) - $startTime) * 1000;
 
-            $this->sourcingContexts[$useCase] = new SourcingContext(
+            $this->sourcingContexts[$result->useCase] = new SourcingContext(
                 $sourcingDurationMs,
-                $eventCount,
-                $eventCountAtLastSnapshot,
+                $result->eventCount,
+                $result->eventCountAtLastSnapshot,
                 $snapshotDefinition,
                 $domainTagStrings,
                 $eventClassNames,
             );
 
-            return $useCase;
+            return $result->useCase;
         } catch (NoEventsForDomainTagsException) {
             throw UseCaseNotFoundException::create();
         } catch (Throwable $exception) {
@@ -208,6 +118,144 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         $this->useCaseRepository->save($useCase);
 
         $this->createSnapshotIfNeeded($useCase, $appliedEvents);
+    }
+
+    /**
+     * @param class-string<EventSourcedUseCase> $useCaseClassName
+     * @param list<string|Stringable> $domainTags
+     * @param list<string> $domainTagStrings
+     * @param list<class-string> $eventClassNames
+     */
+    private function reconstituteWithSnapshot(
+        string $useCaseClassName,
+        array $domainTags,
+        array $domainTagStrings,
+        array $eventClassNames,
+    ): ReconstitutionResult {
+        try {
+            $snapshot = $this->snapshotStore->load($domainTagStrings, $eventClassNames);
+        } catch (Throwable $exception) {
+            $this->logger->warning('[Snapshot] Failed loading snapshot, falling back to full replay', [
+                'exception' => $exception->getMessage(),
+                'exceptionClass' => $exception::class,
+                'domainTags' => $domainTagStrings,
+            ]);
+            $snapshot = null;
+        }
+
+        if ($snapshot !== null) {
+            return $this->reconstituteFromSnapshot($useCaseClassName, $snapshot, $domainTags, $domainTagStrings, $eventClassNames);
+        }
+
+        return $this->reconstituteFromEvents($useCaseClassName, $domainTags, $eventClassNames);
+    }
+
+    /**
+     * @param class-string<EventSourcedUseCase> $useCaseClassName
+     * @param list<string|Stringable> $domainTags
+     * @param list<string> $domainTagStrings
+     * @param list<class-string> $eventClassNames
+     */
+    private function reconstituteFromSnapshot(
+        string $useCaseClassName,
+        SnapshotEnvelope $snapshot,
+        array $domainTags,
+        array $domainTagStrings,
+        array $eventClassNames,
+    ): ReconstitutionResult {
+        try {
+            $eventEnvelopes = $this->eventStore->load(new StreamQuery(
+                $domainTags,
+                $eventClassNames,
+                $snapshot->lastEventId,
+            ));
+        } catch (NoEventsForDomainTagsException) {
+            return $this->handleStaleLastEventId($useCaseClassName, $snapshot, $domainTags, $domainTagStrings, $eventClassNames);
+        }
+
+        try {
+            $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
+        } catch (Throwable $exception) {
+            $this->logger->info('[Snapshot] Stale snapshot, falling back to full replay', [
+                'exception' => $exception->getMessage(),
+                'exceptionClass' => $exception::class,
+                'domainTags' => $domainTagStrings,
+            ]);
+
+            return $this->reconstituteFromEvents($useCaseClassName, $domainTags, $eventClassNames);
+        }
+
+        return new ReconstitutionResult(
+            $useCaseClassName::reconstituteFromSnapshot($deserialized, ...$eventEnvelopes),
+            $snapshot->eventCount + count($eventEnvelopes),
+            $snapshot->eventCount,
+        );
+    }
+
+    /**
+     * @param class-string<EventSourcedUseCase> $useCaseClassName
+     * @param list<string|Stringable> $domainTags
+     * @param list<string> $domainTagStrings
+     * @param list<class-string> $eventClassNames
+     */
+    private function handleStaleLastEventId(
+        string $useCaseClassName,
+        SnapshotEnvelope $snapshot,
+        array $domainTags,
+        array $domainTagStrings,
+        array $eventClassNames,
+    ): ReconstitutionResult {
+        // No events after snapshot — either snapshot is current, or lastEventId is invalid.
+        // Verify by checking if any events exist at all for this boundary.
+        try {
+            $allEnvelopes = $this->eventStore->load(new StreamQuery(
+                $domainTags,
+                $eventClassNames,
+            ));
+        } catch (NoEventsForDomainTagsException) {
+            // No events at all — snapshot is genuinely current (or use case was deleted)
+            $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
+
+            return new ReconstitutionResult(
+                $useCaseClassName::reconstituteFromSnapshot($deserialized),
+                $snapshot->eventCount,
+                $snapshot->eventCount,
+            );
+        }
+
+        // Events exist but afterEventId returned nothing — snapshot is stale
+        $this->logger->info('[Snapshot] Stale snapshot detected, falling back to full replay', [
+            'lastEventId' => $snapshot->lastEventId,
+            'domainTags' => $domainTagStrings,
+        ]);
+
+        return new ReconstitutionResult(
+            $useCaseClassName::reconstitute(...$allEnvelopes),
+            count($allEnvelopes),
+            0,
+        );
+    }
+
+    /**
+     * @param class-string<EventSourcedUseCase> $useCaseClassName
+     * @param list<string|Stringable> $domainTags
+     * @param list<class-string> $eventClassNames
+     */
+    private function reconstituteFromEvents(
+        string $useCaseClassName,
+        array $domainTags,
+        array $eventClassNames,
+    ): ReconstitutionResult {
+        $eventEnvelopes = $this->eventStore->load(new StreamQuery(
+            $domainTags,
+            $eventClassNames,
+        ));
+
+        return new ReconstitutionResult(
+            $useCaseClassName::reconstitute(...$eventEnvelopes),
+            count($eventEnvelopes),
+            0,
+        );
     }
 
     /**
