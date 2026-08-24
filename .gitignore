@@ -2,3 +2,4 @@
 /var/
 /vendor/
 composer.lock
+/site/
