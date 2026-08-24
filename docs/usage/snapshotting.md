@@ -53,7 +53,7 @@ Create a snapshot every N events since the last snapshot. This is the most commo
 #[Snapshot(afterEvents: 500)]
 ```
 
-When the total event count since the last snapshot reaches the threshold, a snapshot is taken after the next save. Snapshots are created at approximately every 500 events (e.g., at 503, 1005, 1508...) depending on how many events are applied per save.
+When the total event count minus the event count at the last snapshot reaches the threshold, a snapshot is taken after the next save. This includes both the events replayed during reconstitution and any new events applied in the current save. Snapshots are created at approximately every 500 events (e.g., at 503, 1005, 1508...) depending on how many events are applied per save.
 
 #### afterSourcingTime
 
@@ -223,6 +223,21 @@ When using the Symfony bundle, custom policies are automatically picked up when 
 
 Snapshot creation is non-critical — if it fails (e.g., database unavailable), the failure is logged at `warning` level and the command completes normally. The next load will simply do a full event replay. Snapshots are an optimization, never a requirement for correctness.
 
+#### Automatic stale snapshot recovery
+
+Snapshots are versioned — each save inserts a new row rather than overwriting the previous one. When loading, the system always retrieves the latest snapshot (highest `event_count`).
+
+If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, or the snapshot's `lastEventId` is no longer in the event store), the system automatically falls back to a full event replay. This is logged at `info` level:
+
+```
+[Snapshot] Stale snapshot detected, falling back to full replay  {lastEventId: "...", domainTags: [...]}
+[Snapshot] Stale snapshot, falling back to full replay           {exception: "...", exceptionClass: "...", domainTags: [...]}
+```
+
+The first message indicates a stale `lastEventId` (e.g., event store was rebuilt). The second indicates a deserialization failure (e.g., class structure changed). In both cases, the next successful save will create a fresh snapshot.
+
+This means **truncating `snapshot_store` after deployments is no longer required** — the system auto-recovers. However, truncating is still safe and can be used to reclaim disk space from accumulated old snapshots.
+
 ### Symfony bundle configuration
 
 Enable snapshotting in `gember_event_sourcing.yaml`:
@@ -241,13 +256,47 @@ Snapshot creation happens synchronously during `save()`. For most use cases this
 
 ### Deployment considerations
 
-Snapshots serialize the use case's state. If the use case class changes (e.g., properties renamed, event handlers modified, serialization format changed), existing snapshots may become incompatible. After such changes, **truncate the `snapshot_store` table** during deployment. The system will rebuild snapshots automatically based on the configured policies.
+Snapshots serialize the use case's state. If the use case class changes (e.g., properties renamed, event handlers modified, serialization format changed), existing snapshots may become incompatible. The system handles this automatically — a failed deserialization triggers a full event replay, and a fresh snapshot is created on the next save.
+
+Because snapshots are versioned (insert-only), old snapshots accumulate over time. This is generally harmless, but for large-scale systems you may want to periodically clean up old snapshots:
 
 ```sql
+-- Remove all snapshots (safe — only affects performance, not correctness)
 TRUNCATE TABLE snapshot_store;
+
+-- Or selectively keep the 3 most recent snapshots per boundary (MySQL 8+)
+DELETE FROM snapshot_store WHERE id IN (
+    SELECT id FROM (
+        SELECT id, ROW_NUMBER() OVER (PARTITION BY boundary_hash ORDER BY event_count DESC) AS rn
+        FROM snapshot_store
+    ) ranked WHERE rn > 3
+);
 ```
 
-This is safe — clearing snapshots only affects performance (full replay on next load), not correctness.
+### Upgrading from pre-versioned snapshots
+
+If upgrading from a version that used upsert semantics (single snapshot per boundary), the `snapshot_store` table schema has changed:
+
+- New `id` column (primary key, UUID)
+- `boundary_hash` is no longer the primary key
+- New unique constraint on `(boundary_hash, event_count)`
+- `updated_at` column removed (rows are immutable)
+
+Since all packages are 0.x, **drop and recreate the `snapshot_store` table** using the updated schema. Existing snapshots will be rebuilt automatically by the configured policies.
+
+Additionally, `RdbmsSnapshotStore` now requires an `IdentityGenerator` (`Gember\DependencyContracts\Util\Generator\Identity\IdentityGenerator`) as its second constructor argument and a `Clock` (`Gember\EventSourcing\Util\Time\Clock\Clock`) as its third. The `gember/identity-generator-symfony` package provides two implementations: `SymfonyUuidIdentityGenerator` and `SymfonyUlidIdentityGenerator`. If you wire services manually (outside the Symfony bundle or universal service provider):
+
+```php
+use Gember\EventSourcing\Snapshot\Rdbms\RdbmsSnapshotStore;
+use Gember\EventSourcing\Util\Time\Clock\Native\NativeClock;
+use Gember\IdentityGeneratorSymfony\Uuid\SymfonyUuidIdentityGenerator;
+
+$snapshotStore = new RdbmsSnapshotStore(
+    $rdbmsSnapshotStoreRepository,
+    new SymfonyUuidIdentityGenerator($uuidFactory),
+    new NativeClock(),
+);
+```
 
 ### Observability
 
@@ -262,6 +311,15 @@ When snapshotting is enabled, the `LoggableSnapshotStoreDecorator` provides stru
 [Snapshot] Finished saving snapshot    {domainTags: [...], duration: 0.015}
 ```
 
+When a snapshot is stale and the system falls back to full event replay, the repository decorator logs at `info` level:
+
+```
+[Snapshot] Stale snapshot detected, falling back to full replay  {lastEventId: "...", domainTags: [...]}
+[Snapshot] Stale snapshot, falling back to full replay           {exception: "...", exceptionClass: "...", domainTags: [...]}
+```
+
+The first message indicates the snapshot's `lastEventId` was not found in the event store. The second indicates deserialization failed (e.g., use case class structure changed). Both result in a full event replay — no data loss.
+
 If a snapshot operation fails, the snapshot store decorator logs at `error` level:
 
 ```
@@ -269,8 +327,9 @@ If a snapshot operation fails, the snapshot store decorator logs at `error` leve
 [Snapshot] Failed loading snapshot  {exception: "...", exceptionClass: "...", domainTags: [...], duration: 0.001}
 ```
 
-Additionally, when a snapshot save failure is caught during the save flow, the repository decorator logs a `warning`:
+Additionally, the repository decorator logs at `warning` level when snapshot operations fail but are handled gracefully (falling back to full replay or skipping the snapshot):
 
 ```
-[Snapshot] Failed saving snapshot, skipping  {exception: "...", exceptionClass: "...", domainTags: [...]}
+[Snapshot] Failed loading snapshot, falling back to full replay  {exception: "...", exceptionClass: "...", domainTags: [...]}
+[Snapshot] Failed saving snapshot, skipping                      {exception: "...", exceptionClass: "...", domainTags: [...]}
 ```
