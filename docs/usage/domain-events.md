@@ -320,7 +320,7 @@ For advanced scenarios (e.g., encryption, compression, custom formats), you can 
 
 ### Saga IDs on events
 
-When using [Sagas](/docs/usage/sagas.md), domain events can carry `#[SagaId]` attributes to route events to the correct saga instance. The `#[SagaId]` and `#[DomainTag]` attributes are independent concerns - a property can have both, one, or neither:
+When using [Sagas](sagas.md), domain events can carry `#[SagaId]` attributes to route events to the correct saga instance. The `#[SagaId]` and `#[DomainTag]` attributes are independent concerns - a property can have both, one, or neither:
 
 | Attribute | Purpose | Used by | Storage |
 |-----------|---------|---------|---------|
@@ -348,7 +348,7 @@ final readonly class StudentSubscribedEvent
 
 A property with only `#[SagaId]` (no `#[DomainTag]`) routes to a saga but is not indexed for use case loading. A property with only `#[DomainTag]` (no `#[SagaId]`) is indexed in the event store but does not trigger any saga.
 
-See [Sagas](/docs/usage/sagas.md) for complete documentation on saga routing.
+See [Sagas](sagas.md) for complete documentation on saga routing.
 
 ### Event envelope
 

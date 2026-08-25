@@ -383,7 +383,7 @@ When using the Symfony bundle, both serialization approaches work together via t
 2. **Then**, it falls back to `SymfonySerializer` - for automatic serialization
 3. **Finally**, if both fail, it throws an exception with detailed error information
 
-This is the same mechanism used for [domain event serialization](/docs/usage/domain-events.md#serialization), and you can mix both approaches across different sagas in the same application.
+This is the same mechanism used for [domain event serialization](domain-events.md#serialization), and you can mix both approaches across different sagas in the same application.
 
 ### Examples
 
