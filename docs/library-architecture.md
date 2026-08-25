@@ -2,7 +2,7 @@
 
 This document explains the internal code organization of _Gember Event Sourcing_. It is intended for developers who want to understand, extend, or contribute to the library.
 
-For the conceptual end-to-end flow from a user's perspective, see [How it works](how-it-works.md). For usage instructions, see [Usage](usage.md).
+For the conceptual end-to-end flow from a user's perspective, see [How it works](how-it-works.md). For usage instructions, see [Usage](usage/index.md).
 
 ### Source directory overview
 

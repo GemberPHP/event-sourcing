@@ -1,5 +1,6 @@
 site_name: Gember Event Sourcing
 site_url: https://gemberphp.github.io/event-sourcing/
+site_description: Use case driven Event Sourcing for PHP — let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern.
 repo_url: https://github.com/gemberphp/event-sourcing
 repo_name: gember/event-sourcing
 
@@ -22,8 +23,12 @@ theme:
     - navigation.tabs
     - navigation.sections
     - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.code.annotate
 
@@ -57,7 +62,7 @@ nav:
   - How It Works: how-it-works.md
   - Library Architecture: library-architecture.md
   - Usage:
-      - Overview: usage.md
+      - usage/index.md
       - Use Cases: usage/use-cases.md
       - Commands: usage/commands.md
       - Command Handlers: usage/command-handlers.md
