@@ -59,6 +59,7 @@ nav:
   - Background: background.md
   - Installation: installation.md
   - Getting Started: getting-started.md
+  - Example: example.md
   - How It Works: how-it-works.md
   - Library Architecture: library-architecture.md
   - Usage:
