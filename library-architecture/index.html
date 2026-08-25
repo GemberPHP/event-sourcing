@@ -1,0 +1,2523 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Use case driven Event Sourcing for PHP — let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern.">
+      
+      
+      
+        <link rel="canonical" href="https://gemberphp.github.io/event-sourcing/library-architecture/">
+      
+      
+        <link rel="prev" href="../how-it-works/">
+      
+      
+        <link rel="next" href="../usage/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Library Architecture - Gember Event Sourcing</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#library-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Gember Event Sourcing" class="md-header__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gember Event Sourcing
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Library Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../background/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Background
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../example/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Example
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../how-it-works/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  How It Works
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Library Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../usage/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Gember Event Sourcing" class="md-nav__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Gember Event Sourcing
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../background/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Background
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#library-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Library architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-directory-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source directory overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interface-first-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface-first design
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacked-resolvers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacked resolvers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decorator-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decorator pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#definition-dtos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition DTOs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolver-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolver layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Resolver layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-resolving-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How resolving works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacked-resolution-chains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacked resolution chains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-tag-value-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain tag value extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-command-handling-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal command handling flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-event-persistence-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal event persistence flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Internal event persistence flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-saga-handling-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal saga handling flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependency-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency boundary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependency boundary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#external-contracts-gemberdependency-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External contracts (gember/dependency-contracts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#psr-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSR interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extending-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extending the library
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extending the library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-resolver-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new resolver strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-persistence-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new persistence backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-cross-cutting-concerns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding cross-cutting concerns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../usage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/command-handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Handlers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/domain-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/snapshotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/sagas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sagas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/outbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#library-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Library architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-directory-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source directory overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interface-first-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface-first design
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacked-resolvers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacked resolvers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decorator-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decorator pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#definition-dtos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition DTOs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolver-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolver layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Resolver layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-resolving-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How resolving works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacked-resolution-chains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacked resolution chains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-tag-value-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain tag value extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-command-handling-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal command handling flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-event-persistence-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal event persistence flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Internal event persistence flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-saga-handling-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal saga handling flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependency-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency boundary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependency boundary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#external-contracts-gemberdependency-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External contracts (gember/dependency-contracts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#psr-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSR interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extending-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extending the library
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extending the library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-resolver-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new resolver strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-persistence-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new persistence backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-cross-cutting-concerns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding cross-cutting concerns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Library Architecture</h1>
+
+<h2 id="library-architecture">Library architecture<a class="headerlink" href="#library-architecture" title="Permanent link">&para;</a></h2>
+<p>This document explains the internal code organization of <em>Gember Event Sourcing</em>. It is intended for developers who want to understand, extend, or contribute to the library.</p>
+<p>For the conceptual end-to-end flow from a user's perspective, see <a href="../how-it-works/">How it works</a>. For usage instructions, see <a href="../usage/">Usage</a>.</p>
+<h3 id="source-directory-overview">Source directory overview<a class="headerlink" href="#source-directory-overview" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">src</span><span class="o">/</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Common</span><span class="o">/</span><span class="w">           </span><span class="nx">Shared</span><span class="w"> </span><span class="nx">enums</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="nx">types</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="err">├──</span><span class="w"> </span><span class="nx">EventStore</span><span class="o">/</span><span class="w">       </span><span class="nx">Event</span><span class="w"> </span><span class="nx">persistence</span><span class="w"> </span><span class="nx">abstraction</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">RDBMS</span><span class="w"> </span><span class="nx">implementation</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Outbox</span><span class="o">/</span><span class="w">           </span><span class="nx">Transactional</span><span class="w"> </span><span class="nx">outbox</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nx">reliable</span><span class="w"> </span><span class="nx">message</span><span class="w"> </span><span class="nx">delivery</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Registry</span><span class="o">/</span><span class="w">         </span><span class="nx">Runtime</span><span class="w"> </span><span class="kd">class</span><span class="o">-</span><span class="nx">discovery</span><span class="w"> </span><span class="nx">registries</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Repository</span><span class="o">/</span><span class="w">       </span><span class="nx">Use</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">saga</span><span class="w"> </span><span class="nx">persistence</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Resolver</span><span class="o">/</span><span class="w">         </span><span class="nx">Attribute</span><span class="o">-</span><span class="nx">based</span><span class="w"> </span><span class="nx">metadata</span><span class="w"> </span><span class="nx">extraction</span><span class="w"> </span><span class="p">(</span><span class="nx">reflection</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="err">├──</span><span class="w"> </span><span class="nx">Saga</span><span class="o">/</span><span class="w">             </span><span class="nx">Saga</span><span class="w"> </span><span class="nx">event</span><span class="w"> </span><span class="nx">handling</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="nx">point</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">execution</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="err">├──</span><span class="w"> </span><span class="nx">UseCase</span><span class="o">/</span><span class="w">          </span><span class="nx">Use</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="kd">interface</span><span class="p">,</span><span class="w"> </span><span class="nx">traits</span><span class="p">,</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">command</span><span class="w"> </span><span class="nx">handling</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="nx">point</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="err">└──</span><span class="w"> </span><span class="nx">Util</span><span class="o">/</span><span class="w">             </span><span class="nx">Low</span><span class="o">-</span><span class="nx">level</span><span class="w"> </span><span class="nx">utilities</span><span class="w"> </span><span class="p">(</span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="nx">serialization</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">time</span><span class="p">)</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Responsibility</th>
+<th>Key interfaces</th>
+<th>Key implementations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">Common/</code></td>
+<td>Shared types used across the library</td>
+<td>—</td>
+<td><code class="highlight">CreationPolicy</code> enum</td>
+</tr>
+<tr>
+<td><code class="highlight">EventStore/</code></td>
+<td>Persist and load domain events</td>
+<td><code class="highlight">EventStore</code></td>
+<td><code class="highlight">RdbmsEventStore</code>, <code class="highlight">LoggableEventStoreDecorator</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Outbox/</code></td>
+<td>Reliable message delivery via transactional outbox</td>
+<td><code class="highlight">OutboxStore</code>, <code class="highlight">OutboxProcessor</code></td>
+<td><code class="highlight">RdbmsOutboxStore</code>, <code class="highlight">OutboxEventBus</code>, <code class="highlight">OutboxCommandBus</code>, <code class="highlight">DefaultOutboxProcessor</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Registry/</code></td>
+<td>Map commands, events, and sagas to their definitions at runtime</td>
+<td><code class="highlight">CommandHandlerRegistry</code>, <code class="highlight">EventRegistry</code>, <code class="highlight">SagaRegistry</code></td>
+<td><code class="highlight">Reflector*Registry</code>, <code class="highlight">Cached*RegistryDecorator</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Repository/</code></td>
+<td>Load and save use cases and sagas</td>
+<td><code class="highlight">UseCaseRepository</code>, <code class="highlight">SagaStore</code></td>
+<td><code class="highlight">EventSourcedUseCaseRepository</code>, <code class="highlight">RdbmsSagaStore</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Resolver/</code></td>
+<td>Extract metadata from PHP attributes via reflection</td>
+<td><code class="highlight">UseCaseResolver</code>, <code class="highlight">DomainEventResolver</code>, <code class="highlight">DomainCommandResolver</code>, <code class="highlight">SagaResolver</code></td>
+<td><code class="highlight">Default*Resolver</code>, <code class="highlight">Cached*ResolverDecorator</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Saga/</code></td>
+<td>Route domain events to saga instances and execute saga methods</td>
+<td><code class="highlight">SagaEventExecutor</code></td>
+<td><code class="highlight">SagaEventHandler</code>, <code class="highlight">DefaultSagaEventExecutor</code></td>
+</tr>
+<tr>
+<td><code class="highlight">UseCase/</code></td>
+<td>Define use case contracts and handle commands</td>
+<td><code class="highlight">EventSourcedUseCase</code>, <code class="highlight">UseCaseCommandExecutor</code></td>
+<td><code class="highlight">EventSourcedUseCaseBehaviorTrait</code>, <code class="highlight">UseCaseCommandHandler</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Util/</code></td>
+<td>File scanning, serialization, time, string helpers</td>
+<td><code class="highlight">Finder</code>, <code class="highlight">Reflector</code>, <code class="highlight">Clock</code>, <code class="highlight">Serializable</code></td>
+<td><code class="highlight">NativeFinder</code>, <code class="highlight">NativeReflector</code>, <code class="highlight">NativeClock</code>, <code class="highlight">StackedSerializer</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="design-patterns">Design patterns<a class="headerlink" href="#design-patterns" title="Permanent link">&para;</a></h3>
+<p>Four recurring patterns appear throughout the library.</p>
+<h4 id="interface-first-design">Interface-first design<a class="headerlink" href="#interface-first-design" title="Permanent link">&para;</a></h4>
+<p>Every component is defined by an interface. Implementations live in subdirectories named by strategy. This layout is consistent across the entire codebase:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>SomeComponent/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── SomeInterface.php
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>├── Default/
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>│   └── DefaultSomeImplementation.php
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>├── Loggable/
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│   └── LoggableSomeDecorator.php
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>└── Cached/
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    └── CachedSomeDecorator.php
+</code></pre></div>
+<p>Directory naming conventions:</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">Default/</code></td>
+<td>Primary implementation</td>
+</tr>
+<tr>
+<td><code class="highlight">Attribute/</code></td>
+<td>Reads PHP attributes via reflection</td>
+</tr>
+<tr>
+<td><code class="highlight">Interface/</code></td>
+<td>Reads from a PHP interface method</td>
+</tr>
+<tr>
+<td><code class="highlight">Stacked/</code></td>
+<td>Chain-of-responsibility (tries multiple strategies)</td>
+</tr>
+<tr>
+<td><code class="highlight">Reflector/</code></td>
+<td>Uses filesystem scanning + reflection</td>
+</tr>
+<tr>
+<td><code class="highlight">Rdbms/</code></td>
+<td>Database-backed implementation</td>
+</tr>
+<tr>
+<td><code class="highlight">Cached/</code></td>
+<td>PSR-16 cache decorator</td>
+</tr>
+<tr>
+<td><code class="highlight">Loggable/</code></td>
+<td>PSR-3 logging decorator</td>
+</tr>
+<tr>
+<td><code class="highlight">Native/</code></td>
+<td>PHP-native utility implementation</td>
+</tr>
+</tbody>
+</table>
+<h4 id="stacked-resolvers">Stacked resolvers<a class="headerlink" href="#stacked-resolvers" title="Permanent link">&para;</a></h4>
+<p>When multiple resolution strategies exist (e.g., attribute-based, interface-based, class-name fallback), a "stacked" implementation tries each strategy in order and returns the first successful result:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">foreach</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">resolvers</span> <span class="k">as</span> <span class="nv">$resolver</span><span class="p">)</span> <span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="k">try</span> <span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        <span class="k">return</span> <span class="nv">$resolver</span><span class="o">-&gt;</span><span class="na">resolve</span><span class="p">(</span><span class="nv">$className</span><span class="p">);</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">UnresolvableException</span><span class="p">)</span> <span class="p">{</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">continue</span><span class="p">;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="p">}</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span>
+</code></pre></div>
+<p>This pattern appears in <code class="highlight">StackedDomainTagResolver</code>, <code class="highlight">StackedEventNameResolver</code>, <code class="highlight">StackedSagaNameResolver</code>, and <code class="highlight">StackedSerializer</code>.</p>
+<h4 id="decorator-pattern">Decorator pattern<a class="headerlink" href="#decorator-pattern" title="Permanent link">&para;</a></h4>
+<p>Both logging and caching are implemented as decorators — they wrap an inner instance of the same interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Interface
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── DefaultImplementation
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── LoggableDecorator(Interface, LoggerInterface)     ← PSR-3
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>└── CachedDecorator(Interface, CacheInterface)        ← PSR-16
+</code></pre></div>
+<p>Logging decorators add timing and context to operations. Caching decorators serialize Definition DTOs to JSON and store them in a PSR-16 cache, avoiding repeated reflection.</p>
+<h4 id="definition-dtos">Definition DTOs<a class="headerlink" href="#definition-dtos" title="Permanent link">&para;</a></h4>
+<p>All resolver outputs are <code class="highlight">readonly</code> Definition classes that implement the library's <code class="highlight">Serializable</code> interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="sd">/**</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="sd"> * @template TPayload of array</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="sd"> * @template TSerializable of self</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="sd"> */</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">interface</span> <span class="nx">Serializable</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">{</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="sd">/** @return TPayload */</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">toPayload</span><span class="p">()</span><span class="o">:</span> <span class="k">array</span><span class="p">;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="sd">/** @param TPayload $payload */</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">fromPayload</span><span class="p">(</span><span class="k">array</span> <span class="nv">$payload</span><span class="p">)</span><span class="o">:</span> <span class="k">static</span><span class="p">;</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">}</span>
+</code></pre></div>
+<p>This enables JSON-based caching: the cached decorator calls <code class="highlight"><span class="n">toPayload</span><span class="p">()</span></code> before storing and <code class="highlight"><span class="n">fromPayload</span><span class="p">()</span></code> after retrieval.</p>
+<p>Definition types used across the library:</p>
+<table>
+<thead>
+<tr>
+<th>Definition</th>
+<th>Produced by</th>
+<th>Contains</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">UseCaseDefinition</code></td>
+<td><code class="highlight">UseCaseResolver</code></td>
+<td>className, domainTags, commandHandlers, eventSubscribers</td>
+</tr>
+<tr>
+<td><code class="highlight">CommandHandlerDefinition</code></td>
+<td><code class="highlight">CommandHandlerResolver</code></td>
+<td>commandClassName, methodName, policy</td>
+</tr>
+<tr>
+<td><code class="highlight">EventSubscriberDefinition</code></td>
+<td><code class="highlight">EventSubscriberResolver</code></td>
+<td>eventClassName, methodName</td>
+</tr>
+<tr>
+<td><code class="highlight">DomainCommandDefinition</code></td>
+<td><code class="highlight">DomainCommandResolver</code></td>
+<td>commandClassName, domainTags</td>
+</tr>
+<tr>
+<td><code class="highlight">DomainEventDefinition</code></td>
+<td><code class="highlight">DomainEventResolver</code></td>
+<td>eventClassName, eventName, domainTags, sagaIds</td>
+</tr>
+<tr>
+<td><code class="highlight">DomainTagDefinition</code></td>
+<td><code class="highlight">DomainTagResolver</code></td>
+<td>domainTagName, type (Property or Method)</td>
+</tr>
+<tr>
+<td><code class="highlight">SagaDefinition</code></td>
+<td><code class="highlight">SagaResolver</code></td>
+<td>sagaClassName, sagaName, sagaIds, eventSubscribers</td>
+</tr>
+<tr>
+<td><code class="highlight">SagaEventSubscriberDefinition</code></td>
+<td><code class="highlight">SagaEventSubscriberResolver</code></td>
+<td>eventClassName, methodName, policy</td>
+</tr>
+<tr>
+<td><code class="highlight">SagaIdDefinition</code></td>
+<td><code class="highlight">SagaIdResolver</code></td>
+<td>sagaIdName, propertyName</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolver-layer">Resolver layer<a class="headerlink" href="#resolver-layer" title="Permanent link">&para;</a></h3>
+<p>The resolver layer is the largest part of the library. It uses PHP reflection to read attributes from user classes and produces Definition DTOs that describe the metadata the library needs at runtime.</p>
+<h4 id="how-resolving-works">How resolving works<a class="headerlink" href="#how-resolving-works" title="Permanent link">&para;</a></h4>
+<p>Each top-level resolver takes a class name and returns a Definition DTO:</p>
+<table>
+<thead>
+<tr>
+<th>Resolver</th>
+<th>Input</th>
+<th>Output</th>
+<th>Sub-resolvers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">UseCaseResolver</code></td>
+<td>Use case class</td>
+<td><code class="highlight">UseCaseDefinition</code></td>
+<td>DomainTagResolver, CommandHandlerResolver, EventSubscriberResolver</td>
+</tr>
+<tr>
+<td><code class="highlight">DomainCommandResolver</code></td>
+<td>Command class</td>
+<td><code class="highlight">DomainCommandDefinition</code></td>
+<td>DomainTagResolver</td>
+</tr>
+<tr>
+<td><code class="highlight">DomainEventResolver</code></td>
+<td>Event class</td>
+<td><code class="highlight">DomainEventDefinition</code></td>
+<td>EventNameResolver, DomainTagResolver, SagaIdResolver</td>
+</tr>
+<tr>
+<td><code class="highlight">SagaResolver</code></td>
+<td>Saga class</td>
+<td><code class="highlight">SagaDefinition</code></td>
+<td>SagaNameResolver, SagaIdResolver, SagaEventSubscriberResolver</td>
+</tr>
+</tbody>
+</table>
+<p>Sub-resolvers use <code class="highlight">AttributeResolver</code> (a utility in <code class="highlight">Util/Attribute/</code>) to scan PHP classes for specific attributes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">AttributeResolver</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="err">├──</span><span class="w"> </span><span class="n">getPropertiesWithAttribute</span><span class="p">(</span><span class="n">className</span><span class="p">,</span><span class="w"> </span><span class="n">attributeClass</span><span class="p">)</span><span class="w">    </span><span class="err">→</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="err">├──</span><span class="w"> </span><span class="n">getMethodsWithAttribute</span><span class="p">(</span><span class="n">className</span><span class="p">,</span><span class="w"> </span><span class="n">attributeClass</span><span class="p">)</span><span class="w">       </span><span class="err">→</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">DomainEventSubscriber</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">DomainCommandHandler</span><span class="o">]</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="err">└──</span><span class="w"> </span><span class="n">getAttributesForClass</span><span class="p">(</span><span class="n">className</span><span class="p">,</span><span class="w"> </span><span class="n">attributeClass</span><span class="p">)</span><span class="w">         </span><span class="err">→</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">DomainEvent</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="err">#</span><span class="o">[</span><span class="n">Saga</span><span class="o">]</span>
+</code></pre></div>
+<h4 id="stacked-resolution-chains">Stacked resolution chains<a class="headerlink" href="#stacked-resolution-chains" title="Permanent link">&para;</a></h4>
+<p>Some sub-resolvers support multiple strategies. The stacked resolver tries each in order:</p>
+<p><strong>Event name resolution</strong> (<code class="highlight">StackedEventNameResolver</code>):
+1. <code class="highlight">AttributeEventNameResolver</code> — reads <code class="highlight">#[DomainEvent(name: '...')]</code>
+2. <code class="highlight">InterfaceEventNameResolver</code> — calls <code class="highlight">NamedDomainEvent::getName()</code>
+3. <code class="highlight">ClassNameEventNameResolver</code> — derives name from FQCN (fallback)</p>
+<p><strong>Domain tag resolution</strong> (<code class="highlight">StackedDomainTagResolver</code>):
+1. <code class="highlight">AttributeDomainTagResolver</code> — reads <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> properties
+2. <code class="highlight">InterfaceDomainTagResolver</code> — calls <code class="highlight">SpecifiedDomainTags::getDomainTags()</code></p>
+<p><strong>Saga name resolution</strong> (<code class="highlight">StackedSagaNameResolver</code>):
+1. <code class="highlight">AttributeSagaNameResolver</code> — reads <code class="highlight">#[Saga(name: '...')]</code>
+2. <code class="highlight">InterfaceSagaNameResolver</code> — calls <code class="highlight">NamedSaga::getName()</code>
+3. <code class="highlight">ClassNameSagaNameResolver</code> — derives name from FQCN (fallback)</p>
+<h4 id="domain-tag-value-extraction">Domain tag value extraction<a class="headerlink" href="#domain-tag-value-extraction" title="Permanent link">&para;</a></h4>
+<p>At runtime, <code class="highlight">DomainTagValueHelper</code> extracts actual tag values from objects using their <code class="highlight">DomainTagDefinition</code>:</p>
+<ul>
+<li><strong><code class="highlight">DomainTagType::Property</code></strong> — reads the property value directly (e.g., <code class="highlight"><span class="err">$</span><span class="n">command</span><span class="o">-&gt;</span><span class="n">courseId</span></code>)</li>
+<li><strong><code class="highlight">DomainTagType::Method</code></strong> — calls a method that returns a list of values (e.g., <code class="highlight"><span class="err">$</span><span class="nf">event</span><span class="o">-&gt;</span><span class="n">getDomainTags</span><span class="p">()</span></code>)</li>
+</ul>
+<p>The same helper is used for commands, use cases, and events.</p>
+<h4 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h4>
+<p>Each top-level resolver has a <code class="highlight">Cached*ResolverDecorator</code> that wraps the real resolver:</p>
+<ol>
+<li>Build a cache key: <code class="highlight"><span class="nx">gember</span><span class="p">.</span><span class="nx">resolver</span><span class="p">.{</span><span class="k">type</span><span class="p">}.{</span><span class="nx">friendly</span><span class="o">-</span><span class="kd">class</span><span class="o">-</span><span class="nx">name</span><span class="p">}</span></code></li>
+<li>On cache hit: deserialize JSON via <code class="highlight"><span class="n">Definition</span><span class="p">::</span><span class="n">fromPayload</span><span class="p">()</span></code></li>
+<li>On cache miss: resolve, serialize via <code class="highlight"><span class="n">Definition</span><span class="p">::</span><span class="n">toPayload</span><span class="p">()</span></code>, store as JSON</li>
+</ol>
+<p>All caching uses the PSR-16 <code class="highlight">CacheInterface</code>.</p>
+<h3 id="registry-layer">Registry layer<a class="headerlink" href="#registry-layer" title="Permanent link">&para;</a></h3>
+<p>Registries are runtime lookup tables that map commands, events, and sagas to their resolved definitions. They are built lazily on first access by scanning the filesystem.</p>
+<h4 id="discovery-process">Discovery process<a class="headerlink" href="#discovery-process" title="Permanent link">&para;</a></h4>
+<pre class="mermaid"><code>sequenceDiagram
+    participant Registry
+    participant Finder
+    participant Reflector
+    participant Resolver
+
+    Registry-&gt;&gt;Finder: getFiles($path)
+    Finder--&gt;&gt;Registry: list of file paths
+
+    loop for each file
+        Registry-&gt;&gt;Reflector: reflectClassFromFile()
+        Reflector--&gt;&gt;Registry: ReflectionClass
+        Note over Registry: filter: implements&lt;br/&gt;expected interface?
+        Registry-&gt;&gt;Resolver: resolve(className)
+        Resolver--&gt;&gt;Registry: Definition
+    end
+
+    Note over Registry: store in map: key → definition</code></pre>
+<p>The <code class="highlight">Finder</code> scans a given directory for PHP files. The <code class="highlight">Reflector</code> creates <code class="highlight">ReflectionClass</code> instances from those files. The registry then filters for relevant classes and resolves their definitions.</p>
+<h4 id="registries">Registries<a class="headerlink" href="#registries" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Registry</th>
+<th>Lookup key</th>
+<th>Returns</th>
+<th>Scans for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">CommandHandlerRegistry</code></td>
+<td>Command FQCN</td>
+<td><code class="highlight">[useCaseClassName, CommandHandlerDefinition]</code></td>
+<td>Classes implementing <code class="highlight">EventSourcedUseCase</code></td>
+</tr>
+<tr>
+<td><code class="highlight">EventRegistry</code></td>
+<td>Event name (e.g., <code class="highlight">course.created</code>)</td>
+<td>Event FQCN</td>
+<td>Domain event classes</td>
+</tr>
+<tr>
+<td><code class="highlight">SagaRegistry</code></td>
+<td>Saga ID name (e.g., <code class="highlight">orderId</code>)</td>
+<td><code class="highlight">list&lt;SagaDefinition&gt;</code></td>
+<td>Saga classes with event subscribers</td>
+</tr>
+</tbody>
+</table>
+<p>Each registry has a <code class="highlight">Cached*RegistryDecorator</code> that stores the resolved lookup table in PSR-16 cache.</p>
+<p><strong>Note:</strong> <code class="highlight">SagaRegistry</code> can return multiple saga definitions for a single saga ID name, because multiple sagas can react to the same identifier.</p>
+<h3 id="internal-command-handling-flow">Internal command handling flow<a class="headerlink" href="#internal-command-handling-flow" title="Permanent link">&para;</a></h3>
+<p>When <code class="highlight">UseCaseCommandHandler::__invoke()</code> is called with a command object, the following sequence occurs:</p>
+<pre class="mermaid"><code>flowchart TD
+    invoke["UseCaseCommandHandler::__invoke($command)"]
+
+    invoke --&gt; registry["CommandHandlerRegistry::retrieve()
+    → useCaseClassName + CommandHandlerDefinition"]
+    invoke --&gt; resolve["DomainCommandResolver::resolve()
+    → DomainCommandDefinition"]
+    invoke --&gt; extract["DomainTagValueHelper::getDomainTagValues()
+    → actual tag values from command"]
+    invoke --&gt; execute["UseCaseCommandExecutor::execute()"]
+
+    subgraph loading ["Loading use case"]
+        get["UseCaseRepository::get()"]
+        ucResolve["UseCaseResolver::resolve()
+        → get eventSubscribers"]
+        load["EventStore::load(StreamQuery)
+        events matching tags + subscribed types"]
+        reconstitute["reconstitute() via
+        EventSourcedUseCaseBehaviorTrait
+        route envelopes to subscriber methods"]
+        get --&gt; ucResolve --&gt; load --&gt; reconstitute
+    end
+
+    execute --&gt; loading
+
+    missing{"UseCaseNotFoundException?"}
+    execute --&gt; missing
+    missing --&gt;|"CreationPolicy::IfMissing"| create["new useCaseClassName()"]
+
+    subgraph handling ["Executing business logic"]
+        handle["useCase.methodName($command)"]
+        apply["apply($event)
+        → queues in appliedEvents
+        → calls subscriber immediately"]
+        handle --&gt; apply
+    end
+
+    execute --&gt; handling
+
+    subgraph saving ["Saving use case"]
+        save["UseCaseRepository::save()"]
+        envelope["DomainEventEnvelopeFactory
+        for each applied event:
+        DomainEventResolver, DomainTagValueHelper,
+        IdentityGenerator, Clock"]
+        append["EventStore::append()"]
+        lock["guardOptimisticLock()
+        compare lastEventId with persisted"]
+        persist["RdbmsEventStoreRepository::saveEvents()"]
+        publish["EventBus::handle()
+        for each applied event"]
+        save --&gt; envelope --&gt; append --&gt; lock --&gt; persist --&gt; publish
+    end
+
+    execute --&gt; saving</code></pre>
+<p><strong>UseCaseAttributeRegistry</strong>: A static registry that holds a <code class="highlight">UseCaseResolver</code> reference. It exists because <code class="highlight">EventSourcedUseCaseBehaviorTrait</code> needs to resolve domain tag definitions at runtime, but use cases are instantiated via <code class="highlight">new self()</code> (no constructor injection). The registry is initialized once during application bootstrap.</p>
+<h3 id="internal-event-persistence-flow">Internal event persistence flow<a class="headerlink" href="#internal-event-persistence-flow" title="Permanent link">&para;</a></h3>
+<h4 id="write-path">Write path<a class="headerlink" href="#write-path" title="Permanent link">&para;</a></h4>
+<pre class="mermaid"><code>flowchart TD
+    event["Applied event object"]
+    factory["DomainEventEnvelopeFactory::createFromAppliedEvent()"]
+    event --&gt; factory
+
+    factory --&gt; resolver["DomainEventResolver::resolve()
+    → DomainEventDefinition"]
+    factory --&gt; tags["DomainTagValueHelper::getDomainTagValues()
+    → tag values"]
+    factory --&gt; id["IdentityGenerator::generate() → eventId"]
+    factory --&gt; clock["Clock::now() → appliedAt"]
+
+    envelope["DomainEventEnvelope
+    eventId, domainTags[], event, metadata, appliedAt"]
+    factory --&gt; envelope
+
+    append["RdbmsEventStore::append()"]
+    envelope --&gt; append
+
+    append --&gt; lock["guardOptimisticLock()
+    RdbmsEventStoreRepository::getLastEventIdPersisted()
+    Compare with lastEventId → OptimisticLockException if mismatch"]
+
+    append --&gt; rdbmsFactory["RdbmsEventFactory::createFromDomainEventEnvelope()
+    DomainEventResolver::resolve() → eventName
+    Serializer::serialize() → JSON payload"]
+
+    rdbmsEvent["RdbmsEvent
+    eventId, domainTags[], eventName, payload, metadata, appliedAt"]
+    rdbmsFactory --&gt; rdbmsEvent
+
+    rdbmsEvent --&gt; saveEvents["RdbmsEventStoreRepository::saveEvents()"]</code></pre>
+<h4 id="read-path">Read path<a class="headerlink" href="#read-path" title="Permanent link">&para;</a></h4>
+<pre class="mermaid"><code>flowchart TD
+    query["RdbmsEventStoreRepository::getEvents(domainTags, eventNames)"]
+    rdbms["RdbmsEvent (from database)"]
+    query --&gt; rdbms
+
+    factory["RdbmsDomainEventEnvelopeFactory::createFromRdbmsEvent()"]
+    rdbms --&gt; factory
+
+    factory --&gt; registry["EventRegistry::retrieve(eventName)
+    → class-string"]
+    factory --&gt; deser["Serializer::deserialize(payload, className)
+    → event object"]
+
+    envelope["DomainEventEnvelope
+    eventId, domainTags[], event, metadata, appliedAt"]
+    factory --&gt; envelope</code></pre>
+<p>The <code class="highlight">EventRegistry</code> is used during the read path to map stored event names (e.g., <code class="highlight">course.created</code>) back to PHP class names (e.g., <code class="highlight">App\Domain\Course\CourseCreatedEvent</code>).</p>
+<h3 id="internal-saga-handling-flow">Internal saga handling flow<a class="headerlink" href="#internal-saga-handling-flow" title="Permanent link">&para;</a></h3>
+<p>When a domain event is published to the event bus, <code class="highlight">SagaEventHandler</code> routes it to the correct saga instances:</p>
+<pre class="mermaid"><code>flowchart TD
+    invoke["SagaEventHandler::__invoke($event)"]
+    resolve["DomainEventResolver::resolve()
+    → sagaIds from DomainEventDefinition"]
+    invoke --&gt; resolve
+
+    subgraph routing ["Three-level routing"]
+        direction TB
+        loop1["For each sagaIdDefinition in event"]
+        registry["SagaRegistry::retrieve(sagaIdName)
+        → list of SagaDefinition"]
+        loop1 --&gt; registry
+
+        loop2["For each sagaDefinition"]
+        registry --&gt; loop2
+        filter["Filter: eventSubscribers
+        where eventClassName === event class"]
+        loop2 --&gt; filter
+
+        loop3["For each matching subscriber"]
+        filter --&gt; loop3
+        extractId["SagaIdValueHelper::getSagaIdValue()
+        → saga ID value from event property"]
+        loop3 --&gt; extractId
+
+        nullCheck{"Saga ID value null?"}
+        extractId --&gt; nullCheck
+        nullCheck --&gt;|"yes"| skip["Skip"]
+        nullCheck --&gt;|"no"| exec["SagaEventExecutor::execute()"]
+    end
+
+    resolve --&gt; routing
+
+    subgraph execution ["DefaultSagaEventExecutor"]
+        load["SagaStore::get()
+        RdbmsSagaStoreRepository → SagaFactory"]
+        notFound{"SagaNotFoundException?"}
+        load --&gt; notFound
+        notFound --&gt;|"CreationPolicy::IfMissing"| create["new sagaClassName()"]
+        notFound --&gt;|"CreationPolicy::Never"| skipSaga["Skip"]
+
+        run["saga.methodName($event, $commandBus)
+        Saga logic executes, may dispatch commands"]
+
+        save["SagaStore::save()
+        SagaResolver → sagaName, sagaIds
+        Serializer → payload
+        SagaIdValueHelper → current saga ID values
+        RdbmsSagaStoreRepository::save()"]
+
+        run --&gt; save
+    end
+
+    exec --&gt; execution</code></pre>
+<p>The routing uses a three-level nested lookup: event saga IDs → saga registry (by saga ID name) → event subscriber filter (by event class). This allows a single event to trigger multiple sagas through different saga IDs, and a single saga to respond to events with different identifiers.</p>
+<h3 id="dependency-boundary">Dependency boundary<a class="headerlink" href="#dependency-boundary" title="Permanent link">&para;</a></h3>
+<p>The library defines its internal interfaces and depends on external contracts for infrastructure concerns.</p>
+<h4 id="external-contracts-gemberdependency-contracts">External contracts (gember/dependency-contracts)<a class="headerlink" href="#external-contracts-gemberdependency-contracts" title="Permanent link">&para;</a></h4>
+<p>These interfaces must be implemented by a framework integration package (e.g., <a href="https://github.com/GemberPHP/event-sourcing-symfony-bundle">gember/event-sourcing-symfony-bundle</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Contract</th>
+<th>Purpose</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">RdbmsEventStoreRepository</code></td>
+<td>Database persistence for events</td>
+<td><code class="highlight">RdbmsEventStore</code></td>
+</tr>
+<tr>
+<td><code class="highlight">RdbmsSagaStoreRepository</code></td>
+<td>Database persistence for sagas</td>
+<td><code class="highlight">RdbmsSagaStore</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Serializer</code></td>
+<td>Object serialization/deserialization</td>
+<td><code class="highlight">RdbmsEventFactory</code>, <code class="highlight">RdbmsDomainEventEnvelopeFactory</code>, <code class="highlight">RdbmsSagaStore</code>, <code class="highlight">SagaFactory</code></td>
+</tr>
+<tr>
+<td><code class="highlight">CommandBus</code></td>
+<td>Dispatch recorded commands after saga persistence</td>
+<td><code class="highlight">CommandRecorder</code> (via <code class="highlight">DefaultSagaEventExecutor</code>)</td>
+</tr>
+<tr>
+<td><code class="highlight">EventBus</code></td>
+<td>Publish domain events after persistence</td>
+<td><code class="highlight">EventSourcedUseCaseRepository</code></td>
+</tr>
+<tr>
+<td><code class="highlight">IdentityGenerator</code></td>
+<td>Generate unique event IDs</td>
+<td><code class="highlight">DomainEventEnvelopeFactory</code></td>
+</tr>
+<tr>
+<td><code class="highlight">RdbmsOutboxRepository</code></td>
+<td>Database persistence for outbox messages</td>
+<td><code class="highlight">RdbmsOutboxStore</code></td>
+</tr>
+<tr>
+<td><code class="highlight">Transactional</code></td>
+<td>Database transaction wrapper</td>
+<td><code class="highlight">TransactionalUseCaseRepositoryDecorator</code>, <code class="highlight">TransactionalSagaEventExecutorDecorator</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="psr-interfaces">PSR interfaces<a class="headerlink" href="#psr-interfaces" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Interface</th>
+<th>Standard</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">LoggerInterface</code></td>
+<td>PSR-3 (<code class="highlight">psr/log</code>)</td>
+<td><code class="highlight">LoggableEventStoreDecorator</code>, <code class="highlight">LoggableUseCaseCommandExecutorDecorator</code>, <code class="highlight">LoggableSagaEventExecutorDecorator</code></td>
+</tr>
+<tr>
+<td><code class="highlight">CacheInterface</code></td>
+<td>PSR-16 (<code class="highlight"><span class="nx">psr</span><span class="o">/</span><span class="nx">simple</span><span class="o">-</span><span class="nx">cache</span></code>)</td>
+<td>All <code class="highlight">Cached*Decorator</code> classes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="internal-interfaces">Internal interfaces<a class="headerlink" href="#internal-interfaces" title="Permanent link">&para;</a></h4>
+<p>All other interfaces are defined and implemented within this library: <code class="highlight">EventStore</code>, <code class="highlight">UseCaseRepository</code>, <code class="highlight">SagaStore</code>, <code class="highlight">UseCaseCommandExecutor</code>, <code class="highlight">SagaEventExecutor</code>, <code class="highlight">OutboxStore</code>, <code class="highlight">OutboxProcessor</code>, all resolvers, all registries, <code class="highlight">Finder</code>, <code class="highlight">Reflector</code>, <code class="highlight">Clock</code>, <code class="highlight">AttributeResolver</code>, and <code class="highlight">FriendlyClassNamer</code>.</p>
+<h3 id="extending-the-library">Extending the library<a class="headerlink" href="#extending-the-library" title="Permanent link">&para;</a></h3>
+<h4 id="adding-a-new-resolver-strategy">Adding a new resolver strategy<a class="headerlink" href="#adding-a-new-resolver-strategy" title="Permanent link">&para;</a></h4>
+<p>Implement the relevant resolver interface (e.g., <code class="highlight">DomainTagResolver</code>), then add it to the corresponding <code class="highlight">Stacked*</code> resolver's iterable. For example, a YAML-based domain tag resolver could be added alongside the attribute and interface resolvers in <code class="highlight">StackedDomainTagResolver</code>.</p>
+<h4 id="adding-a-new-persistence-backend">Adding a new persistence backend<a class="headerlink" href="#adding-a-new-persistence-backend" title="Permanent link">&para;</a></h4>
+<p>Two options:</p>
+<ol>
+<li>
+<p><strong>Implement the external contracts</strong> — Create a new package implementing <code class="highlight">RdbmsEventStoreRepository</code> and <code class="highlight">RdbmsSagaStoreRepository</code> for your database (e.g., MongoDB, DynamoDB). The existing <code class="highlight">RdbmsEventStore</code> and <code class="highlight">RdbmsSagaStore</code> will use them.</p>
+</li>
+<li>
+<p><strong>Implement the internal interfaces</strong> — Create new implementations of <code class="highlight">EventStore</code> and <code class="highlight">SagaStore</code> directly, bypassing the RDBMS layer entirely. This gives full control over the persistence strategy.</p>
+</li>
+</ol>
+<h4 id="adding-cross-cutting-concerns">Adding cross-cutting concerns<a class="headerlink" href="#adding-cross-cutting-concerns" title="Permanent link">&para;</a></h4>
+<p>Use the decorator pattern. Implement the same interface, wrap the inner instance, and add behavior. For example, a metrics decorator for <code class="highlight">EventStore</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">MetricsEventStoreDecorator</span> <span class="k">implements</span> <span class="nx">EventStore</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">{</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>        <span class="k">private</span> <span class="nx">EventStore</span> <span class="nv">$inner</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="k">private</span> <span class="nx">MetricsCollector</span> <span class="nv">$metrics</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">load</span><span class="p">(</span><span class="nx">StreamQuery</span> <span class="nv">$streamQuery</span><span class="p">)</span><span class="o">:</span> <span class="k">array</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="p">{</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">metrics</span><span class="o">-&gt;</span><span class="na">increment</span><span class="p">(</span><span class="s1">'event_store.load'</span><span class="p">);</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="k">return</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">inner</span><span class="o">-&gt;</span><span class="na">load</span><span class="p">(</span><span class="nv">$streamQuery</span><span class="p">);</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="p">}</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="c1">// ...</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="adding-a-new-attribute">Adding a new attribute<a class="headerlink" href="#adding-a-new-attribute" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Define the attribute class in the relevant <code class="highlight">Attribute/</code> directory</li>
+<li>Create a resolver that reads it via <code class="highlight">AttributeResolver</code></li>
+<li>Wire it into the resolution chain (add to the relevant <code class="highlight">Default*Resolver</code> or <code class="highlight">Stacked*</code> resolver)</li>
+<li>Define a Definition DTO implementing <code class="highlight">Serializable</code> if the result needs caching</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../how-it-works/" class="md-footer__link md-footer__link--prev" aria-label="Previous: How It Works">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                How It Works
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../usage/" class="md-footer__link md-footer__link--next" aria-label="Next: Index">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Index
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

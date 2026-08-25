@@ -1,0 +1,1865 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Use case driven Event Sourcing for PHP — let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern.">
+      
+      
+      
+        <link rel="canonical" href="https://gemberphp.github.io/event-sourcing/usage/snapshotting/">
+      
+      
+        <link rel="prev" href="../domain-events/">
+      
+      
+        <link rel="next" href="../sagas/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Snapshotting - Gember Event Sourcing</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#snapshotting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gember Event Sourcing" class="md-header__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gember Event Sourcing
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Snapshotting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../background/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Background
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../example/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Example
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../how-it-works/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  How It Works
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../library-architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Library Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gember Event Sourcing" class="md-nav__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Gember Event Sourcing
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../background/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Background
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../command-handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Handlers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../domain-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshotting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#snapshotting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshotting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshotting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuring-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring snapshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trigger-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger conditions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trigger conditions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#afterevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        afterEvents
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aftersourcingtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        afterSourcingTime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onevent-onevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        onEvent / onEvents
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combining-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combining triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-configure-symfony-to-serialize-private-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Configure Symfony to serialize private properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-implement-the-serializable-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Implement the Serializable interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snapshot-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshot policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snapshot-resilience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshot resilience
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshot resilience">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-stale-snapshot-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic stale snapshot recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symfony-bundle-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symfony bundle configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upgrading-from-pre-versioned-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading from pre-versioned snapshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sagas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sagas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#snapshotting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshotting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshotting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuring-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring snapshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trigger-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger conditions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trigger conditions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#afterevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        afterEvents
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aftersourcingtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        afterSourcingTime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onevent-onevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        onEvent / onEvents
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combining-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combining triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-configure-symfony-to-serialize-private-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Configure Symfony to serialize private properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-implement-the-serializable-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Implement the Serializable interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snapshot-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshot policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snapshot-resilience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshot resilience
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshot resilience">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-stale-snapshot-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic stale snapshot recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symfony-bundle-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symfony bundle configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upgrading-from-pre-versioned-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading from pre-versioned snapshots
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Snapshotting</h1>
+
+<h2 id="snapshotting">Snapshotting<a class="headerlink" href="#snapshotting" title="Permanent link">&para;</a></h2>
+<p>Event-sourced use cases reconstitute by replaying all events from the event store. For use cases with many events, this becomes slow. Snapshotting captures a point-in-time serialized state so reconstitution only needs to replay events since the last snapshot.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">Without</span><span class="w"> </span><span class="nl">snapshot</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="n">Event</span><span class="w"> </span><span class="nl">Store</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">E1</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">E2</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">E3</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">E9999</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">E10000</span><span class="o">]</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nl">Reconstitute</span><span class="p">:</span><span class="w"> </span><span class="n">replay</span><span class="w"> </span><span class="ow">ALL</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="mi">000</span><span class="w"> </span><span class="n">events</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">With</span><span class="w"> </span><span class="nl">snapshot</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="n">Snapshot</span><span class="w"> </span><span class="nl">Store</span><span class="p">:</span><span class="w"> </span><span class="err">{</span><span class="w"> </span><span class="k">state</span><span class="w"> </span><span class="err">@</span><span class="w"> </span><span class="n">E9500</span><span class="p">,</span><span class="w"> </span><span class="nl">lastEventId</span><span class="p">:</span><span class="w"> </span><span class="ss">"E9500"</span><span class="w"> </span><span class="err">}</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="n">Event</span><span class="w"> </span><span class="nl">Store</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">E9501</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">E10000</span><span class="o">]</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nl">Reconstitute</span><span class="p">:</span><span class="w"> </span><span class="n">deserialize</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="k">state</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">replay</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="mi">500</span><span class="w"> </span><span class="n">events</span>
+</code></pre></div>
+<h3 id="configuring-snapshots">Configuring snapshots<a class="headerlink" href="#configuring-snapshots" title="Permanent link">&para;</a></h3>
+<p>Snapshotting is configured per use case via the <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span></code> attribute. The attribute accepts three independent trigger conditions — any of them triggers a snapshot (OR logic).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\Snapshot</span><span class="p">;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\EventSourcedUseCase</span><span class="p">;</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait</span><span class="p">;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Util\Time\Duration</span><span class="p">;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="nx">afterEvents</span><span class="o">:</span> <span class="mi">500</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="nx">afterSourcingTime</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Duration</span><span class="p">(</span><span class="nx">milliseconds</span><span class="o">:</span> <span class="mi">500</span><span class="p">),</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="nd">onEvent</span><span class="o">:</span> <span class="nd">AccountClosed</span><span class="o">::</span><span class="na">class</span><span class="p">,</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)]</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nd">final</span> <span class="nd">class</span> <span class="nd">ManageAccount</span> <span class="nd">implements</span> <span class="nd">EventSourcedUseCase</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">{</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="nd">use</span> <span class="nd">EventSourcedUseCaseBehaviorTrait</span><span class="p">;</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="nd">private</span> <span class="nd">string</span> <span class="nv">$accountId</span><span class="p">;</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="c1">// Business logic and event subscribers...</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="p">}</span>
+</code></pre></div>
+<p>All parameters are optional — configure only what you need.</p>
+<h3 id="trigger-conditions">Trigger conditions<a class="headerlink" href="#trigger-conditions" title="Permanent link">&para;</a></h3>
+<h4 id="afterevents">afterEvents<a class="headerlink" href="#afterevents" title="Permanent link">&para;</a></h4>
+<p>Create a snapshot every N events since the last snapshot. This is the most common trigger.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span><span class="nx">afterEvents</span><span class="o">:</span> <span class="mi">500</span><span class="p">)]</span>
+</code></pre></div>
+<p>When the total event count minus the event count at the last snapshot reaches the threshold, a snapshot is taken after the next save. This includes both the events replayed during reconstitution and any new events applied in the current save. Snapshots are created at approximately every 500 events (e.g., at 503, 1005, 1508...) depending on how many events are applied per save.</p>
+<h4 id="aftersourcingtime">afterSourcingTime<a class="headerlink" href="#aftersourcingtime" title="Permanent link">&para;</a></h4>
+<p>Create a snapshot when reconstitution (loading + replaying events) takes longer than a threshold.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Util\Time\Duration</span><span class="p">;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span><span class="nx">afterSourcingTime</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Duration</span><span class="p">(</span><span class="nx">milliseconds</span><span class="o">:</span> <span class="mi">500</span><span class="p">))]</span>
+</code></pre></div>
+<p>The <code class="highlight">Duration</code> class supports both <code class="highlight">milliseconds</code> and <code class="highlight">seconds</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">new</span> <span class="nx">Duration</span><span class="p">(</span><span class="nx">milliseconds</span><span class="o">:</span> <span class="mi">500</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">new</span> <span class="nx">Duration</span><span class="p">(</span><span class="nx">seconds</span><span class="o">:</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1">// Static constructors available for use outside attributes:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nx">Duration</span><span class="o">::</span><span class="na">milliseconds</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nx">Duration</span><span class="o">::</span><span class="na">seconds</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> PHP attributes require <code class="highlight">new</code> expressions, not static method calls. Use <code class="highlight">new Duration(milliseconds: 500)</code> in attributes.</p>
+<p><strong>Best practice:</strong> Use <code class="highlight">afterSourcingTime</code> as a safety net, not a primary trigger. Since it measures wall-clock time, it's affected by server load and database latency. Prefer <code class="highlight">afterEvents</code> as the primary trigger — it's deterministic and predictable. Combine both for a belt-and-suspenders approach: <code class="highlight">#[Snapshot(afterEvents: 500, afterSourcingTime: new Duration(seconds: 2))]</code>.</p>
+</blockquote>
+<h4 id="onevent-onevents">onEvent / onEvents<a class="headerlink" href="#onevent-onevents" title="Permanent link">&para;</a></h4>
+<p>Create a snapshot when a specific event type is applied. Useful for milestone events that indicate a natural snapshot point.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Single event:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span><span class="nx">onEvent</span><span class="o">:</span> <span class="nx">AccountClosed</span><span class="o">::</span><span class="na">class</span><span class="p">)]</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1">// Multiple events:</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span><span class="nx">onEvents</span><span class="o">:</span> <span class="p">[</span><span class="nx">AccountClosed</span><span class="o">::</span><span class="na">class</span><span class="p">,</span> <span class="nx">MonthEnded</span><span class="o">::</span><span class="na">class</span><span class="p">])]</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">// Can combine both:</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="nx">onEvent</span><span class="o">:</span> <span class="nx">AccountClosed</span><span class="o">::</span><span class="na">class</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="nx">onEvents</span><span class="o">:</span> <span class="p">[</span><span class="nx">MonthEnded</span><span class="o">::</span><span class="na">class</span><span class="p">,</span> <span class="nx">YearEnded</span><span class="o">::</span><span class="na">class</span><span class="p">],</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">)]</span>
+</code></pre></div>
+<h3 id="combining-triggers">Combining triggers<a class="headerlink" href="#combining-triggers" title="Permanent link">&para;</a></h3>
+<p>All triggers can be combined. Any of them fires a snapshot (OR logic, first-match-wins):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="nx">afterEvents</span><span class="o">:</span> <span class="mi">500</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="nx">afterSourcingTime</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Duration</span><span class="p">(</span><span class="nx">milliseconds</span><span class="o">:</span> <span class="mi">500</span><span class="p">),</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="nd">onEvents</span><span class="o">:</span> <span class="p">[</span><span class="nd">AccountClosed</span><span class="o">::</span><span class="na">class</span><span class="p">,</span> <span class="nd">MonthEnded</span><span class="o">::</span><span class="na">class</span><span class="p">],</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)]</span>
+</code></pre></div>
+<p>When multiple policies match on the same save, only the first matching policy triggers a snapshot. Exactly one snapshot is created per save at most.</p>
+<h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Permanent link">&para;</a></h3>
+<p>Snapshots serialize the use case's state using the same <code class="highlight">Serializer</code> used for domain events and sagas. Via the <code class="highlight">StackedSerializer</code>:</p>
+<ol>
+<li><strong><code class="highlight">SerializableInterfaceSerializer</code></strong> — tried first. If the use case implements <code class="highlight">Serializable</code>, it uses <code class="highlight"><span class="n">toPayload</span><span class="p">()</span></code>/<code class="highlight"><span class="n">fromPayload</span><span class="p">()</span></code> for full control over the snapshot format.</li>
+<li><strong>Symfony/default serializer</strong> — fallback. Handles use cases without <code class="highlight">Serializable</code> automatically.</li>
+</ol>
+<p>Note that the default Symfony Serializer only serializes <strong>public properties</strong>. Most use cases have private state properties, which means the default serializer will produce incomplete snapshots. There are two solutions:</p>
+<h4 id="option-a-configure-symfony-to-serialize-private-properties">Option A: Configure Symfony to serialize private properties<a class="headerlink" href="#option-a-configure-symfony-to-serialize-private-properties" title="Permanent link">&para;</a></h4>
+<p>Register the <code class="highlight">PropertyNormalizer</code> in your Symfony serializer configuration. This normalizer uses reflection to access private properties:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># config/packages/framework.yaml</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nt">framework</span><span class="p">:</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">serializer</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">        </span><span class="nt">default_context</span><span class="p">:</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">            </span><span class="c1"># No additional config needed — PropertyNormalizer is auto-registered</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">            </span><span class="c1"># when symfony/property-info is installed</span>
+</code></pre></div>
+<p>Or register it explicitly as a service with higher priority:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># config/services.yaml</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nt">services</span><span class="p">:</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">Symfony\Component\Serializer\Normalizer\PropertyNormalizer</span><span class="p">:</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="nt">tags</span><span class="p">:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">serializer.normalizer</span><span class="p p-Indicator">,</span><span class="nt"> priority</span><span class="p">:</span><span class="w"> </span><span class="nv">-500</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>This handles all use cases transparently without any code changes.</p>
+<h4 id="option-b-implement-the-serializable-interface">Option B: Implement the Serializable interface<a class="headerlink" href="#option-b-implement-the-serializable-interface" title="Permanent link">&para;</a></h4>
+<p>For explicit control over which properties are persisted and how:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Util\Serialization\Serializable</span><span class="p">;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="sd">/**</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="sd"> * @implements Serializable&lt;array{accountId: string, balance: int, closed: bool}, ManageAccount&gt;</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="sd"> */</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">#[</span><span class="nd">Snapshot</span><span class="p">(</span><span class="nx">afterEvents</span><span class="o">:</span> <span class="mi">500</span><span class="p">)]</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">final</span> <span class="k">class</span> <span class="nc">ManageAccount</span> <span class="k">implements</span> <span class="nx">EventSourcedUseCase</span><span class="p">,</span> <span class="nx">Serializable</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">{</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="k">use</span> <span class="nx">EventSourcedUseCaseBehaviorTrait</span><span class="p">;</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="k">private</span> <span class="nx">string</span> <span class="nv">$accountId</span><span class="p">;</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="k">private</span> <span class="nx">int</span> <span class="nv">$balance</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="k">private</span> <span class="nx">bool</span> <span class="nv">$closed</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="c1">// Business logic and event subscribers...</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">toPayload</span><span class="p">()</span><span class="o">:</span> <span class="k">array</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="p">{</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>            <span class="s1">'accountId'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">accountId</span><span class="p">,</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>            <span class="s1">'balance'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">balance</span><span class="p">,</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="s1">'closed'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">closed</span><span class="p">,</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>        <span class="p">];</span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>    <span class="p">}</span>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>    <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">fromPayload</span><span class="p">(</span><span class="k">array</span> <span class="nv">$payload</span><span class="p">)</span><span class="o">:</span> <span class="nx">self</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>    <span class="p">{</span>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>        <span class="nv">$useCase</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">self</span><span class="p">();</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>        <span class="nv">$useCase</span><span class="o">-&gt;</span><span class="na">accountId</span> <span class="o">=</span> <span class="nv">$payload</span><span class="p">[</span><span class="s1">'accountId'</span><span class="p">];</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>        <span class="nv">$useCase</span><span class="o">-&gt;</span><span class="na">balance</span> <span class="o">=</span> <span class="nv">$payload</span><span class="p">[</span><span class="s1">'balance'</span><span class="p">];</span>
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>        <span class="nv">$useCase</span><span class="o">-&gt;</span><span class="na">closed</span> <span class="o">=</span> <span class="nv">$payload</span><span class="p">[</span><span class="s1">'closed'</span><span class="p">];</span>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>        <span class="k">return</span> <span class="nv">$useCase</span><span class="p">;</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>    <span class="p">}</span>
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="p">}</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Which to choose?</strong> Option A is simpler — no code changes needed. Option B gives explicit control and works without a framework. For sagas, the same choice applies (see <a href="../sagas/#serialization">Sagas - Serialization</a>).</p>
+</blockquote>
+<p>For more details on serialization approaches, see <a href="../domain-events/#serialization">Domain events - Serialization</a>.</p>
+<h3 id="snapshot-policies">Snapshot policies<a class="headerlink" href="#snapshot-policies" title="Permanent link">&para;</a></h3>
+<p>The snapshot trigger conditions are implemented as pluggable policies via the <code class="highlight">SnapshotPolicy</code> interface. Three built-in policies handle the attribute parameters:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Checks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">AfterEventsSnapshotPolicy</code></td>
+<td>Event count since last snapshot &gt;= <code class="highlight">afterEvents</code></td>
+</tr>
+<tr>
+<td><code class="highlight">AfterSourcingTimeSnapshotPolicy</code></td>
+<td>Reconstitution time &gt;= <code class="highlight">afterSourcingTime</code></td>
+</tr>
+<tr>
+<td><code class="highlight">OnEventsSnapshotPolicy</code></td>
+<td>Applied event class matches <code class="highlight">onEvent</code>/<code class="highlight">onEvents</code></td>
+</tr>
+</tbody>
+</table>
+<p>You can create custom policies by implementing the <code class="highlight">SnapshotPolicy</code> interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Snapshot\Policy\SnapshotContext</span><span class="p">;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Snapshot\Policy\SnapshotPolicy</span><span class="p">;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Resolver\UseCase\SnapshotDefinition</span><span class="p">;</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">AlwaysSnapshotPolicy</span> <span class="k">implements</span> <span class="nx">SnapshotPolicy</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">{</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">shouldSnapshot</span><span class="p">(</span><span class="nx">SnapshotDefinition</span> <span class="nv">$definition</span><span class="p">,</span> <span class="nx">SnapshotContext</span> <span class="nv">$context</span><span class="p">)</span><span class="o">:</span> <span class="nx">bool</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="p">{</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>        <span class="k">return</span> <span class="k">true</span><span class="p">;</span> <span class="c1">// Snapshot on every save</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="p">}</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="p">}</span>
+</code></pre></div>
+<p>When using the Symfony bundle, custom policies are automatically picked up when tagged with <code class="highlight">gember.snapshot.policy</code>.</p>
+<h3 id="snapshot-resilience">Snapshot resilience<a class="headerlink" href="#snapshot-resilience" title="Permanent link">&para;</a></h3>
+<p>Snapshots are an optimization, never a requirement for correctness. Both loading and saving snapshots are non-critical — if either fails (e.g., database unavailable, corrupted data), the failure is logged and the system continues normally. A failed load falls back to full event replay. A failed save is skipped. The next successful operation will recover automatically.</p>
+<h4 id="automatic-stale-snapshot-recovery">Automatic stale snapshot recovery<a class="headerlink" href="#automatic-stale-snapshot-recovery" title="Permanent link">&para;</a></h4>
+<p>Snapshots are versioned — each save inserts a new row rather than overwriting the previous one. When loading, the system always retrieves the latest snapshot (highest <code class="highlight">event_count</code>).</p>
+<p>If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, or the snapshot's <code class="highlight">lastEventId</code> is no longer in the event store), the system automatically falls back to a full event replay. This is logged at <code class="highlight">info</code> level:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Stale</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="n">detected</span><span class="p">,</span><span class="w"> </span><span class="n">falling</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">full</span><span class="w"> </span><span class="n">replay</span><span class="w">  </span><span class="err">{</span><span class="nl">lastEventId</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Stale</span><span class="w"> </span><span class="n">snapshot</span><span class="p">,</span><span class="w"> </span><span class="n">falling</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">full</span><span class="w"> </span><span class="n">replay</span><span class="w">           </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+</code></pre></div>
+<p>The first message indicates a stale <code class="highlight">lastEventId</code> (e.g., event store was rebuilt). The second indicates a deserialization failure (e.g., class structure changed). In both cases, the next successful save will create a fresh snapshot.</p>
+<p>This means <strong>truncating <code class="highlight">snapshot_store</code> after deployments is no longer required</strong> — the system auto-recovers. However, truncating is still safe and can be used to reclaim disk space from accumulated old snapshots.</p>
+<h3 id="symfony-bundle-configuration">Symfony bundle configuration<a class="headerlink" href="#symfony-bundle-configuration" title="Permanent link">&para;</a></h3>
+<p>Enable snapshotting in <code class="highlight">gember_event_sourcing.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">gember_event_sourcing</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="nt">snapshot</span><span class="p">:</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">        </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>This activates the snapshot decorator, snapshot store, and all built-in policies. When disabled (default), all snapshot-related services are removed.</p>
+<h3 id="performance-considerations">Performance considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h3>
+<p>Snapshot creation happens synchronously during <code class="highlight">save()</code>. For most use cases this is negligible, but for use cases with large state, the serialization + database write adds latency to the saves that trigger a snapshot. This only occurs when a policy threshold is reached — not on every save. Choose trigger thresholds that balance reconstitution speed against snapshot creation frequency.</p>
+<h3 id="deployment-considerations">Deployment considerations<a class="headerlink" href="#deployment-considerations" title="Permanent link">&para;</a></h3>
+<p>Snapshots serialize the use case's state. If the use case class changes (e.g., properties renamed, event handlers modified, serialization format changed), existing snapshots may become incompatible. The system handles this automatically — a failed deserialization triggers a full event replay, and a fresh snapshot is created on the next save.</p>
+<p>Because snapshots are versioned (insert-only), old snapshots accumulate over time. This is generally harmless, but for large-scale systems you may want to periodically clean up old snapshots:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1">-- Remove all snapshots (safe — only affects performance, not correctness)</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">TRUNCATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">snapshot_store</span><span class="p">;</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1">-- Or selectively keep the 3 most recent snapshots per boundary (MySQL 8+)</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">snapshot_store</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">        </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">ROW_NUMBER</span><span class="p">()</span><span class="w"> </span><span class="n">OVER</span><span class="w"> </span><span class="p">(</span><span class="n">PARTITION</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">boundary_hash</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">event_count</span><span class="w"> </span><span class="k">DESC</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">rn</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">        </span><span class="k">FROM</span><span class="w"> </span><span class="n">snapshot_store</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="n">ranked</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">rn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">3</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="p">);</span>
+</code></pre></div>
+<h3 id="upgrading-from-pre-versioned-snapshots">Upgrading from pre-versioned snapshots<a class="headerlink" href="#upgrading-from-pre-versioned-snapshots" title="Permanent link">&para;</a></h3>
+<p>If upgrading from a version that used upsert semantics (single snapshot per boundary), the <code class="highlight">snapshot_store</code> table schema has changed:</p>
+<ul>
+<li>New <code class="highlight">id</code> column (primary key, UUID)</li>
+<li><code class="highlight">boundary_hash</code> is no longer the primary key</li>
+<li>New unique constraint on <code class="highlight">(boundary_hash, event_count)</code></li>
+<li><code class="highlight">updated_at</code> column removed (rows are immutable)</li>
+</ul>
+<p>Since all packages are 0.x, <strong>drop and recreate the <code class="highlight">snapshot_store</code> table</strong> using the updated schema. Existing snapshots will be rebuilt automatically by the configured policies.</p>
+<p>Additionally, <code class="highlight">RdbmsSnapshotStore</code> now requires an <code class="highlight">IdentityGenerator</code> (<code class="highlight">Gember\DependencyContracts\Util\Generator\Identity\IdentityGenerator</code>) as its second constructor argument and a <code class="highlight">Clock</code> (<code class="highlight">Gember\EventSourcing\Util\Time\Clock\Clock</code>) as its third. The <code class="highlight">gember/identity-generator-symfony</code> package provides two implementations: <code class="highlight">SymfonyUuidIdentityGenerator</code> and <code class="highlight">SymfonyUlidIdentityGenerator</code>. If you wire services manually (outside the Symfony bundle or universal service provider):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Snapshot\Rdbms\RdbmsSnapshotStore</span><span class="p">;</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Util\Time\Clock\Native\NativeClock</span><span class="p">;</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">use</span> <span class="nx">Gember\IdentityGeneratorSymfony\Uuid\SymfonyUuidIdentityGenerator</span><span class="p">;</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="nv">$snapshotStore</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">RdbmsSnapshotStore</span><span class="p">(</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="nv">$rdbmsSnapshotStoreRepository</span><span class="p">,</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="k">new</span> <span class="nx">SymfonyUuidIdentityGenerator</span><span class="p">(</span><span class="nv">$uuidFactory</span><span class="p">),</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="k">new</span> <span class="nx">NativeClock</span><span class="p">(),</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="p">);</span>
+</code></pre></div>
+<h3 id="observability">Observability<a class="headerlink" href="#observability" title="Permanent link">&para;</a></h3>
+<p>When snapshotting is enabled, the <code class="highlight">LoggableSnapshotStoreDecorator</code> provides structured logging:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Started</span><span class="w"> </span><span class="n">loading</span><span class="w"> </span><span class="n">snapshot</span><span class="w">    </span><span class="err">{</span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Loaded</span><span class="w"> </span><span class="n">snapshot</span><span class="w">             </span><span class="err">{</span><span class="nl">lastEventId</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">eventCount</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">duration</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="err">}</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="k">No</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="k">found</span><span class="w">           </span><span class="err">{</span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">duration</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span><span class="err">}</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Snapshot</span><span class="w"> </span><span class="n">triggered</span><span class="w">          </span><span class="err">{</span><span class="nl">policy</span><span class="p">:</span><span class="w"> </span><span class="ss">"AfterEventsSnapshotPolicy"</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">eventCount</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="err">}</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Started</span><span class="w"> </span><span class="n">saving</span><span class="w"> </span><span class="n">snapshot</span><span class="w">     </span><span class="err">{</span><span class="nl">lastEventId</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">eventCount</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Finished</span><span class="w"> </span><span class="n">saving</span><span class="w"> </span><span class="n">snapshot</span><span class="w">    </span><span class="err">{</span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">duration</span><span class="p">:</span><span class="w"> </span><span class="mf">0.015</span><span class="err">}</span>
+</code></pre></div>
+<p>When a snapshot is stale and the system falls back to full event replay, the repository decorator logs at <code class="highlight">info</code> level:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Stale</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="n">detected</span><span class="p">,</span><span class="w"> </span><span class="n">falling</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">full</span><span class="w"> </span><span class="n">replay</span><span class="w">  </span><span class="err">{</span><span class="nl">lastEventId</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Stale</span><span class="w"> </span><span class="n">snapshot</span><span class="p">,</span><span class="w"> </span><span class="n">falling</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">full</span><span class="w"> </span><span class="n">replay</span><span class="w">           </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+</code></pre></div>
+<p>The first message indicates the snapshot's <code class="highlight">lastEventId</code> was not found in the event store. The second indicates deserialization failed (e.g., use case class structure changed). Both result in a full event replay — no data loss.</p>
+<p>If a snapshot operation fails, the snapshot store decorator logs at <code class="highlight">error</code> level:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="n">saving</span><span class="w"> </span><span class="n">snapshot</span><span class="w">   </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">duration</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="err">}</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="n">loading</span><span class="w"> </span><span class="n">snapshot</span><span class="w">  </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="nl">duration</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span><span class="err">}</span>
+</code></pre></div>
+<p>Additionally, the repository decorator logs at <code class="highlight">warning</code> level when snapshot operations fail but are handled gracefully (falling back to full replay or skipping the snapshot):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="n">loading</span><span class="w"> </span><span class="n">snapshot</span><span class="p">,</span><span class="w"> </span><span class="n">falling</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">full</span><span class="w"> </span><span class="n">replay</span><span class="w">  </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="o">[</span><span class="n">Snapshot</span><span class="o">]</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="n">saving</span><span class="w"> </span><span class="n">snapshot</span><span class="p">,</span><span class="w"> </span><span class="n">skipping</span><span class="w">                      </span><span class="err">{</span><span class="k">exception</span><span class="err">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">exceptionClass</span><span class="p">:</span><span class="w"> </span><span class="ss">"..."</span><span class="p">,</span><span class="w"> </span><span class="nl">domainTags</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">...</span><span class="o">]</span><span class="err">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../domain-events/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Domain Events">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Domain Events
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../sagas/" class="md-footer__link md-footer__link--next" aria-label="Next: Sagas">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Sagas
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

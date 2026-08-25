@@ -1,0 +1,2165 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Use case driven Event Sourcing for PHP — let go of the Aggregate with the Dynamic Consistency Boundary (DCB) pattern.">
+      
+      
+      
+        <link rel="canonical" href="https://gemberphp.github.io/event-sourcing/usage/domain-events/">
+      
+      
+        <link rel="prev" href="../command-handlers/">
+      
+      
+        <link rel="next" href="../snapshotting/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Domain Events - Gember Event Sourcing</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#domain-events" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gember Event Sourcing" class="md-header__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gember Event Sourcing
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Domain Events
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="red"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../background/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Background
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../example/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Example
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../how-it-works/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  How It Works
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../library-architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Library Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gember Event Sourcing" class="md-nav__button md-logo" aria-label="Gember Event Sourcing" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Gember Event Sourcing
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemberphp/event-sourcing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gember/event-sourcing
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../background/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Background
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../command-handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Handlers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Events
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#domain-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Domain events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain tags
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Domain tags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-domain-tags-work-across-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How domain tags work across components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-event-domain-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing event domain tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-1-using-the-domaintag-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Using the #[DomainTag] attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-implementing-the-specifieddomaintags-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Implementing the SpecifiedDomainTags interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event naming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Event naming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-using-the-domainevent-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Using the #[DomainEvent] attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-implementing-the-nameddomainevent-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Implementing the NamedDomainEvent interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-fallback-to-fqcn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fallback to FQCN
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-automatic-serialization-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Automatic serialization (Recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-explicit-serialization-with-serializable-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Explicit serialization with Serializable interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-stackedserializer-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the StackedSerializer works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices-for-event-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best practices for event properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-between-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing between approaches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-serializers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom serializers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saga-ids-on-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saga IDs on events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Metadata">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-metadata-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How metadata flows
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enriching-events-with-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enriching events with metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-metadata-use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common metadata use cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../snapshotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sagas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sagas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#domain-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Domain events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain tags
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Domain tags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-domain-tags-work-across-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How domain tags work across components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-event-domain-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing event domain tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-1-using-the-domaintag-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Using the #[DomainTag] attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-implementing-the-specifieddomaintags-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Implementing the SpecifiedDomainTags interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event naming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Event naming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-using-the-domainevent-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Using the #[DomainEvent] attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-implementing-the-nameddomainevent-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Implementing the NamedDomainEvent interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-fallback-to-fqcn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fallback to FQCN
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Serialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-automatic-serialization-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Automatic serialization (Recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-explicit-serialization-with-serializable-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: Explicit serialization with Serializable interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-stackedserializer-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the StackedSerializer works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices-for-event-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best practices for event properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-between-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing between approaches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-serializers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom serializers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saga-ids-on-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saga IDs on events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Metadata">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-metadata-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How metadata flows
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enriching-events-with-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enriching events with metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-metadata-use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common metadata use cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Domain Events</h1>
+
+<h2 id="domain-events">Domain events<a class="headerlink" href="#domain-events" title="Permanent link">&para;</a></h2>
+<p>Domain events are immutable messages that represent something that has happened in your domain. They are simple Data Transfer Objects (DTOs) with no business logic, capturing facts about state changes.</p>
+<h3 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h3>
+<p>In <em>Gember Event Sourcing</em>, any DTO can be used as a domain event. With DCB, domain events are not limited to a single aggregate root. Instead, the same event can be shared across multiple use cases and aggregates, enabling decentralized business logic.</p>
+<h3 id="domain-tags">Domain tags<a class="headerlink" href="#domain-tags" title="Permanent link">&para;</a></h3>
+<p>Domain tags are identifiers that link events to specific domain concepts (e.g., <code class="highlight">Course</code>, <code class="highlight">Student</code>). They enable the event sourcing system to:
+- Route events to the correct use cases
+- Query events by domain context
+- Support DCB patterns with multiple domain concepts per use case</p>
+<h4 id="how-domain-tags-work-across-components">How domain tags work across components<a class="headerlink" href="#how-domain-tags-work-across-components" title="Permanent link">&para;</a></h4>
+<p>Domain tags appear on commands, use cases, and events, each serving a different purpose:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Domain tag purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Command</strong></td>
+<td>Which events to <strong>load</strong> from the event store</td>
+</tr>
+<tr>
+<td><strong>Use case</strong></td>
+<td><strong>Optimistic lock</strong> scope (must match command)</td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>How to <strong>index</strong> the event for future retrieval</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>When loading a use case, Gember builds a <strong>stream query</strong> combining the domain tags (from the command) with the subscribed event types (from the use case's <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainEventSubscriber</span><span class="o">]</span></code> methods). Only events matching at least one tag <strong>and</strong> a subscribed type are loaded.</p>
+</blockquote>
+<p>An event's domain tags do not need to match the command's domain tags. They serve independent purposes. A command tag determines what gets loaded; an event tag determines how the event is discoverable in the future.</p>
+<h4 id="choosing-event-domain-tags">Choosing event domain tags<a class="headerlink" href="#choosing-event-domain-tags" title="Permanent link">&para;</a></h4>
+<p>Add a domain tag for each use case that will need to load this event in the future. For example:</p>
+<ul>
+<li>If <code class="highlight">CreateTimeslot</code> needs to see <code class="highlight">TimeslotDiscardedEvent</code> via <code class="highlight">practitionerId</code>, the event must have <code class="highlight">practitionerId</code> as a domain tag</li>
+<li>If <code class="highlight">PreReserveTimeslot</code> needs to see <code class="highlight">TimeslotCreatedEvent</code> via <code class="highlight">timeslotId</code>, the event must have <code class="highlight">timeslotId</code> as a domain tag</li>
+<li>An event can have multiple domain tags if multiple use cases need it via different identifiers</li>
+</ul>
+<p>There are two ways to define domain tags on events:</p>
+<h4 id="option-1-using-the-domaintag-attribute">Option 1: Using the #[DomainTag] attribute<a class="headerlink" href="#option-1-using-the-domaintag-attribute" title="Permanent link">&para;</a></h4>
+<p>Mark properties with the <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> attribute. This is the most common and recommended approach for simple scenarios:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">CourseCreatedEvent</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">{</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$name</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="k">public</span> <span class="nx">int</span> <span class="nv">$capacity</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Key points:</strong>
+- Multiple properties can be marked with <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code>
+- Only annotated properties are used as domain tags
+- Works well when domain tags map directly to constructor properties</p>
+<h4 id="option-2-implementing-the-specifieddomaintags-interface">Option 2: Implementing the SpecifiedDomainTags interface<a class="headerlink" href="#option-2-implementing-the-specifieddomaintags-interface" title="Permanent link">&para;</a></h4>
+<p>For more control over domain tag extraction, implement the <code class="highlight">SpecifiedDomainTags</code> interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\SpecifiedDomainTags</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">ComplexEvent</span> <span class="k">implements</span> <span class="nx">SpecifiedDomainTags</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$compositeId</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$secondaryId</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="k">public</span> <span class="nx">int</span> <span class="nv">$value</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="sd">/**</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="sd">     * @return list&lt;string|Stringable&gt;</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="sd">     */</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getDomainTags</span><span class="p">()</span><span class="o">:</span> <span class="k">array</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="p">{</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="c1">// Custom logic to extract or transform domain tags</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">compositeId</span><span class="p">,</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">secondaryId</span><span class="p">,</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="p">];</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="p">}</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Key points:</strong>
+- Provides full control over domain tag extraction
+- Can return computed or transformed values
+- <strong>Completely replaces attribute-based resolution</strong> - if this interface is implemented, <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> attributes are ignored</p>
+<p><strong>When to use <code class="highlight">SpecifiedDomainTags</code> over <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> attributes:</strong>
+- Domain tags need to be <strong>derived or computed</strong> from multiple properties (e.g., a composite key)
+- Domain tags require <strong>conditional logic</strong> (e.g., only include a tag when a property is non-null)
+- Domain tags need <strong>transformation</strong> before use (e.g., prefixing, hashing, or formatting)</p>
+<p>For most events where domain tags map directly to constructor properties, the <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> attribute is simpler and recommended.</p>
+<h3 id="event-naming">Event naming<a class="headerlink" href="#event-naming" title="Permanent link">&para;</a></h3>
+<p>The event name is a unique identifier used to match stored events with their corresponding PHP classes during deserialization. <em>Gember Event Sourcing</em> provides three ways to define event names, checked in this order:</p>
+<h4 id="1-using-the-domainevent-attribute">1. Using the #[DomainEvent] attribute<a class="headerlink" href="#1-using-the-domainevent-attribute" title="Permanent link">&para;</a></h4>
+<p>Define the event name explicitly using the <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainEvent</span><span class="o">]</span></code> attribute:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainEvent</span><span class="p">;</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">#[</span><span class="nd">DomainEvent</span><span class="p">(</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'course.created'</span><span class="p">)]</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">CourseCreatedEvent</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">{</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$name</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">}</span>
+</code></pre></div>
+<p>This is the recommended approach as it provides explicit control and makes refactoring safer.</p>
+<h4 id="2-implementing-the-nameddomainevent-interface">2. Implementing the NamedDomainEvent interface<a class="headerlink" href="#2-implementing-the-nameddomainevent-interface" title="Permanent link">&para;</a></h4>
+<p>For dynamic event naming or when you need more control, implement the <code class="highlight">NamedDomainEvent</code> interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\NamedDomainEvent</span><span class="p">;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">CourseCreatedEvent</span> <span class="k">implements</span> <span class="nx">NamedDomainEvent</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">{</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$name</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">getName</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">{</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="k">return</span> <span class="s1">'course.created'</span><span class="p">;</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="p">}</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="3-fallback-to-fqcn">3. Fallback to FQCN<a class="headerlink" href="#3-fallback-to-fqcn" title="Permanent link">&para;</a></h4>
+<p>If neither the attribute nor the interface is used, <em>Gember Event Sourcing</em> automatically generates a readable event name from the class's Fully Qualified Class Name (FQCN).</p>
+<p>For example: <code class="highlight">App\Domain\Course\CourseCreatedEvent</code> might become <code class="highlight">app.domain.course.course-created-event</code>.</p>
+<blockquote>
+<p><strong>Best practice:</strong> Always use explicit naming (attribute or interface) to maintain control over event names, especially when refactoring or reorganizing code.</p>
+</blockquote>
+<h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Permanent link">&para;</a></h3>
+<p>Events must be serializable to be stored in the event store. <em>Gember Event Sourcing</em> uses a configurable <code class="highlight">Serializer</code> to convert events to and from their stored representation (typically JSON).</p>
+<p>There are two approaches to event serialization:</p>
+<h4 id="option-1-automatic-serialization-recommended">Option 1: Automatic serialization (Recommended)<a class="headerlink" href="#option-1-automatic-serialization-recommended" title="Permanent link">&para;</a></h4>
+<p>When using framework integrations like <a href="https://github.com/GemberPHP/event-sourcing-symfony-bundle">gember/event-sourcing-symfony-bundle</a>, events are automatically serialized using the Symfony Serializer component. This means <strong>you don't need to implement any interface</strong> - just define your events as simple DTOs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainEvent</span><span class="p">;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">#[</span><span class="nd">DomainEvent</span><span class="p">(</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'course.created'</span><span class="p">)]</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">CourseCreatedEvent</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">{</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$name</span><span class="p">,</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="k">public</span> <span class="nx">int</span> <span class="nv">$capacity</span><span class="p">,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Key benefits:</strong>
+- <strong>Zero boilerplate</strong> - No interface implementation required
+- <strong>Automatic handling</strong> - Works with any DTO structure
+- <strong>Complex type support</strong> - Can handle <code class="highlight">DateTimeImmutable</code>, nested objects, and more
+- <strong>Framework integration</strong> - Configured automatically by the Symfony bundle</p>
+<blockquote>
+<p><strong>Note:</strong> This is the <strong>recommended approach</strong> for most applications, especially when using Symfony.</p>
+</blockquote>
+<h4 id="option-2-explicit-serialization-with-serializable-interface">Option 2: Explicit serialization with Serializable interface<a class="headerlink" href="#option-2-explicit-serialization-with-serializable-interface" title="Permanent link">&para;</a></h4>
+<p>For more control over serialization or when not using a framework integration, implement the <code class="highlight">Serializable</code> interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainEvent</span><span class="p">;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Util\Serialization\Serializable</span><span class="p">;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="sd">/**</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="sd"> * @implements Serializable&lt;array{</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="sd"> *     courseId: string,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="sd"> *     name: string,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="sd"> *     capacity: int</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="sd"> * }, CourseCreatedEvent&gt;</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="sd"> */</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">#[</span><span class="nd">DomainEvent</span><span class="p">(</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'course.created'</span><span class="p">)]</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">CourseCreatedEvent</span> <span class="k">implements</span> <span class="nx">Serializable</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="p">{</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$name</span><span class="p">,</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="k">public</span> <span class="nx">int</span> <span class="nv">$capacity</span><span class="p">,</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="sd">/**</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="sd">     * Convert the event to an array for storage.</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="sd">     */</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">toPayload</span><span class="p">()</span><span class="o">:</span> <span class="k">array</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="p">{</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>            <span class="s1">'courseId'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">courseId</span><span class="p">,</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>            <span class="s1">'name'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">,</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>            <span class="s1">'capacity'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">capacity</span><span class="p">,</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="p">];</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>    <span class="p">}</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>    <span class="sd">/**</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="sd">     * Reconstruct the event from stored data.</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="sd">     */</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>    <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">fromPayload</span><span class="p">(</span><span class="k">array</span> <span class="nv">$payload</span><span class="p">)</span><span class="o">:</span> <span class="nx">self</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>    <span class="p">{</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>        <span class="k">return</span> <span class="k">new</span> <span class="nx">self</span><span class="p">(</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>            <span class="nv">$payload</span><span class="p">[</span><span class="s1">'courseId'</span><span class="p">],</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>            <span class="nv">$payload</span><span class="p">[</span><span class="s1">'name'</span><span class="p">],</span>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>            <span class="nv">$payload</span><span class="p">[</span><span class="s1">'capacity'</span><span class="p">],</span>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>        <span class="p">);</span>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>    <span class="p">}</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Key points about the <code class="highlight">Serializable</code> interface:</strong></p>
+<ul>
+<li><strong>Generic type parameters</strong> - Document the payload structure and return type using PHPStan/Psalm annotations</li>
+<li>First parameter: The array shape (<code class="highlight">array{courseId: string, ...}</code>)</li>
+<li>Second parameter: The implementing class (<code class="highlight">CourseCreatedEvent</code>)</li>
+<li><strong><code class="highlight"><span class="n">toPayload</span><span class="p">()</span></code></strong> - Converts the event to an array for JSON serialization</li>
+<li><strong><code class="highlight"><span class="n">fromPayload</span><span class="p">()</span></code></strong> - Static factory method to reconstruct the event from stored data</li>
+<li><strong>When to use</strong> - Useful when you need explicit control, want to avoid framework dependencies, or are not using a framework integration</li>
+</ul>
+<h4 id="how-the-stackedserializer-works">How the StackedSerializer works<a class="headerlink" href="#how-the-stackedserializer-works" title="Permanent link">&para;</a></h4>
+<p>When using the Symfony bundle, both serialization approaches work together via the <code class="highlight">StackedSerializer</code>:</p>
+<ol>
+<li><strong>First</strong>, it tries <code class="highlight">SerializableInterfaceSerializer</code> - for events implementing <code class="highlight">Serializable</code></li>
+<li><strong>Then</strong>, it falls back to <code class="highlight">SymfonySerializer</code> - for automatic reflection-based serialization</li>
+<li><strong>Finally</strong>, if both fail, it throws an exception with detailed error information</li>
+</ol>
+<p>This means you can mix both approaches in your application - some events with explicit <code class="highlight">Serializable</code> implementation, others with automatic serialization.</p>
+<h4 id="best-practices-for-event-properties">Best practices for event properties<a class="headerlink" href="#best-practices-for-event-properties" title="Permanent link">&para;</a></h4>
+<p>Events are serialized and stored permanently in the event store. Use <strong>primitive types</strong> (<code class="highlight">string</code>, <code class="highlight">int</code>, <code class="highlight">float</code>, <code class="highlight">bool</code>, <code class="highlight">DateTimeImmutable</code>) for all properties rather than domain Value Objects. This ensures:</p>
+<ul>
+<li><strong>Simple serialization</strong> - Primitives serialize to JSON without custom logic</li>
+<li><strong>Schema evolution</strong> - Historical events remain readable even when domain classes change</li>
+<li><strong>No replay dependencies</strong> - Events can be deserialized without depending on domain model classes</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// Good: primitive types</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">#[</span><span class="nd">DomainEvent</span><span class="p">(</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'timeslot.created'</span><span class="p">)]</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">TimeslotCreatedEvent</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">{</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$timeslotId</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$practitionerId</span><span class="p">,</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="k">public</span> <span class="nx">DateTimeImmutable</span> <span class="nv">$startAt</span><span class="p">,</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="k">public</span> <span class="nx">DateTimeImmutable</span> <span class="nv">$endAt</span><span class="p">,</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">}</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="c1">// Avoid: Value Objects in events</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">TimeslotCreatedEvent</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="p">{</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="k">public</span> <span class="nx">TimeslotId</span> <span class="nv">$timeslotId</span><span class="p">,</span>      <span class="c1">// couples event to domain class</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="k">public</span> <span class="nx">TimePeriod</span> <span class="nv">$timePeriod</span><span class="p">,</span>       <span class="c1">// breaks if TimePeriod structure changes</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="p">}</span>
+</code></pre></div>
+<p>Additional guidelines:</p>
+<ol>
+<li><strong>Keep events flat</strong> - Avoid deeply nested structures</li>
+<li><strong>Make events readonly</strong> - Use <code class="highlight">readonly</code> classes or properties to ensure immutability</li>
+<li><strong>Include all data</strong> - An event should carry everything needed to describe the change, so consumers don't need to look up additional data</li>
+</ol>
+<h4 id="choosing-between-approaches">Choosing between approaches<a class="headerlink" href="#choosing-between-approaches" title="Permanent link">&para;</a></h4>
+<p><strong>Use automatic serialization when:</strong>
+- You're using Symfony or another framework with serializer integration
+- You want minimal boilerplate code
+- You prefer convention over explicit configuration</p>
+<p><strong>Use the Serializable interface when:</strong>
+- You need explicit control over the serialization format
+- You want to avoid framework dependencies
+- You're working without a framework integration
+- You prefer explicit, testable code</p>
+<h4 id="custom-serializers">Custom serializers<a class="headerlink" href="#custom-serializers" title="Permanent link">&para;</a></h4>
+<p>For advanced scenarios (e.g., encryption, compression, custom formats), you can provide custom serializer implementations by implementing the <code class="highlight">Serializer</code> interface from <code class="highlight">gember/dependency-contracts</code>. These can be added to the <code class="highlight">StackedSerializer</code> chain alongside the built-in serializers.</p>
+<h3 id="saga-ids-on-events">Saga IDs on events<a class="headerlink" href="#saga-ids-on-events" title="Permanent link">&para;</a></h3>
+<p>When using <a href="../sagas/">Sagas</a>, domain events can carry <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span></code> attributes to route events to the correct saga instance. The <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span></code> and <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> attributes are independent concerns - a property can have both, one, or neither:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Purpose</th>
+<th>Used by</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code></td>
+<td>Event store indexing for use case loading</td>
+<td>Use cases</td>
+<td>Event store relations</td>
+</tr>
+<tr>
+<td><code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span></code></td>
+<td>Saga routing and identification</td>
+<td>Sagas</td>
+<td>Saga store relations</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\Saga\Attribute\SagaId</span><span class="p">;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainEvent</span><span class="p">;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Attribute\DomainTag</span><span class="p">;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">#[</span><span class="nd">DomainEvent</span><span class="p">(</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'student.subscribed'</span><span class="p">)]</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">final</span> <span class="k">readonly</span> <span class="k">class</span> <span class="nc">StudentSubscribedEvent</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">{</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">public</span> <span class="k">function</span> <span class="fm">__construct</span><span class="p">(</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="p">#[</span><span class="nd">SagaId</span><span class="p">]</span>  <span class="c1">// Routes to saga AND indexes in event store</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$courseId</span><span class="p">,</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="p">#[</span><span class="nd">DomainTag</span><span class="p">]</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="p">#[</span><span class="nd">SagaId</span><span class="p">]</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="k">public</span> <span class="nx">string</span> <span class="nv">$studentId</span><span class="p">,</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="p">)</span> <span class="p">{}</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="p">}</span>
+</code></pre></div>
+<p>A property with only <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span></code> (no <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code>) routes to a saga but is not indexed for use case loading. A property with only <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> (no <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">SagaId</span><span class="o">]</span></code>) is indexed in the event store but does not trigger any saga.</p>
+<p>See <a href="../sagas/">Sagas</a> for complete documentation on saga routing.</p>
+<h3 id="event-envelope">Event envelope<a class="headerlink" href="#event-envelope" title="Permanent link">&para;</a></h3>
+<p>When stored, events are wrapped in a <code class="highlight">DomainEventEnvelope</code> containing:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">eventId</code></td>
+<td><code class="highlight">string</code></td>
+<td>Unique event ID</td>
+</tr>
+<tr>
+<td><code class="highlight">domainTags</code></td>
+<td><code class="highlight">array</code></td>
+<td>Identifiers from <code class="highlight"><span class="err">#</span><span class="o">[</span><span class="n">DomainTag</span><span class="o">]</span></code> properties</td>
+</tr>
+<tr>
+<td><code class="highlight">event</code></td>
+<td><code class="highlight">object</code></td>
+<td>The actual event instance</td>
+</tr>
+<tr>
+<td><code class="highlight">metadata</code></td>
+<td><code class="highlight">Metadata</code></td>
+<td>Additional context (e.g., user, correlation ID)</td>
+</tr>
+<tr>
+<td><code class="highlight">appliedAt</code></td>
+<td><code class="highlight">DateTimeImmutable</code></td>
+<td>When the event was applied</td>
+</tr>
+</tbody>
+</table>
+<p>The event store persists two types of data:
+- The <strong>event</strong> itself (ID, name, serialized payload, metadata, timestamp)
+- The <strong>domain tag relations</strong> linking the event to its domain tags, enabling efficient retrieval by tag</p>
+<h3 id="metadata">Metadata<a class="headerlink" href="#metadata" title="Permanent link">&para;</a></h3>
+<p>The <code class="highlight">Metadata</code> class is an immutable key-value container attached to each <code class="highlight">DomainEventEnvelope</code>. It allows you to enrich events with contextual information that is not part of the domain event itself, such as correlation IDs, user context, or request tracing data.</p>
+<h4 id="how-metadata-flows">How metadata flows<a class="headerlink" href="#how-metadata-flows" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Created empty</strong> — When a domain event is applied via <code class="highlight"><span class="err">$</span><span class="n">this</span><span class="o">-&gt;</span><span class="kr">apply</span><span class="p">()</span></code>, the <code class="highlight">DomainEventEnvelopeFactory</code> wraps it in an envelope with empty metadata</li>
+<li><strong>Enriched before persistence</strong> — Metadata can be added to the envelope before it reaches the event store, typically via middleware or a decorator on the repository</li>
+<li><strong>Stored alongside the event</strong> — The metadata array is persisted as part of the event record</li>
+<li><strong>Available during reconstitution</strong> — When events are replayed, the metadata is available on each <code class="highlight">DomainEventEnvelope</code></li>
+</ol>
+<h4 id="enriching-events-with-metadata">Enriching events with metadata<a class="headerlink" href="#enriching-events-with-metadata" title="Permanent link">&para;</a></h4>
+<p>The <code class="highlight">DomainEventEnvelope</code> provides a <code class="highlight">withMetadata()</code> method that returns a new envelope with replaced metadata. This is typically used in a repository decorator or middleware to enrich events before they are persisted:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\DomainEventEnvelope</span><span class="p">;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">use</span> <span class="nx">Gember\EventSourcing\UseCase\Metadata</span><span class="p">;</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1">// Create enriched envelope (immutable - returns a new instance)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="nv">$enrichedEnvelope</span> <span class="o">=</span> <span class="nv">$envelope</span><span class="o">-&gt;</span><span class="na">withMetadata</span><span class="p">(</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="nv">$envelope</span><span class="o">-&gt;</span><span class="na">metadata</span><span class="o">-&gt;</span><span class="na">addMetadata</span><span class="p">([</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>        <span class="s1">'correlationId'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">correlationIdProvider</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(),</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        <span class="s1">'userId'</span> <span class="o">=&gt;</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">securityContext</span><span class="o">-&gt;</span><span class="na">getUserId</span><span class="p">(),</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="p">]),</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">);</span>
+</code></pre></div>
+<h4 id="common-metadata-use-cases">Common metadata use cases<a class="headerlink" href="#common-metadata-use-cases" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="highlight">correlationId</code></td>
+<td>Links related events across use cases and services</td>
+</tr>
+<tr>
+<td><code class="highlight">causationId</code></td>
+<td>Identifies the event that caused this event</td>
+</tr>
+<tr>
+<td><code class="highlight">userId</code></td>
+<td>The user who triggered the action</td>
+</tr>
+<tr>
+<td><code class="highlight">requestId</code></td>
+<td>Traces the originating HTTP request</td>
+</tr>
+<tr>
+<td><code class="highlight">userAgent</code></td>
+<td>Client information for audit trails</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../command-handlers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Command Handlers">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Command Handlers
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../snapshotting/" class="md-footer__link md-footer__link--next" aria-label="Next: Snapshotting">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Snapshotting
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
