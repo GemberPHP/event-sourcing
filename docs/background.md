@@ -16,6 +16,26 @@ However, this approach often leads to "fat aggregates" over time.
 
 Additionally, the aggregate is a technical concept that can be difficult to explain to non-technical stakeholders, such as during [EventStorming](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet) sessions.
 
+## In a nutshell
+
+### Traditional 'Aggregate driven' Event Sourcing
+
+Domain concepts are modeled towards objects: the aggregate.
+
+- Any business logic related to a single domain object should live inside the aggregate
+- Logic that involves other domain objects or groups of the same kind of domain objects does not belong in the aggregate
+
+![Aggregate driven Event Sourcing](images/aggregate-driven-event-sourcing.png)
+
+### 'Use case driven' Event Sourcing
+
+Domain concepts are modeled through use cases.
+
+- Any business logic tied to a use case should live inside that use case
+- A use case can relate to one or more domain concepts
+
+![Use case driven Event Sourcing](images/use-case-driven-event-sourcing.png)
+
 ## Gember Event Sourcing
 
 Gember addresses these issues by taking a different approach, using the "Dynamic Consistency Boundary" (DCB) pattern.
