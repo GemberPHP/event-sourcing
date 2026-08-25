@@ -1,6 +1,6 @@
 ## Use cases / aggregates
 
-As mentioned in the [Background](/docs/background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**.
+As mentioned in the [Background](../background.md) section, _Gember Event Sourcing_ lets you model both **use cases** using DCB and traditional **aggregates**.
 
 ### Basic setup
 
@@ -52,7 +52,7 @@ Domain tags appear on commands, use cases, and events, each serving a different 
 
 > **Important:** The use case's domain tags **must match the command's domain tags exactly**. The use case tags determine the optimistic lock scope; the command tags determine which events are loaded. If they differ, the lock scope won't match what was loaded, leading to incorrect concurrency behavior.
 
-See [Commands](/docs/usage/commands.md) for more detail on command domain tags.
+See [Commands](commands.md) for more detail on command domain tags.
 
 #### Choosing domain tags
 
@@ -108,7 +108,7 @@ public function doSomething(): void
 }
 ```
 
-> **Note:** To trigger these behavioral methods from your application, use command handlers. See [Command handlers](/docs/usage/command-handlers.md) for details on how to set up command handling.
+> **Note:** To trigger these behavioral methods from your application, use command handlers. See [Command handlers](command-handlers.md) for details on how to set up command handling.
 
 ### Event subscribers and state management
 
@@ -252,7 +252,7 @@ When you save a use case:
 
 When a use case is loaded from the repository, the event store records the ID of the last event in the stream (`lastEventId`). When the use case is saved, this ID is sent back to the event store as an optimistic lock token. If another process has written events to the same consistency boundary in the meantime, the IDs won't match and an `OptimisticLockException` is thrown.
 
-For a detailed explanation of the two-layer concurrency mechanism (boundary locks + optimistic lock check), see [How it works - Concurrency control](/docs/how-it-works.md#concurrency-control).
+For a detailed explanation of the two-layer concurrency mechanism (boundary locks + optimistic lock check), see [How it works - Concurrency control](../how-it-works.md#concurrency-control).
 
 #### Handling OptimisticLockException
 

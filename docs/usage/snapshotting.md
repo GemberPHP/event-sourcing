@@ -189,9 +189,9 @@ final class ManageAccount implements EventSourcedUseCase, Serializable
 }
 ```
 
-> **Which to choose?** Option A is simpler — no code changes needed. Option B gives explicit control and works without a framework. For sagas, the same choice applies (see [Sagas - Serialization](/docs/usage/sagas.md#serialization)).
+> **Which to choose?** Option A is simpler — no code changes needed. Option B gives explicit control and works without a framework. For sagas, the same choice applies (see [Sagas - Serialization](sagas.md#serialization)).
 
-For more details on serialization approaches, see [Domain events - Serialization](/docs/usage/domain-events.md#serialization).
+For more details on serialization approaches, see [Domain events - Serialization](domain-events.md#serialization).
 
 ### Snapshot policies
 

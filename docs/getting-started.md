@@ -8,7 +8,7 @@ This guide walks you through building a minimal working example: a course that c
 composer require gember/event-sourcing-symfony-bundle
 ```
 
-See [Installation](/docs/installation.md) for framework-specific details and configuration.
+See [Installation](installation.md) for framework-specific details and configuration.
 
 ### 2. Define a domain event
 
@@ -118,7 +118,7 @@ That's it. The library automatically:
 
 ### What's next?
 
-- [Domain events](/docs/usage/domain-events.md) - Naming, serialization, metadata, and domain tag strategies
-- [Use cases / aggregates](/docs/usage/use-cases.md) - Cross-aggregate subscriptions, concurrency control, and the DCB pattern in depth
-- [Sagas](/docs/usage/sagas.md) - Coordinate workflows across multiple use cases
-- [How it works](/docs/how-it-works.md) - The full end-to-end flow and concurrency mechanism
+- [Domain events](usage/domain-events.md) - Naming, serialization, metadata, and domain tag strategies
+- [Use cases / aggregates](usage/use-cases.md) - Cross-aggregate subscriptions, concurrency control, and the DCB pattern in depth
+- [Sagas](usage/sagas.md) - Coordinate workflows across multiple use cases
+- [How it works](how-it-works.md) - The full end-to-end flow and concurrency mechanism
