@@ -14,7 +14,8 @@ Further installation details see [gember/event-sourcing-universal-service-provid
 ## Dependencies
 _Gember Event Sourcing_ depends on a few external libraries. To keep things flexible, each of these dependencies is kept separate from the core library and moved into its own add-on package. That way, you can easily swap out any dependency for another one you prefer.
 
-The following adapter packages are currently available:
+**The following adapter packages are currently available:**
+
 - [rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal)
 - [message-bus-symfony](https://github.com/GemberPHP/message-bus-symfony)
 - [identity-generator-symfony](https://github.com/GemberPHP/identity-generator-symfony)
