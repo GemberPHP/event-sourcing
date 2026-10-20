@@ -84,13 +84,15 @@ The domain tags and subscribed event types of a use case together define its **c
 
 Two writers conflict when one of them appends an event that falls within the other's boundary: an event of a type the other subscribes to, tagged with at least one of the other's domain tags. Their boundaries do not need to be identical — overlapping is enough. For example, subscribing student 1 and student 2 to the same course conflict, as both depend on the subscriptions of that course.
 
-Using the DCB pattern, unrelated changes can proceed concurrently. For example, renaming a course and enrolling a student don't conflict, as neither appends an event of a type the other subscribes to.
+Using the DCB pattern, unrelated changes don't conflict. For example, renaming a course and enrolling a student don't conflict, as neither appends an event of a type the other subscribes to: neither fails because of the other.
 
 #### How writes are serialized
 
 When a use case is saved, the event store performs the following steps atomically within a single database transaction:
 
-1. **Acquire boundary locks** — A dedicated lock table holds one row per (domain tag, event type) pair. The writer locks every pair it reads (its domain tags × its subscribed event types) and every pair it writes (each appended event's domain tags × its event type). Missing rows are created and all rows are locked exclusively in a single statement, in a fixed (sorted) order to prevent deadlocks. Any two conflicting writers share at least one pair, so they are serialized — one blocks until the other commits. Writers that don't conflict share no pair and proceed concurrently.
+1. **Acquire boundary locks** — A dedicated lock table holds one row per (domain tag, event type) pair. The writer locks every pair it reads (its domain tags × its subscribed event types) and every pair it writes (each appended event's domain tags × its event type). All rows are locked exclusively in a single statement, in a fixed (sorted) order to prevent deadlocks; missing rows are created first. Any two conflicting writers share at least one pair, so they are serialized — one blocks until the other commits. Writers that share no pair proceed concurrently.
+
+    Pairs that are only read are locked exclusively as well. Writers reading the same pair therefore wait for each other, even when they don't conflict. For example, renaming a course and enrolling a student both subscribe to the event that created the course, so for the same course they run one after the other — but neither fails. The lock table grows by one row per distinct (domain tag, event type) pair.
 
 2. **Check the optimistic lock** — With the boundary locks held, the event store queries the last persisted event ID for this boundary and compares it to the `lastEventId` the caller saw when loading. If they don't match, another writer committed events in between and an `OptimisticLockException` is thrown.
 
@@ -98,7 +100,10 @@ When a use case is saved, the event store performs the following steps atomicall
 
 4. **Commit** — The transaction commits, releasing the boundary locks.
 
-When the event store is called within an already active transaction (e.g. when using the outbox), it runs inside that transaction, and the locks are held until it commits.
+When the event store is called within an already active transaction (e.g. when using the outbox), it runs inside that transaction instead of opening a savepoint, and the locks are held until it commits. In that case:
+
+- **Roll back on any exception.** The transaction may contain part of the events (e.g. when a deadlock or duplicate event ID occurs halfway), so it must never be committed after the event store threw. Deadlocks are retryable: roll back and retry the whole operation.
+- **Load outside of it, or use `READ COMMITTED`.** Under MySQL's default `REPEATABLE READ`, a transaction reads from a snapshot taken at its first read. If that happened before saving (for example when a middleware wraps the whole command handler, including loading), the optimistic lock check reads that old snapshot and can miss events committed in between. The built-in transactional decorators only wrap the save, which is safe.
 
 ```
 Writer A                                Writer B
@@ -118,7 +123,7 @@ This two-layer approach avoids the classic time-of-check-time-of-use (TOCTOU) ra
 The Doctrine DBAL event store supports MySQL and MariaDB (InnoDB) and SQLite; other database platforms throw an `UnsupportedPlatformException`.
 
 !!! note "Upgrading from per-boundary locks"
-    Earlier versions locked a single row per exact boundary. Old and new versions lock different rows and therefore don't serialize against each other: don't run them side by side, deploy as a cut-over. The obsolete lock rows can be removed with the provided migration.
+    Earlier versions locked a single row per exact boundary. Old and new versions lock different rows and therefore don't serialize against each other: don't run them side by side, deploy as a cut-over. The old lock rows are no longer used; they are harmless and can be deleted once no old version is running.
 
 #### Saga concurrency
 
