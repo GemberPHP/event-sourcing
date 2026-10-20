@@ -18,6 +18,14 @@ interface EventSourcedUseCase
     public function setLastEventId(string $lastEventId): void;
 
     /**
+     * The number of events matching this use case's domain tags and subscribed events its state is based on.
+     * Used as optimistic lock when saving.
+     */
+    public function getEventCount(): int;
+
+    public function setEventCount(int $eventCount): void;
+
+    /**
      * @return list<object>
      */
     public function getAppliedEvents(): array;

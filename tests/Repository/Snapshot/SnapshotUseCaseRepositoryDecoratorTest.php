@@ -260,10 +260,14 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
 
         $this->eventStore->envelopesToReturn = [$remainingEnvelope];
 
+        // Snapshot (10) plus remaining events (1) account for all events
+        $this->eventStore->countToReturn = 11;
+
         $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
 
         self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
         self::assertSame('domain-tag-1-updated', $useCase->id);
+        self::assertSame(11, $useCase->getEventCount());
         self::assertTrue($this->snapshotStore->loadWasCalled);
         self::assertTrue($this->eventStore->loadWasCalled);
         self::assertSame('last-event-id', $this->eventStore->lastLoadStreamQuery->afterEventId);
@@ -308,6 +312,9 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
 
         // Apply one more event so total = 5 which meets the threshold
         $useCase->apply(new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'));
+
+        // Simulate what the real EventSourcedUseCaseRepository::save() does: count the appended matching event
+        $useCase->setEventCount(5);
 
         $this->decorator->save($useCase);
 
@@ -393,6 +400,7 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
         // it updates lastEventId after appending events
         $useCase->apply(new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'));
         $useCase->setLastEventId('event-id-5');
+        $useCase->setEventCount(5);
 
         $this->decorator->save($useCase);
 
@@ -438,6 +446,7 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
 
         $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
         $useCase->apply(new TestUseCaseCreatedEvent('domain-tag-1', 'secondary'));
+        $useCase->setEventCount(5);
 
         // Snapshot save will throw, but save() should still succeed
         $this->snapshotStore->saveShouldThrow = new Exception('snapshot store unavailable');
@@ -568,6 +577,9 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
             [$fullEnvelope],     // Second call: full replay after deserialization failure
         ];
 
+        // Snapshot (5) plus partial events (1) account for all events
+        $this->eventStore->countToReturn = 6;
+
         $useCase = $decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
 
         self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
@@ -624,18 +636,17 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
             \serialize($snapshotUseCase),
         );
 
-        // Both load() calls throw NoEventsForDomainTagsException:
-        // 1st: no events after snapshot's lastEventId (snapshot is current)
-        // 2nd: no events at all for this boundary (confirms snapshot covers everything)
+        // No events after snapshot's lastEventId, and the snapshot accounts for all events
         $this->eventStore->loadResults = [
             new \Gember\EventSourcing\EventStore\NoEventsForDomainTagsException(),
-            new \Gember\EventSourcing\EventStore\NoEventsForDomainTagsException(),
         ];
+        $this->eventStore->countToReturn = 10;
 
         $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
 
         self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
         self::assertSame('domain-tag-1', $useCase->id);
+        self::assertSame(10, $useCase->getEventCount());
         self::assertSame(10, $this->snapshotStore->storedSnapshot === null ? 10 : 0);
     }
 
@@ -676,10 +687,53 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
             [$fullEnvelope],
         ];
 
+        // More events exist than the snapshot accounts for
+        $this->eventStore->countToReturn = 2;
+
         $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
 
         // Should have reconstituted from full replay, not from snapshot
         self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
         self::assertSame('event-id-1', $useCase->getLastEventId());
+        self::assertSame(1, $useCase->getEventCount());
+    }
+
+    #[Test]
+    public function itShouldFallBackToFullReplayWhenSnapshotDoesNotAccountForAllEvents(): void
+    {
+        $snapshotUseCase = new SnapshotTestUseCase();
+        (new ReflectionProperty($snapshotUseCase, 'id'))->setValue($snapshotUseCase, 'from-snapshot');
+
+        $this->snapshotStore->snapshotToReturn = new SnapshotEnvelope(
+            ['domain-tag-1'],
+            [TestUseCaseCreatedEvent::class],
+            'last-event-id',
+            2,
+            \serialize($snapshotUseCase),
+        );
+
+        $envelope = fn(string $eventId, string $id) => new DomainEventEnvelope(
+            $eventId,
+            ['domain-tag-1'],
+            new TestUseCaseCreatedEvent($id, 'secondary'),
+            new Metadata(),
+            new DateTimeImmutable(),
+        );
+
+        // An event committed after the snapshot, but with an earlier applied_at, is not loaded after the anchor
+        $this->eventStore->loadResults = [
+            [$envelope('event-id-4', 'after-snapshot')],
+            [$envelope('event-id-1', 'one'), $envelope('event-id-2', 'two'), $envelope('event-id-3', 'skipped'), $envelope('event-id-4', 'full-replay')],
+        ];
+
+        // Snapshot (2) plus loaded (1) is 3, but 4 events exist
+        $this->eventStore->countToReturn = 4;
+
+        $useCase = $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertInstanceOf(SnapshotTestUseCase::class, $useCase);
+        self::assertSame('full-replay', $useCase->id);
+        self::assertSame(4, $useCase->getEventCount());
+        self::assertNull($this->eventStore->lastLoadStreamQuery?->afterEventId);
     }
 }

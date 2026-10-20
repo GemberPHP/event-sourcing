@@ -65,16 +65,23 @@ final readonly class LoggableEventStoreDecorator implements EventStore
     }
 
     #[Override]
-    public function append(StreamQuery $streamQuery, ?string $lastEventId, DomainEventEnvelope ...$eventEnvelopes): void
+    public function count(StreamQuery $streamQuery): int
+    {
+        return $this->eventStore->count($streamQuery);
+    }
+
+    #[Override]
+    public function append(StreamQuery $streamQuery, int $expectedEventCount, DomainEventEnvelope ...$eventEnvelopes): void
     {
         $startTime = microtime(true);
 
         $this->logger->info('[EventStore] Started appending events', [
             'domainTags' => array_map(fn($domainTag) => (string) $domainTag, $streamQuery->domainTags),
+            'expectedEventCount' => $expectedEventCount,
         ]);
 
         try {
-            $this->eventStore->append($streamQuery, $lastEventId, ...$eventEnvelopes);
+            $this->eventStore->append($streamQuery, $expectedEventCount, ...$eventEnvelopes);
         } catch (Throwable $exception) {
             $this->logger->info('[EventStore] Failed appending events', [
                 'exception' => $exception->getMessage(),

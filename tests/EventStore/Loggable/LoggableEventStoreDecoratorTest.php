@@ -118,7 +118,7 @@ final class LoggableEventStoreDecoratorTest extends TestCase
     public function itShouldLogSuccessfulAppend(): void
     {
         $streamQuery = new StreamQuery(['domain-tag-1']);
-        $lastEventId = 'last-event-id';
+        $expectedEventCount = 3;
         $appliedAt = new DateTimeImmutable('2024-10-14 12:00:00');
 
         $envelope1 = new DomainEventEnvelope(
@@ -137,17 +137,17 @@ final class LoggableEventStoreDecoratorTest extends TestCase
             $appliedAt,
         );
 
-        $this->decorator->append($streamQuery, $lastEventId, $envelope1, $envelope2);
+        $this->decorator->append($streamQuery, $expectedEventCount, $envelope1, $envelope2);
 
         self::assertTrue($this->innerEventStore->appendWasCalled);
         self::assertSame($streamQuery, $this->innerEventStore->lastAppendStreamQuery);
-        self::assertSame($lastEventId, $this->innerEventStore->lastAppendLastEventId);
+        self::assertSame($expectedEventCount, $this->innerEventStore->lastAppendExpectedEventCount);
         self::assertSame([$envelope1, $envelope2], $this->innerEventStore->lastAppendEventEnvelopes);
 
         self::assertCount(4, $this->logger->logs);
 
         self::assertSame('[EventStore] Started appending events', $this->logger->logs[0]['message']);
-        self::assertSame(['domainTags' => ['domain-tag-1']], $this->logger->logs[0]['context']);
+        self::assertSame(['domainTags' => ['domain-tag-1'], 'expectedEventCount' => 3], $this->logger->logs[0]['context']);
 
         self::assertSame('[EventStore] Appended event TestUseCaseCreatedEvent', $this->logger->logs[1]['message']);
         self::assertSame('event-id-1', $this->logger->logs[1]['context']['eventId']);
@@ -167,7 +167,7 @@ final class LoggableEventStoreDecoratorTest extends TestCase
     public function itShouldLogFailedAppend(): void
     {
         $streamQuery = new StreamQuery(['domain-tag-1']);
-        $lastEventId = 'last-event-id';
+        $expectedEventCount = 3;
         $appliedAt = new DateTimeImmutable('2024-10-14 12:00:00');
 
         $envelope = new DomainEventEnvelope(
@@ -182,19 +182,28 @@ final class LoggableEventStoreDecoratorTest extends TestCase
         $this->innerEventStore->appendShouldThrow = $exception;
 
         try {
-            $this->decorator->append($streamQuery, $lastEventId, $envelope);
+            $this->decorator->append($streamQuery, $expectedEventCount, $envelope);
         } catch (Exception) {
             self::assertTrue($this->innerEventStore->appendWasCalled);
 
             self::assertCount(2, $this->logger->logs);
 
             self::assertSame('[EventStore] Started appending events', $this->logger->logs[0]['message']);
-            self::assertSame(['domainTags' => ['domain-tag-1']], $this->logger->logs[0]['context']);
+            self::assertSame(['domainTags' => ['domain-tag-1'], 'expectedEventCount' => 3], $this->logger->logs[0]['context']);
 
             self::assertSame('[EventStore] Failed appending events', $this->logger->logs[1]['message']);
             self::assertSame('Append failed', $this->logger->logs[1]['context']['exception']);
             self::assertSame(['domain-tag-1'], $this->logger->logs[1]['context']['domainTags']);
         }
+    }
+
+    #[Test]
+    public function itShouldDelegateCount(): void
+    {
+        $this->innerEventStore->countToReturn = 7;
+
+        self::assertSame(7, $this->decorator->count(new StreamQuery(['domain-tag-1'])));
+        self::assertSame(1, $this->innerEventStore->countCallCount);
     }
 
     #[Test]

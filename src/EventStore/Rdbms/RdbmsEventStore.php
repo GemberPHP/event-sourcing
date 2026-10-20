@@ -50,7 +50,20 @@ final readonly class RdbmsEventStore implements EventStore
     }
 
     #[Override]
-    public function append(StreamQuery $streamQuery, ?string $lastEventId, DomainEventEnvelope ...$eventEnvelopes): void
+    public function count(StreamQuery $streamQuery): int
+    {
+        try {
+            return $this->repository->countEvents(
+                $streamQuery->domainTags,
+                $this->getEventNamesFromStreamQuery($streamQuery),
+            );
+        } catch (Throwable $exception) {
+            throw EventStoreFailedException::withException($exception);
+        }
+    }
+
+    #[Override]
+    public function append(StreamQuery $streamQuery, int $expectedEventCount, DomainEventEnvelope ...$eventEnvelopes): void
     {
         $envelopes = array_values($eventEnvelopes);
 
@@ -62,7 +75,7 @@ final readonly class RdbmsEventStore implements EventStore
             $this->repository->saveEvents(
                 $streamQuery->domainTags,
                 $this->getEventNamesFromStreamQuery($streamQuery),
-                $lastEventId,
+                $expectedEventCount,
                 array_map(
                     fn($envelope) => $this->rdbmsEventFactory->createFromDomainEventEnvelope($envelope),
                     $envelopes,

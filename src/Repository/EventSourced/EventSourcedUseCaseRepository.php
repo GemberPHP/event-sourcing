@@ -87,23 +87,24 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
                 $appliedEvents,
             );
 
-            $this->eventStore->append(
-                new StreamQuery(
-                    $useCase->getDomainTags(),
-                    array_map(
-                        fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
-                        $this->useCaseResolver->resolve($useCase::class)->eventSubscribers,
-                    ),
+            $streamQuery = new StreamQuery(
+                $useCase->getDomainTags(),
+                array_map(
+                    fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
+                    $this->useCaseResolver->resolve($useCase::class)->eventSubscribers,
                 ),
-                $useCase->getLastEventId(),
-                ...$eventEnvelopes,
             );
+
+            $this->eventStore->append($streamQuery, $useCase->getEventCount(), ...$eventEnvelopes);
         } catch (Throwable $exception) {
             throw UseCaseRepositoryFailedException::withException($exception);
         }
 
         if ($eventEnvelopes !== []) {
             $useCase->setLastEventId(end($eventEnvelopes)->eventId);
+            $useCase->setEventCount(
+                $useCase->getEventCount() + count(array_filter($eventEnvelopes, $streamQuery->matches(...))),
+            );
         }
 
         $useCase->clearAppliedEvents();
