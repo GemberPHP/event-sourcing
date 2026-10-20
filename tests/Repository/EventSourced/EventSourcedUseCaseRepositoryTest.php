@@ -24,6 +24,8 @@ use Gember\EventSourcing\EventStore\Rdbms\RdbmsDomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventFactory;
 use Gember\EventSourcing\EventStore\Rdbms\RdbmsEventStore;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
+use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\EventSourcing\Repository\EventSourced\EventSourcedUseCaseRepository;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
@@ -241,5 +243,38 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
         $this->repository->save($useCase);
 
         self::assertSame('be07b19b-c7ab-429e-a9c3-6b7d942122c0', $useCase->getLastEventId());
+    }
+
+    #[Test]
+    public function itShouldCountOnlyAppendedEventsMatchingUseCaseAfterSave(): void
+    {
+        $useCase = TestUseCase::create(new TestDomainTag('1dcdf55b-f518-419f-abad-768afa56e6bb'), 'ded58226-d3bf-4a7e-a9eb-cc7d7b7603ce');
+        $useCase->modify();
+
+        $this->eventStoreRepository->eventCountPersisted = 0;
+
+        $this->repository->save($useCase);
+
+        // The created event matches the use case; the modified event is not subscribed to and has other domain tags
+        self::assertSame(1, $useCase->getEventCount());
+    }
+
+    #[Test]
+    public function itShouldFailSaveWhenEventCountChangedSinceLoad(): void
+    {
+        $useCase = TestUseCase::create(new TestDomainTag('1dcdf55b-f518-419f-abad-768afa56e6bb'), 'ded58226-d3bf-4a7e-a9eb-cc7d7b7603ce');
+
+        // Another writer appended a matching event in the meantime
+        $this->eventStoreRepository->eventCountPersisted = 1;
+
+        try {
+            $this->repository->save($useCase);
+
+            self::fail('Expected save to fail');
+        } catch (UseCaseRepositoryFailedException $exception) {
+            self::assertInstanceOf(OptimisticLockException::class, $exception->getPrevious());
+        }
+
+        self::assertSame(0, $useCase->getEventCount());
     }
 }

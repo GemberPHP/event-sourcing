@@ -152,6 +152,30 @@ final class RdbmsEventStoreTest extends TestCase
     }
 
     #[Test]
+    public function itShouldCountEvents(): void
+    {
+        $this->eventStoreRepository->eventCountPersisted = 3;
+
+        self::assertSame(3, $this->eventStore->count(new StreamQuery(
+            ['5ae5484d-9890-4bbe-95e8-b828bfea2f9e'],
+            [TestUseCaseCreatedEvent::class],
+        )));
+    }
+
+    #[Test]
+    public function itShouldThrowExceptionWhenCountEventsFailed(): void
+    {
+        $this->eventStoreRepository->throwException = new Exception('Count failed');
+
+        self::expectException(EventStoreFailedException::class);
+
+        $this->eventStore->count(new StreamQuery(
+            ['5ae5484d-9890-4bbe-95e8-b828bfea2f9e'],
+            [TestUseCaseCreatedEvent::class],
+        ));
+    }
+
+    #[Test]
     public function itShouldDiscardAppendWhenThereAreNoEvents(): void
     {
         $this->eventStore->append(new StreamQuery(
@@ -161,7 +185,7 @@ final class RdbmsEventStoreTest extends TestCase
             [
                 TestUseCaseCreatedEvent::class,
             ],
-        ), null);
+        ), 0);
 
         self::assertSame([], $this->eventStoreRepository->getEvents(
             [
@@ -176,7 +200,7 @@ final class RdbmsEventStoreTest extends TestCase
     #[Test]
     public function itShouldGuardOptimisticLock(): void
     {
-        $this->eventStoreRepository->lastEventIdPersisted = 'dccda5e4-ed20-4a98-b571-02ae7e71e8be';
+        $this->eventStoreRepository->eventCountPersisted = 3;
 
         self::expectException(OptimisticLockException::class);
 
@@ -189,7 +213,7 @@ final class RdbmsEventStoreTest extends TestCase
                     TestUseCaseCreatedEvent::class,
                 ],
             ),
-            '0e1647ef-8c62-477e-9957-d7b962876eff',
+            2,
             new DomainEventEnvelope(
                 'c6b7b4f7-0f3b-40dc-8021-e16ef4c64759',
                 [
@@ -216,7 +240,7 @@ final class RdbmsEventStoreTest extends TestCase
     #[Test]
     public function itShouldThrowEventStoreFailedExceptionWhenSomeUnexpectedErrorHappenedOnGuardOptimisticLock(): void
     {
-        $this->eventStoreRepository->lastEventIdPersisted = 'dccda5e4-ed20-4a98-b571-02ae7e71e8be';
+        $this->eventStoreRepository->eventCountPersisted = 3;
 
         self::expectException(EventStoreFailedException::class);
 
@@ -229,7 +253,7 @@ final class RdbmsEventStoreTest extends TestCase
                     TestUseCaseModifiedEvent::class,
                 ],
             ),
-            '0e1647ef-8c62-477e-9957-d7b962876eff',
+            2,
             new DomainEventEnvelope(
                 'c6b7b4f7-0f3b-40dc-8021-e16ef4c64759',
                 [
@@ -255,7 +279,7 @@ final class RdbmsEventStoreTest extends TestCase
     #[Test]
     public function itShouldThrowExceptionWhenAppendEventsFailed(): void
     {
-        $this->eventStoreRepository->lastEventIdPersisted = '0e1647ef-8c62-477e-9957-d7b962876eff';
+        $this->eventStoreRepository->eventCountPersisted = 2;
         $this->eventStoreRepository->throwException = new Exception('Save failed');
 
         self::expectException(EventStoreFailedException::class);
@@ -270,7 +294,7 @@ final class RdbmsEventStoreTest extends TestCase
                     TestUseCaseCreatedEvent::class,
                 ],
             ),
-            '0e1647ef-8c62-477e-9957-d7b962876eff',
+            2,
             new DomainEventEnvelope(
                 'c6b7b4f7-0f3b-40dc-8021-e16ef4c64759',
                 [
@@ -297,7 +321,7 @@ final class RdbmsEventStoreTest extends TestCase
     #[Test]
     public function itShouldAppendEvents(): void
     {
-        $this->eventStoreRepository->lastEventIdPersisted = '0e1647ef-8c62-477e-9957-d7b962876eff';
+        $this->eventStoreRepository->eventCountPersisted = 2;
 
         $this->eventStore->append(
             new StreamQuery(
@@ -308,7 +332,7 @@ final class RdbmsEventStoreTest extends TestCase
                     TestUseCaseCreatedEvent::class,
                 ],
             ),
-            '0e1647ef-8c62-477e-9957-d7b962876eff',
+            2,
             new DomainEventEnvelope(
                 'c6b7b4f7-0f3b-40dc-8021-e16ef4c64759',
                 [

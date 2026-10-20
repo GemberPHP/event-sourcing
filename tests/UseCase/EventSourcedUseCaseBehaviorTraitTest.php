@@ -146,6 +146,7 @@ final class EventSourcedUseCaseBehaviorTraitTest extends TestCase
         );
 
         self::assertSame('57b591f8-83d4-4bf9-ac4e-b460383444c8', $useCase->getLastEventId());
+        self::assertSame(2, $useCase->getEventCount());
         self::assertSame([], $useCase->getAppliedEvents());
         self::assertEquals([
             new TestDomainTag('5b66b4ef-1ec1-45c3-ba44-dc9b2479c782'),

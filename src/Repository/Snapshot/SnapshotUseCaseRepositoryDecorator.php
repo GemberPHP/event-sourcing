@@ -173,6 +173,23 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
             return $this->handleStaleLastEventId($useCaseClassName, $snapshot, $domainTags, $domainTagStrings, $eventClassNames);
         }
 
+        /*
+         * Events after the snapshot are loaded by applied_at order, which doesn't follow commit order: an event
+         * committed after the snapshot with an earlier applied_at would be skipped. Verify the snapshot plus the
+         * loaded events account for all events. The count is read after loading, so a mismatch can only mean
+         * missing (or double counted) events, or new events committed in between: replay to be safe.
+         */
+        $eventCount = $snapshot->eventCount + count($eventEnvelopes);
+
+        if ($this->eventStore->count(new StreamQuery($domainTags, $eventClassNames)) !== $eventCount) {
+            $this->logger->info('[Snapshot] Snapshot does not account for all events, falling back to full replay', [
+                'lastEventId' => $snapshot->lastEventId,
+                'domainTags' => $domainTagStrings,
+            ]);
+
+            return $this->reconstituteFromEvents($useCaseClassName, $domainTags, $eventClassNames);
+        }
+
         try {
             $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
         } catch (Throwable $exception) {
@@ -185,9 +202,12 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
             return $this->reconstituteFromEvents($useCaseClassName, $domainTags, $eventClassNames);
         }
 
+        $useCase = $useCaseClassName::reconstituteFromSnapshot($deserialized, ...$eventEnvelopes);
+        $useCase->setEventCount($eventCount);
+
         return new ReconstitutionResult(
-            $useCaseClassName::reconstituteFromSnapshot($deserialized, ...$eventEnvelopes),
-            $snapshot->eventCount + count($eventEnvelopes),
+            $useCase,
+            $eventCount,
             $snapshot->eventCount,
         );
     }
@@ -205,35 +225,27 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         array $domainTagStrings,
         array $eventClassNames,
     ): ReconstitutionResult {
-        // No events after snapshot — either snapshot is current, or lastEventId is invalid.
-        // Verify by checking if any events exist at all for this boundary.
-        try {
-            $allEnvelopes = $this->eventStore->load(new StreamQuery(
-                $domainTags,
-                $eventClassNames,
-            ));
-        } catch (NoEventsForDomainTagsException) {
-            // No events at all — snapshot is genuinely current (or use case was deleted)
+        // No events after snapshot — the snapshot is current if it accounts for all events
+        if ($this->eventStore->count(new StreamQuery($domainTags, $eventClassNames)) === $snapshot->eventCount) {
             $deserialized = $this->serializer->deserialize($snapshot->state, $useCaseClassName);
 
+            $useCase = $useCaseClassName::reconstituteFromSnapshot($deserialized);
+            $useCase->setEventCount($snapshot->eventCount);
+
             return new ReconstitutionResult(
-                $useCaseClassName::reconstituteFromSnapshot($deserialized),
+                $useCase,
                 $snapshot->eventCount,
                 $snapshot->eventCount,
             );
         }
 
-        // Events exist but afterEventId returned nothing — snapshot is stale
+        // Events exist that the snapshot doesn't account for — snapshot is stale
         $this->logger->info('[Snapshot] Stale snapshot detected, falling back to full replay', [
             'lastEventId' => $snapshot->lastEventId,
             'domainTags' => $domainTagStrings,
         ]);
 
-        return new ReconstitutionResult(
-            $useCaseClassName::reconstitute(...$allEnvelopes),
-            count($allEnvelopes),
-            0,
-        );
+        return $this->reconstituteFromEvents($useCaseClassName, $domainTags, $eventClassNames);
     }
 
     /**
@@ -269,7 +281,8 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
             return;
         }
 
-        $totalEventCount = $sourcingContext->eventCount + count($appliedEvents);
+        // Number of events matching the use case's stream, including its own appended events that match
+        $totalEventCount = $useCase->getEventCount();
 
         $snapshotContext = new SnapshotContext(
             $sourcingContext->sourcingDurationMs,

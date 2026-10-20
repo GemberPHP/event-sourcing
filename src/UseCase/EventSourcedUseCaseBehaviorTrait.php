@@ -13,6 +13,7 @@ use RuntimeException;
 trait EventSourcedUseCaseBehaviorTrait
 {
     private ?string $lastEventId = null;
+    private int $eventCount = 0;
 
     /**
      * @var list<object>
@@ -43,6 +44,16 @@ trait EventSourcedUseCaseBehaviorTrait
         $this->lastEventId = $lastEventId;
     }
 
+    public function getEventCount(): int
+    {
+        return $this->eventCount;
+    }
+
+    public function setEventCount(int $eventCount): void
+    {
+        $this->eventCount = $eventCount;
+    }
+
     public function getAppliedEvents(): array
     {
         return $this->appliedEvents;
@@ -61,6 +72,8 @@ trait EventSourcedUseCaseBehaviorTrait
             $useCase->applyEventInUseCase($envelope->event, $envelope->appliedAt);
             $useCase->lastEventId = $envelope->eventId;
         }
+
+        $useCase->eventCount = count($envelopes);
 
         return $useCase;
     }

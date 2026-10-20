@@ -27,10 +27,12 @@ final class TestEventStore implements EventStore
         public ?Exception $loadShouldThrow = null,
         public bool $appendWasCalled = false,
         public ?StreamQuery $lastAppendStreamQuery = null,
-        public ?string $lastAppendLastEventId = null,
+        public ?int $lastAppendExpectedEventCount = null,
         public array $lastAppendEventEnvelopes = [],
         public ?Exception $appendShouldThrow = null,
         private int $loadCallCount = 0,
+        public int $countToReturn = 0,
+        public int $countCallCount = 0,
     ) {}
 
     public function load(StreamQuery $streamQuery): array
@@ -55,11 +57,18 @@ final class TestEventStore implements EventStore
         return $this->envelopesToReturn;
     }
 
-    public function append(StreamQuery $streamQuery, ?string $lastEventId, DomainEventEnvelope ...$eventEnvelopes): void
+    public function count(StreamQuery $streamQuery): int
+    {
+        ++$this->countCallCount;
+
+        return $this->countToReturn;
+    }
+
+    public function append(StreamQuery $streamQuery, int $expectedEventCount, DomainEventEnvelope ...$eventEnvelopes): void
     {
         $this->appendWasCalled = true;
         $this->lastAppendStreamQuery = $streamQuery;
-        $this->lastAppendLastEventId = $lastEventId;
+        $this->lastAppendExpectedEventCount = $expectedEventCount;
         $this->lastAppendEventEnvelopes = array_values($eventEnvelopes);
 
         if ($this->appendShouldThrow !== null) {
