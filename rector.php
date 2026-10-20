@@ -43,7 +43,7 @@ $config = RectorConfig::configure()
         PrivatizeFinalClassMethodRector::class,
         UnwrapSprintfOneArgumentRector::class,
         RemoveSoleValueSprintfRector::class,
-        // See withConfiguredRule below for more
+        SimplifyUselessVariableRector::class,
 
         // Misc - Deadcode
         RemoveUnusedForeachKeyRector::class,
@@ -76,9 +76,6 @@ $config = RectorConfig::configure()
         // PHP 8.3
         AddTypeToConstRector::class,
         AddOverrideAttributeToOverriddenMethodsRector::class,
-    ])
-    ->withConfiguredRule(SimplifyUselessVariableRector::class, [
-        SimplifyUselessVariableRector::ONLY_DIRECT_ASSIGN => true,
     ]);
 
 return $config;
