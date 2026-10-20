@@ -38,12 +38,6 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Cannot access property \\$domainTags on Gember\\\\EventSourcing\\\\Snapshot\\\\SnapshotEnvelope\\|null\\.$#',
-	'identifier' => 'property.nonObject',
-	'count' => 1,
-	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
-];
-$ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\NativeTestSerializer\\:\\:deserialize\\(\\) should return object but returns mixed\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,
