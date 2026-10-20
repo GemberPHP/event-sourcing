@@ -284,6 +284,14 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         // Number of events matching the use case's stream, including its own appended events that match
         $totalEventCount = $useCase->getEventCount();
 
+        /*
+         * No new matching events since the snapshot the use case was loaded from (e.g. it only appended events it
+         * doesn't subscribe to): its state is unchanged and that snapshot already exists for this event count.
+         */
+        if ($totalEventCount === $sourcingContext->eventCountAtLastSnapshot) {
+            return;
+        }
+
         $snapshotContext = new SnapshotContext(
             $sourcingContext->sourcingDurationMs,
             $totalEventCount,
