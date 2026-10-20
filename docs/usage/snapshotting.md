@@ -229,14 +229,20 @@ Snapshots are an optimization, never a requirement for correctness. Both loading
 
 Snapshots are versioned — each save inserts a new row rather than overwriting the previous one. When loading, the system always retrieves the latest snapshot (highest `event_count`).
 
-If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, or the snapshot's `lastEventId` is no longer in the event store), the system automatically falls back to a full event replay. This is logged at `info` level:
+Events after a snapshot are loaded in `applied_at` order, which doesn't follow commit order: an event committed after the snapshot, but with an earlier timestamp, would not be loaded. Therefore, after loading a snapshot and the events after it, the system verifies that together they account for all events matching the use case (the snapshot records its event count). If not, it falls back to a full event replay.
+
+If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, the snapshot's `lastEventId` is no longer in the event store, or the snapshot doesn't account for all events), the system automatically falls back to a full event replay. This is logged at `info` level:
 
 ```
-[Snapshot] Stale snapshot detected, falling back to full replay  {lastEventId: "...", domainTags: [...]}
-[Snapshot] Stale snapshot, falling back to full replay           {exception: "...", exceptionClass: "...", domainTags: [...]}
+[Snapshot] Stale snapshot detected, falling back to full replay                          {lastEventId: "...", domainTags: [...]}
+[Snapshot] Snapshot does not account for all events, falling back to full replay         {lastEventId: "...", domainTags: [...]}
+[Snapshot] Stale snapshot, falling back to full replay                                   {exception: "...", exceptionClass: "...", domainTags: [...]}
 ```
 
-The first message indicates a stale `lastEventId` (e.g., event store was rebuilt). The second indicates a deserialization failure (e.g., class structure changed). In both cases, the next successful save will create a fresh snapshot.
+The first message indicates the snapshot doesn't match the events (e.g., event store was rebuilt). The second indicates events the snapshot plus the loaded events don't account for (e.g., an event committed late, or new events committed while loading). The third indicates a deserialization failure (e.g., class structure changed). In all cases, the next successful save will create a fresh snapshot.
+
+!!! note "Upgrading to the count-based optimistic lock"
+    Snapshots created before this version could count events the use case doesn't subscribe to. They mostly fail the verification above and are replaced automatically, but it's recommended to truncate `snapshot_store` once after upgrading.
 
 This means **truncating `snapshot_store` after deployments is no longer required** — the system auto-recovers. However, truncating is still safe and can be used to reclaim disk space from accumulated old snapshots.
 
@@ -316,11 +322,12 @@ When snapshotting is enabled, the `LoggableSnapshotStoreDecorator` provides stru
 When a snapshot is stale and the system falls back to full event replay, the repository decorator logs at `info` level:
 
 ```
-[Snapshot] Stale snapshot detected, falling back to full replay  {lastEventId: "...", domainTags: [...]}
-[Snapshot] Stale snapshot, falling back to full replay           {exception: "...", exceptionClass: "...", domainTags: [...]}
+[Snapshot] Stale snapshot detected, falling back to full replay                   {lastEventId: "...", domainTags: [...]}
+[Snapshot] Snapshot does not account for all events, falling back to full replay  {lastEventId: "...", domainTags: [...]}
+[Snapshot] Stale snapshot, falling back to full replay                            {exception: "...", exceptionClass: "...", domainTags: [...]}
 ```
 
-The first message indicates the snapshot's `lastEventId` was not found in the event store. The second indicates deserialization failed (e.g., use case class structure changed). Both result in a full event replay — no data loss.
+The first two messages indicate the snapshot doesn't match the events in the event store, or doesn't account for all of them. The third indicates deserialization failed (e.g., use case class structure changed). All result in a full event replay — no data loss.
 
 If a snapshot operation fails, the snapshot store decorator logs at `error` level:
 

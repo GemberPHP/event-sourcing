@@ -250,7 +250,7 @@ When you save a use case:
 
 ### Concurrency control
 
-When a use case is loaded from the repository, the event store records the ID of the last event in the stream (`lastEventId`). When the use case is saved, this ID is sent back to the event store as an optimistic lock token. If another process has written events to the same consistency boundary in the meantime, the IDs won't match and an `OptimisticLockException` is thrown.
+When a use case is loaded from the repository, it records the number of events it was reconstituted from (`getEventCount()`). When the use case is saved, the event store counts the events matching the use case's domain tags and subscribed event types again, and compares it to that number. If another process has written a matching event in the meantime, the counts won't match and an `OptimisticLockException` is thrown. After a successful save, the use case's event count includes its own appended events that match its query.
 
 For a detailed explanation of the two-layer concurrency mechanism (boundary locks + optimistic lock check), see [How it works - Concurrency control](../how-it-works.md#concurrency-control).
 
@@ -264,7 +264,7 @@ The typical strategy is to **retry the entire operation**: reload the use case (
 
 #### First write
 
-When a use case is created for the first time (no prior events exist), `getLastEventId()` returns `null`. The event store treats `null` as "no prior events expected" — if any events already exist for that boundary, the write will fail with an `OptimisticLockException`, preventing duplicate creation.
+When a use case is created for the first time (no prior events exist), `getEventCount()` returns `0`: no prior events expected. If any matching events already exist, the write will fail with an `OptimisticLockException`, preventing duplicate creation.
 
 ### Examples
 
