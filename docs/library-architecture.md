@@ -282,7 +282,7 @@ flowchart TD
         IdentityGenerator, Clock"]
         append["EventStore::append()"]
         lock["guardOptimisticLock()
-        compare lastEventId with persisted"]
+        compare expected event count with persisted"]
         persist["RdbmsEventStoreRepository::saveEvents()"]
         publish["EventBus::handle()
         for each applied event"]
@@ -319,8 +319,8 @@ flowchart TD
     envelope --> append
 
     append --> lock["guardOptimisticLock()
-    RdbmsEventStoreRepository::getLastEventIdPersisted()
-    Compare with lastEventId → OptimisticLockException if mismatch"]
+    count events matching domain tags and event names
+    Compare with expectedEventCount → OptimisticLockException if mismatch"]
 
     append --> rdbmsFactory["RdbmsEventFactory::createFromDomainEventEnvelope()
     DomainEventResolver::resolve() → eventName

@@ -94,7 +94,7 @@ When a use case is saved, the event store performs the following steps atomicall
 
     Pairs that are only read are locked exclusively as well. Writers reading the same pair therefore wait for each other, even when they don't conflict. For example, renaming a course and enrolling a student both subscribe to the event that created the course, so for the same course they run one after the other — but neither fails. The lock table grows by one row per distinct (domain tag, event type) pair.
 
-2. **Check the optimistic lock** — With the boundary locks held, the event store queries the last persisted event ID for this boundary and compares it to the `lastEventId` the caller saw when loading. If they don't match, another writer committed events in between and an `OptimisticLockException` is thrown.
+2. **Check the optimistic lock** — With the boundary locks held, the event store counts the events matching the use case's domain tags and subscribed event types, and compares the count to the number of events the use case was based on when loading. Events are append-only, so if another writer committed a matching event in between, the count has changed and an `OptimisticLockException` is thrown. Comparing counts (rather than, for example, the ID of the newest event) doesn't depend on timestamps or commit order: an event that commits late with an earlier timestamp is detected as well.
 
 3. **Persist events** — If the check passes, the new events are inserted within the same transaction.
 
@@ -110,11 +110,11 @@ Writer A                                Writer B
 ────────                                ────────
 BEGIN TRANSACTION                       BEGIN TRANSACTION
 Acquire boundary locks ✓                Acquire boundary locks → blocks...
-Check lastEventId ✓                         │
+Check event count ✓                        │
 Insert events                               │
 COMMIT (releases locks)                     │
                                         ...resumes
-                                        Check lastEventId → mismatch!
+                                        Check event count → mismatch!
                                         ROLLBACK + OptimisticLockException
 ```
 
