@@ -80,36 +80,45 @@ The domain tags and subscribed event types of a use case together define its **c
 
 - **Broader tags** (e.g., `practitionerId`) widen the scope across more events
 - **Narrower tags** (e.g., `timeslotId`) limit the scope to fewer events
-- **Subscribed event types** further narrow the scope — two use cases with the same domain tags but different subscribed event types will not conflict with each other
+- **Subscribed event types** further narrow the scope — events of other types are not part of the boundary
 
-Using the DCB pattern, unrelated changes can proceed concurrently. For example, renaming a course and enrolling a student happen through different use cases with different subscribed event types and domain tags, so they never conflict.
+Two writers conflict when one of them appends an event that falls within the other's boundary: an event of a type the other subscribes to, tagged with at least one of the other's domain tags. Their boundaries do not need to be identical — overlapping is enough. For example, subscribing student 1 and student 2 to the same course conflict, as both depend on the subscriptions of that course.
+
+Using the DCB pattern, unrelated changes can proceed concurrently. For example, renaming a course and enrolling a student don't conflict, as neither appends an event of a type the other subscribes to.
 
 #### How writes are serialized
 
 When a use case is saved, the event store performs the following steps atomically within a single database transaction:
 
-1. **Acquire a boundary lock** — A dedicated lock table holds one row per consistency boundary (identified by a deterministic hash of the domain tags and event types). The row is created if it doesn't exist yet, then locked with `SELECT ... FOR UPDATE`. This ensures concurrent writers targeting the same boundary are serialized — one blocks until the other commits.
+1. **Acquire boundary locks** — A dedicated lock table holds one row per (domain tag, event type) pair. The writer locks every pair it reads (its domain tags × its subscribed event types) and every pair it writes (each appended event's domain tags × its event type). Missing rows are created and all rows are locked exclusively in a single statement, in a fixed (sorted) order to prevent deadlocks. Any two conflicting writers share at least one pair, so they are serialized — one blocks until the other commits. Writers that don't conflict share no pair and proceed concurrently.
 
-2. **Check the optimistic lock** — With the boundary lock held, the event store queries the last persisted event ID for this boundary and compares it to the `lastEventId` the caller saw when loading. If they don't match, another writer committed events in between and an `OptimisticLockException` is thrown.
+2. **Check the optimistic lock** — With the boundary locks held, the event store queries the last persisted event ID for this boundary and compares it to the `lastEventId` the caller saw when loading. If they don't match, another writer committed events in between and an `OptimisticLockException` is thrown.
 
 3. **Persist events** — If the check passes, the new events are inserted within the same transaction.
 
-4. **Commit** — The transaction commits, releasing the boundary lock.
+4. **Commit** — The transaction commits, releasing the boundary locks.
+
+When the event store is called within an already active transaction (e.g. when using the outbox), it runs inside that transaction, and the locks are held until it commits.
 
 ```
 Writer A                                Writer B
 ────────                                ────────
 BEGIN TRANSACTION                       BEGIN TRANSACTION
-Acquire boundary lock ✓                 Acquire boundary lock → blocks...
+Acquire boundary locks ✓                Acquire boundary locks → blocks...
 Check lastEventId ✓                         │
 Insert events                               │
-COMMIT (releases lock)                      │
+COMMIT (releases locks)                     │
                                         ...resumes
                                         Check lastEventId → mismatch!
                                         ROLLBACK + OptimisticLockException
 ```
 
 This two-layer approach avoids the classic time-of-check-time-of-use (TOCTOU) race condition that would occur if the lock check and the write were separate operations.
+
+The Doctrine DBAL event store supports MySQL and MariaDB (InnoDB) and SQLite; other database platforms throw an `UnsupportedPlatformException`.
+
+!!! note "Upgrading from per-boundary locks"
+    Earlier versions locked a single row per exact boundary. Old and new versions lock different rows and therefore don't serialize against each other: don't run them side by side, deploy as a cut-over. The obsolete lock rows can be removed with the provided migration.
 
 #### Saga concurrency
 
