@@ -518,6 +518,37 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
     }
 
     #[Test]
+    public function itShouldNotCreateSnapshotWithoutNewMatchingEventsSinceLoadedSnapshot(): void
+    {
+        $snapshotUseCase = new OnEventSnapshotTestUseCase();
+        (new ReflectionProperty($snapshotUseCase, 'id'))->setValue($snapshotUseCase, 'domain-tag-1');
+
+        $this->snapshotStore->snapshotToReturn = new SnapshotEnvelope(
+            ['domain-tag-1'],
+            [TestUseCaseCreatedEvent::class],
+            'last-event-id',
+            3,
+            \serialize($snapshotUseCase),
+        );
+
+        // No events after the snapshot, and it accounts for all events
+        $this->eventStore->loadResults = [new \Gember\EventSourcing\EventStore\NoEventsForDomainTagsException()];
+        $this->eventStore->countToReturn = 3;
+
+        $useCase = $this->decorator->get(OnEventSnapshotTestUseCase::class, 'domain-tag-1');
+
+        // The applied event triggers the onEvent policy, but doesn't match the use case's stream (other domain tag),
+        // so the event count stays at the snapshot's count
+        $useCase->apply(new TestUseCaseCreatedEvent('other-tag', 'secondary'));
+        $useCase->setLastEventId('event-id-4');
+
+        $this->decorator->save($useCase);
+
+        self::assertSame(3, $useCase->getEventCount());
+        self::assertFalse($this->snapshotStore->saveWasCalled);
+    }
+
+    #[Test]
     public function itShouldFallBackToFullReplayWhenDeserializationFails(): void
     {
         $attributeResolver = new ReflectorAttributeResolver();
