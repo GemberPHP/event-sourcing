@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Repository\Rdbms;
 
+use Gember\DependencyContracts\EventStore\Saga\RdbmsSaga;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaConcurrencyException;
+use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaIdAlreadyInUseException;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaStoreRepository;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaNotFoundException;
 use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Repository\SagaConcurrencyException;
+use Gember\EventSourcing\Repository\SagaIdAlreadyInUseException;
 use Gember\EventSourcing\Repository\SagaNotFoundException;
 use Gember\EventSourcing\Repository\SagaStore;
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdValueHelper;
@@ -21,11 +24,11 @@ use WeakMap;
 final readonly class RdbmsSagaStore implements SagaStore
 {
     /**
-     * Revision each loaded or saved saga is at, used as optimistic lock on its next save.
+     * Each loaded or saved saga as stored: its next save updates that row, at that revision.
      *
-     * @var WeakMap<object, int>
+     * @var WeakMap<object, RdbmsSaga>
      */
-    private WeakMap $revisions;
+    private WeakMap $stored;
 
     public function __construct(
         private SagaResolver $sagaResolver,
@@ -34,23 +37,23 @@ final readonly class RdbmsSagaStore implements SagaStore
         private Serializer $serializer,
         private Clock $clock,
     ) {
-        $this->revisions = new WeakMap();
+        $this->stored = new WeakMap();
     }
 
     #[Override]
-    public function get(string $sagaClassName, Stringable|string $sagaId): object
+    public function get(string $sagaClassName, Stringable|string ...$sagaIds): object
     {
         $sagaDefinition = $this->sagaResolver->resolve($sagaClassName);
 
         try {
-            $rdbmsSaga = $this->sagaStoreRepository->get($sagaDefinition->sagaName, $sagaId);
+            $rdbmsSaga = $this->sagaStoreRepository->get($sagaDefinition->sagaName, ...$sagaIds);
         } catch (RdbmsSagaNotFoundException) {
             throw SagaNotFoundException::create();
         }
 
         $saga = $this->sagaFactory->createFromRdbmsSaga($sagaClassName, $rdbmsSaga);
 
-        $this->revisions[$saga] = $rdbmsSaga->revision;
+        $this->stored[$saga] = $rdbmsSaga;
 
         return $saga;
     }
@@ -65,7 +68,7 @@ final readonly class RdbmsSagaStore implements SagaStore
                 $sagaDefinition->sagaName,
                 $this->serializer->serialize($saga),
                 $this->clock->now(),
-                $this->revisions[$saga] ?? null,
+                $this->stored[$saga] ?? null,
                 ...array_filter(
                     array_map(
                         fn($sagaIdDefinition) => SagaIdValueHelper::getSagaIdValue($saga, $sagaIdDefinition),
@@ -76,8 +79,10 @@ final readonly class RdbmsSagaStore implements SagaStore
             );
         } catch (RdbmsSagaConcurrencyException $exception) {
             throw SagaConcurrencyException::create($exception);
+        } catch (RdbmsSagaIdAlreadyInUseException $exception) {
+            throw SagaIdAlreadyInUseException::create($exception);
         }
 
-        $this->revisions[$saga] = $rdbmsSaga->revision;
+        $this->stored[$saga] = $rdbmsSaga;
     }
 }

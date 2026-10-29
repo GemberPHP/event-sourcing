@@ -24,8 +24,9 @@ final class TestSagaWithTwoIds
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
     public function onTestSagaTwoIdsEvent(TestSagaTwoIdsEvent $event, CommandRecorder $commandRecorder): void
     {
-        $this->orderId = $event->orderId;
-        $this->paymentId = $event->paymentId;
+        // Only adopt ids not set yet: an id owned by another saga must not be taken over
+        $this->orderId ??= $event->orderId;
+        $this->paymentId ??= $event->paymentId;
         ++$this->handled;
     }
 }

@@ -15,6 +15,7 @@ use Gember\EventSourcing\Test\TestDoubles\Util\Log\TestLogger;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Stringable;
 
 /**
@@ -58,21 +59,24 @@ final class LoggableSagaEventExecutorDecoratorTest extends TestCase
             }
         };
 
-        $this->decorator->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue);
+        $this->innerExecutor->sagaToReturn = $saga = new stdClass();
 
+        $result = $this->decorator->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue, 'another-id');
+
+        self::assertSame($saga, $result);
         self::assertTrue($this->innerExecutor->wasExecuted);
         self::assertSame($event, $this->innerExecutor->lastEvent);
         self::assertSame($eventSubscriberDefinition, $this->innerExecutor->lastEventSubscriberDefinition);
         self::assertSame($sagaClassName, $this->innerExecutor->lastSagaClassName);
         self::assertSame($methodName, $this->innerExecutor->lastMethodName);
-        self::assertSame($sagaIdValue, $this->innerExecutor->lastSagaIdValue);
+        self::assertSame([$sagaIdValue, 'another-id'], $this->innerExecutor->lastSagaIdValues);
 
         self::assertCount(2, $this->logger->logs);
         self::assertSame('[Saga] Started handling TestSagaEvent by TestSagaForEventHandler', $this->logger->logs[0]['message']);
-        self::assertSame(['sagaId' => '3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'], $this->logger->logs[0]['context']);
+        self::assertSame(['sagaIds' => ['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', 'another-id']], $this->logger->logs[0]['context']);
 
         self::assertSame('[Saga] Finished handling TestSagaEvent by TestSagaForEventHandler', $this->logger->logs[1]['message']);
-        self::assertSame('3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', $this->logger->logs[1]['context']['sagaId']);
+        self::assertSame(['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', 'another-id'], $this->logger->logs[1]['context']['sagaIds']);
     }
 
     #[Test]
@@ -98,12 +102,12 @@ final class LoggableSagaEventExecutorDecoratorTest extends TestCase
 
             self::assertCount(2, $this->logger->logs);
             self::assertSame('[Saga] Started handling TestSagaEvent by TestSagaForEventHandler', $this->logger->logs[0]['message']);
-            self::assertSame(['sagaId' => '3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'], $this->logger->logs[0]['context']);
+            self::assertSame(['sagaIds' => ['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a']], $this->logger->logs[0]['context']);
 
             self::assertSame('[Saga] Failed handling TestSagaEvent by TestSagaForEventHandler', $this->logger->logs[1]['message']);
             self::assertSame('Saga execution failed', $this->logger->logs[1]['context']['exception']);
             self::assertSame(Exception::class, $this->logger->logs[1]['context']['exceptionClass']);
-            self::assertSame('3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', $this->logger->logs[1]['context']['sagaId']);
+            self::assertSame(['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'], $this->logger->logs[1]['context']['sagaIds']);
         }
     }
 }

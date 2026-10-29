@@ -12,11 +12,17 @@ use Gember\DependencyContracts\Util\Transaction\Transactional;
 final class TestTransactional implements Transactional
 {
     public bool $wasCalled = false;
+    public bool $active = false;
 
     public function transactional(callable $operation): mixed
     {
         $this->wasCalled = true;
 
         return $operation();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
     }
 }

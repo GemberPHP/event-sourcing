@@ -7,6 +7,7 @@ namespace Gember\EventSourcing\Test\Repository\Rdbms;
 use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Repository\Rdbms\SagaFactory;
 use Gember\EventSourcing\Repository\SagaConcurrencyException;
+use Gember\EventSourcing\Repository\SagaIdAlreadyInUseException;
 use Gember\EventSourcing\Repository\SagaNotFoundException;
 use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\Saga\Default\DefaultSagaResolver;
@@ -89,7 +90,21 @@ final class RdbmsSagaStoreTest extends TestCase
         $sagaStore->save($saga);
 
         // New saga, then the loaded revision, then the revision after its own save
-        self::assertSame([null, 0, 1], $this->repository->expectedRevisions);
+        self::assertSame(
+            [null, 0, 1],
+            array_map(fn($previous) => $previous?->revision, $this->repository->previousSagas),
+        );
+    }
+
+    #[Test]
+    public function itShouldThrowSagaIdAlreadyInUseExceptionWhenNewSagaUsesIdOfAnotherSaga(): void
+    {
+        $this->sagaStore->save(new TestSaga('saga-id', 'another-id'));
+
+        self::expectException(SagaIdAlreadyInUseException::class);
+        self::expectExceptionMessageMatches('/another-id/');
+
+        $this->sagaStore->save(new TestSaga('other-saga-id', 'another-id'));
     }
 
     #[Test]

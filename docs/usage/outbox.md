@@ -38,12 +38,15 @@ If anything fails, the entire transaction rolls back — both the event store wr
 The same pattern applies to saga command dispatching:
 
 ```
-TransactionalSagaEventExecutorDecorator.execute()
-  └── database transaction {
-        ├── sagaStore.save()                ← saga state persisted
-        └── commandRecorder.flush()         ← OutboxCommandBus writes commands to outbox
-      }                                     ← single atomic commit
+RetryingSagaEventExecutorDecorator.execute()  ← retries the whole transaction on a concurrent saga change
+  └── TransactionalSagaEventExecutorDecorator.execute()
+        └── database transaction {
+              ├── sagaStore.save()          ← saga state persisted (optimistic revision check)
+              └── commandRecorder.flush()   ← OutboxCommandBus writes commands to outbox
+            }                               ← single atomic commit
 ```
+
+The retrying decorator is the outermost one, so each attempt runs in a transaction of its own (see [How it works - Saga concurrency](../how-it-works.md#saga-concurrency)).
 
 ### Enabling the outbox (Symfony)
 > **Note:** This section applies to the Symfony bundle package [event-sourcing-symfony-bundle](https://github.com/GemberPHP/event-sourcing-symfony-bundle)
@@ -168,12 +171,13 @@ The outbox is implemented as a composable layer on top of the existing architect
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐
-│ TransactionalSagaEventExecutorDecorator             │
-│   └── DefaultSagaEventExecutor                      │
-│         ├── SagaStore.save()                        │
-│         └── CommandRecorder.flush()                 │
-│               └── OutboxCommandBus.handle()         │
-│                     → outbox table                  │
+│ RetryingSagaEventExecutorDecorator                  │
+│   └── TransactionalSagaEventExecutorDecorator       │
+│         └── DefaultSagaEventExecutor                │
+│               ├── SagaStore.save()                  │
+│               └── CommandRecorder.flush()           │
+│                     └── OutboxCommandBus.handle()   │
+│                           → outbox table            │
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐

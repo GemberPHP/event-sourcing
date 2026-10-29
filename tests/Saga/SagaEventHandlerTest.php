@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Saga;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Registry\Saga\Reflector\ReflectorSagaRegistry;
 use Gember\EventSourcing\Repository\Rdbms\RdbmsSagaStore;
 use Gember\EventSourcing\Repository\Rdbms\SagaFactory;
@@ -29,9 +31,10 @@ use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEventExecutor;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaForEventHandler;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaSecondEvent;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaTwoIdsEvent;
+use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaTwoSubscribersEvent;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaWithTwoIds;
+use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaWithTwoSubscribers;
 use Gember\EventSourcing\Test\TestDoubles\Util\Messaging\MessageBus\TestCommandBus;
-use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use Gember\EventSourcing\Util\File\Finder\Native\NativeFinder;
@@ -98,7 +101,7 @@ final class SagaEventHandlerTest extends TestCase
                     $sagaResolver,
                     $this->repository = new TestRdbmsSagaStoreRepository(),
                     new SagaFactory(
-                        $serializer = new TestSerializer(),
+                        $serializer = new RoundTripSerializer(),
                     ),
                     $serializer,
                     new TestClock(),
@@ -114,14 +117,9 @@ final class SagaEventHandlerTest extends TestCase
 
         $this->handler->__invoke($event);
 
-        // Verify saga was saved to repository
-        self::assertArrayHasKey('saga.test-event-handler-3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', $this->repository->sagas);
-
-        $rdbmsSaga = $this->repository->sagas['saga.test-event-handler-3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'];
-        self::assertSame('saga.test-event-handler', $rdbmsSaga->sagaName);
+        $rdbmsSaga = $this->repository->get('saga.test-event-handler', '3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a');
         self::assertSame(['3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a'], $rdbmsSaga->sagaIds);
 
-        // Verify saga was created and method was called by deserializing the payload
         $saga = unserialize($rdbmsSaga->payload);
         self::assertInstanceOf(TestSagaForEventHandler::class, $saga);
         self::assertSame('3faa2ded-b0c4-4d62-a16d-3eb3dcf3ee5a', $saga->sagaId);
@@ -135,36 +133,134 @@ final class SagaEventHandlerTest extends TestCase
 
         $this->handler->__invoke($event);
 
-        // Verify saga was NOT created in repository
-        self::assertArrayNotHasKey('saga.test-event-handler-afb200a7-4f94-4d40-87b2-50575a1553c7', $this->repository->sagas);
         self::assertEmpty($this->repository->sagas);
     }
 
     #[Test]
-    public function itShouldHandleEventOnceWhenSeveralSagaIdsPointToTheSameSaga(): void
+    public function itShouldHandleEventOnceWhenSeveralSagaIdsPointToTheSameNewSaga(): void
     {
         $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
 
-        $saga = unserialize($this->repository->sagas['saga.test-two-ids-payment-1']->payload);
+        self::assertCount(1, $this->repository->sagas);
 
-        self::assertInstanceOf(TestSagaWithTwoIds::class, $saga);
+        $saga = $this->getTwoIdsSaga('payment-1');
         self::assertSame('order-1', $saga->orderId);
         self::assertSame(1, $saga->handled);
     }
 
     #[Test]
-    public function itShouldHandleEventForEachSagaIdWhenNoSagaHandledIt(): void
+    public function itShouldHandleEventOnceWhenSeveralSagaIdsPointToTheSameExistingSaga(): void
+    {
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        self::assertCount(1, $this->repository->sagas);
+        self::assertSame(2, $this->getTwoIdsSaga('order-1')->handled);
+    }
+
+    #[Test]
+    public function itShouldNotCreateSagaForAnIdWhenAnotherIdOfTheEventPointsToAnExistingSaga(): void
+    {
+        // Saga owning only payment-1; the event's order-1 comes first but must not create a new saga
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-2', paymentId: 'payment-1'));
+
+        self::assertCount(1, $this->repository->sagas);
+        self::assertSame(2, $this->getTwoIdsSaga('payment-1')->handled);
+    }
+
+    #[Test]
+    public function itShouldHandleEventByEachSagaOwningOneOfItsIds(): void
+    {
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-2', paymentId: 'payment-2'));
+
+        // Saga 1 owns order-1, saga 2 owns payment-2
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-2'));
+
+        self::assertCount(2, $this->repository->sagas);
+        self::assertSame(2, $this->getTwoIdsSaga('order-1')->handled);
+        self::assertSame(2, $this->getTwoIdsSaga('payment-2')->handled);
+    }
+
+    #[Test]
+    public function itShouldHandleEventByEachSubscriberMethodOfASaga(): void
+    {
+        $this->handler->__invoke(new TestSagaTwoSubscribersEvent(sagaId: 'saga-1'));
+
+        $saga = unserialize($this->repository->get('saga.test-two-subscribers', 'saga-1')->payload);
+
+        self::assertInstanceOf(TestSagaWithTwoSubscribers::class, $saga);
+        self::assertSame(['onFirst', 'onSecond'], $saga->isCalled);
+    }
+
+    #[Test]
+    public function itShouldExecuteOnceWithAllSagaIdsOfTheEvent(): void
     {
         $executor = new TestSagaEventExecutor();
 
-        $handler = new SagaEventHandler(
-            $this->domainEventResolver,
-            $this->sagaRegistry,
-            $executor,
-        );
+        $handler = new SagaEventHandler($this->domainEventResolver, $this->sagaRegistry, $executor);
 
         $handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
 
-        self::assertSame(['order-1', 'payment-1'], $executor->executedSagaIdValues);
+        self::assertSame([['order-1', 'payment-1']], $executor->executedSagaIdValues);
+    }
+
+    #[Test]
+    public function itShouldOnlyHandleRemainingSagaIdsByExistingSagas(): void
+    {
+        $handledSaga = new TestSagaWithTwoIds();
+        $handledSaga->orderId = 'order-1';
+        $handledSaga->paymentId = 'payment-other';
+
+        $executor = new TestSagaEventExecutor(sagasToReturn: [$handledSaga, null]);
+
+        $handler = new SagaEventHandler($this->domainEventResolver, $this->sagaRegistry, $executor);
+
+        $handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        self::assertSame([['order-1', 'payment-1'], ['payment-1']], $executor->executedSagaIdValues);
+        self::assertSame(CreationPolicy::IfMissing, $executor->executedEventSubscriberDefinitions[0]->policy);
+        self::assertSame(CreationPolicy::Never, $executor->executedEventSubscriberDefinitions[1]->policy);
+    }
+
+    #[Test]
+    public function itShouldStopWhenHandledSagaOwnsNoneOfTheSagaIds(): void
+    {
+        $executor = new TestSagaEventExecutor(sagaToReturn: new TestSagaWithTwoIds());
+
+        $handler = new SagaEventHandler($this->domainEventResolver, $this->sagaRegistry, $executor);
+
+        $handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        self::assertSame(1, $executor->executeCount);
+    }
+
+    private function getTwoIdsSaga(string $sagaId): TestSagaWithTwoIds
+    {
+        $saga = unserialize($this->repository->get('saga.test-two-ids', $sagaId)->payload);
+
+        self::assertInstanceOf(TestSagaWithTwoIds::class, $saga);
+
+        return $saga;
+    }
+}
+
+/**
+ * @internal
+ */
+final readonly class RoundTripSerializer implements Serializer
+{
+    #[Override]
+    public function serialize(object $object): string
+    {
+        return serialize($object);
+    }
+
+    #[Override]
+    public function deserialize(string $payload, string $className): object
+    {
+        /** @var object */
+        return unserialize($payload);
     }
 }
