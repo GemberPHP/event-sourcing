@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Saga;
 
+use Closure;
+use DateTimeImmutable;
+use Gember\DependencyContracts\EventStore\Saga\RdbmsSaga;
+use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaStoreRepository;
 use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Registry\Saga\Reflector\ReflectorSagaRegistry;
@@ -25,6 +29,7 @@ use Gember\EventSourcing\Resolver\Saga\Default\SagaName\ClassName\ClassNameSagaN
 use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Interface\InterfaceSagaNameResolver;
 use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Stacked\StackedSagaNameResolver;
 use Gember\EventSourcing\Saga\Default\DefaultSagaEventExecutor;
+use Gember\EventSourcing\Saga\Retrying\RetryingSagaEventExecutorDecorator;
 use Gember\EventSourcing\Test\Repository\Rdbms\TestRdbmsSagaStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEvent;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEventExecutor;
@@ -36,6 +41,7 @@ use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaWithTwoIds;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaWithTwoSubscribers;
 use Gember\EventSourcing\Test\TestDoubles\Util\Messaging\MessageBus\TestCommandBus;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
+use Gember\EventSourcing\Test\TestDoubles\Util\Transaction\TestTransactional;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use Gember\EventSourcing\Util\File\Finder\Native\NativeFinder;
 use Gember\EventSourcing\Util\File\Reflector\Native\NativeReflector;
@@ -45,6 +51,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Saga\SagaEventHandler;
 use Override;
+use Stringable;
 
 /**
  * @internal
@@ -55,6 +62,7 @@ final class SagaEventHandlerTest extends TestCase
     private TestRdbmsSagaStoreRepository $repository;
     private DefaultDomainEventResolver $domainEventResolver;
     private ReflectorSagaRegistry $sagaRegistry;
+    private DefaultSagaResolver $sagaResolver;
 
     #[Override]
     protected function setUp(): void
@@ -81,7 +89,7 @@ final class SagaEventHandlerTest extends TestCase
             $this->sagaRegistry = new ReflectorSagaRegistry(
                 new NativeFinder(),
                 new NativeReflector(),
-                $sagaResolver = new DefaultSagaResolver(
+                $this->sagaResolver = $sagaResolver = new DefaultSagaResolver(
                     new StackedSagaNameResolver(
                         [
                             new AttributeSagaNameResolver($attributeResolver),
@@ -236,6 +244,44 @@ final class SagaEventHandlerTest extends TestCase
         self::assertSame(1, $executor->executeCount);
     }
 
+    #[Test]
+    public function itShouldHandleEventBySagaCreatedConcurrentlyOnRetry(): void
+    {
+        $serializer = new RoundTripSerializer();
+        $repository = new ConcurrentlyCreatingSagaStoreRepository($this->repository);
+
+        // Another process creates the saga (owning order-1 only) after this one found none
+        $concurrentSaga = new TestSagaWithTwoIds();
+        $concurrentSaga->orderId = 'order-1';
+        $repository->createConcurrently = fn() => $this->repository->save(
+            'saga.test-two-ids',
+            $serializer->serialize($concurrentSaga),
+            new DateTimeImmutable(),
+            null,
+            'order-1',
+        );
+
+        $handler = new SagaEventHandler(
+            $this->domainEventResolver,
+            $this->sagaRegistry,
+            new RetryingSagaEventExecutorDecorator(
+                new DefaultSagaEventExecutor(
+                    new TestCommandBus(),
+                    new RdbmsSagaStore($this->sagaResolver, $repository, new SagaFactory($serializer), $serializer, new TestClock()),
+                ),
+                new TestTransactional(),
+            ),
+        );
+
+        $handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        self::assertCount(1, $this->repository->sagas);
+
+        $saga = $this->getTwoIdsSaga('payment-1');
+        self::assertSame('order-1', $saga->orderId);
+        self::assertSame(1, $saga->handled);
+    }
+
     private function getTwoIdsSaga(string $sagaId): TestSagaWithTwoIds
     {
         $saga = unserialize($this->repository->get('saga.test-two-ids', $sagaId)->payload);
@@ -262,5 +308,44 @@ final readonly class RoundTripSerializer implements Serializer
     {
         /** @var object */
         return unserialize($payload);
+    }
+}
+
+/**
+ * Lets another process create a saga right before the first new saga is saved.
+ *
+ * @internal
+ */
+final class ConcurrentlyCreatingSagaStoreRepository implements RdbmsSagaStoreRepository
+{
+    /**
+     * @var (Closure(): mixed)|null
+     */
+    public ?Closure $createConcurrently = null;
+
+    public function __construct(
+        private readonly RdbmsSagaStoreRepository $repository,
+    ) {}
+
+    #[Override]
+    public function get(string $sagaName, string|Stringable ...$sagaIds): RdbmsSaga
+    {
+        return $this->repository->get($sagaName, ...$sagaIds);
+    }
+
+    #[Override]
+    public function save(
+        string $sagaName,
+        string $payload,
+        DateTimeImmutable $now,
+        ?RdbmsSaga $previous,
+        string|Stringable ...$sagaIds,
+    ): RdbmsSaga {
+        if ($previous === null && $this->createConcurrently !== null) {
+            ($this->createConcurrently)();
+            $this->createConcurrently = null;
+        }
+
+        return $this->repository->save($sagaName, $payload, $now, $previous, ...$sagaIds);
     }
 }

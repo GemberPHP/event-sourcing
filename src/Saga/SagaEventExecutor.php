@@ -10,10 +10,10 @@ use Stringable;
 interface SagaEventExecutor
 {
     /**
-     * @param class-string $sagaClassName
-     *
      * Handles the event by the saga that owns any of the saga id values (created when missing, depending on the
-     * creation policy)
+     * creation policy).
+     *
+     * @param class-string $sagaClassName
      *
      * @return object|null The saga after handling the event, or null when no saga handled it
      */

@@ -115,7 +115,7 @@ Events route to sagas using **OR logic**: if any of the event's `#[SagaId]` prop
 Both reach the same `OrderFulfillmentSaga` type, but locate the saga instance through different Saga ID values. Each Saga ID value is stored as a separate relation in the saga store, enabling lookup by any of them.
 
 !!! warning "A Saga ID value identifies one saga instance"
-    A Saga ID value belongs to at most one saga instance per saga name, across all its Saga ID names. Only use identifiers that relate one-to-one to a saga instance: an order saga can have an `orderId` and a `shipmentId`, but not a `customerId`, as a customer places many orders. Saving a saga with a Saga ID value that already belongs to another instance throws a `SagaIdAlreadyInUseException`. To react to customer events for all of a customer's orders, use a separate saga per customer, or let the customer's events carry the order IDs.
+    A Saga ID value belongs to at most one saga instance per saga name, across all its Saga ID names. Only use identifiers that relate one-to-one to a saga instance: an order saga can have an `orderId` and a `shipmentId`, but not a `customerId`, as a customer places many orders. The event placing a customer's second order would find the first order's saga through the `customerId`, and be handled by it. Adding a Saga ID value that already belongs to another instance to an existing saga throws a `SagaIdAlreadyInUseException`. To react to customer events for all of a customer's orders, use a separate saga per customer, or let the customer's events carry the order IDs.
 
 ### Saga event subscribers
 
@@ -296,6 +296,95 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, relations of removed Saga ID values are deleted and relations of added ones are inserted, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga name (see [Saga IDs](#saga-ids)).
 
 Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga (up to 5 attempts). See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
+
+#### Upgrading the saga store
+
+The saga store got a revision, a saga name per Saga ID with a unique key (case-sensitive), and lost its lock table. The released migrations were changed in place, so **a database that already ran them needs these changes applied manually**. Old and new code can't run against each other's schema, so upgrade with everything stopped:
+
+1. Take a backup.
+2. Stop all processes handling saga events (outbox processors, message consumers).
+3. Run the pre-flight query below and resolve every row it returns.
+4. Apply the upgrade SQL.
+5. Deploy the new version, then start the processes again.
+
+**Pre-flight: Saga ID values owned by more than one saga.** These block the unique key:
+
+```sql
+-- MySQL / MariaDB
+SELECT s.saga_name, MIN(r.saga_id) AS saga_id, GROUP_CONCAT(s.id ORDER BY s.created_at) AS saga_store_ids
+FROM saga_store_relation r
+JOIN saga_store s ON s.id = r.id
+GROUP BY s.saga_name, r.saga_id COLLATE utf8mb4_bin
+HAVING COUNT(DISTINCT s.id) > 1;
+
+-- SQLite
+SELECT s.saga_name, r.saga_id, GROUP_CONCAT(s.id) AS saga_store_ids
+FROM saga_store_relation r
+JOIN saga_store s ON s.id = r.id
+GROUP BY s.saga_name, r.saga_id
+HAVING COUNT(DISTINCT s.id) > 1;
+```
+
+- **A Saga ID that isn't one-to-one with a saga** (such as a `customerId` on order sagas, see [Saga IDs](#saga-ids)): remove it from the saga class, and delete only its relation rows (`DELETE FROM saga_store_relation WHERE saga_id = ? AND id IN (…)`). Don't delete these sagas: they are separate, live sagas.
+- **The same saga created twice** (by concurrent events in earlier versions): keep one, typically the oldest, and delete the others: first their rows in `saga_store_relation`, then in `saga_store`.
+
+**Upgrade SQL (MySQL / MariaDB):**
+
+```sql
+ALTER TABLE saga_store ADD COLUMN revision int NOT NULL DEFAULT 0;
+
+ALTER TABLE saga_store_relation
+  ADD COLUMN saga_name varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' AFTER id,
+  MODIFY saga_id varchar(50) COLLATE utf8mb4_bin NOT NULL;
+
+UPDATE saga_store_relation r JOIN saga_store s ON s.id = r.id SET r.saga_name = s.saga_name WHERE r.saga_name = '';
+
+ALTER TABLE saga_store_relation
+  ADD UNIQUE KEY saga_name_saga_id (saga_name, saga_id),
+  ALTER COLUMN saga_name DROP DEFAULT;
+
+DROP TABLE IF EXISTS saga_store_lock;
+
+-- Only for databases created with version 0.13.0 or later (fails with error 1091 otherwise, which is fine)
+ALTER TABLE saga_store_relation DROP KEY saga_id;
+```
+
+The result is identical to a fresh install. Schema changes aren't transactional: if the unique key fails (a duplicate the pre-flight didn't resolve), the statements before it are applied already. Resolve the duplicate and continue from the `UPDATE`.
+
+**Upgrade SQL (SQLite):**
+
+```sql
+ALTER TABLE saga_store ADD COLUMN revision int NOT NULL DEFAULT 0;
+ALTER TABLE saga_store_relation ADD COLUMN saga_name varchar(255) NOT NULL DEFAULT '';
+UPDATE saga_store_relation SET saga_name = (SELECT s.saga_name FROM saga_store s WHERE s.id = saga_store_relation.id) WHERE saga_name = '';
+CREATE UNIQUE INDEX saga_name_saga_id ON saga_store_relation (saga_name, saga_id);
+DROP TABLE IF EXISTS saga_store_lock;
+```
+
+This is equivalent to a fresh install (the column order and default differ).
+
+**Deleted migration.** The migration that created `saga_store_lock` (Doctrine `Version20260818130000`, Phinx `20260818130000`, released in 0.13.0) no longer exists. Remove it from the migration history:
+
+```bash
+bin/console doctrine:migrations:version 'DoctrineMigrations\Version20260818130000' --delete --no-interaction
+```
+
+For Phinx: `DELETE FROM phinxlog WHERE version = 20260818130000;`. Migrations copied into your application need the same changes.
+
+**Rolling back** to the previous version after the upgrade (MySQL / MariaDB; the `revision` column can stay):
+
+```sql
+CREATE TABLE IF NOT EXISTS saga_store_lock (
+  boundary_hash char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (boundary_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE saga_store_relation
+  DROP KEY saga_name_saga_id,
+  DROP COLUMN saga_name,
+  MODIFY saga_id varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  ADD KEY saga_id (saga_id);
+```
 
 ### Serialization
 

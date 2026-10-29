@@ -55,8 +55,9 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
             $commandRecorder->flush();
         } catch (SagaConcurrencyException $exception) {
             /*
-             * Another saga, handling a dispatched command's events synchronously, ran out of retries. This saga is
-             * saved already: don't let it be retried (and its commands dispatched again).
+             * Another saga, handling a dispatched command's events synchronously, ran out of retries. Without a
+             * transaction this saga is saved already: retrying it would dispatch its commands again. Inside a
+             * transaction its save is rolled back with it, and only the transaction's owner can retry.
              */
             throw SagaCommandDispatchFailedException::create($sagaClassName, $exception);
         }
