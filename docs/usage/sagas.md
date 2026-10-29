@@ -290,7 +290,9 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 | Saga store | Stores serialized saga instances (ID, name, payload, timestamps) |
 | Saga store relations | Links Saga ID values to saga instances for routing |
 
-When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, the old relations are replaced with the current set, allowing Saga ID values to change over the saga's lifetime.
+When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, the old relations are replaced with the current set, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga.
+
+Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga. See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
 
 ### Serialization
 

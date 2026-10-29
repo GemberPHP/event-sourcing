@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Repository\Rdbms;
 
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Repository\Rdbms\SagaFactory;
+use Gember\EventSourcing\Repository\SagaConcurrencyException;
 use Gember\EventSourcing\Repository\SagaNotFoundException;
 use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\Saga\Default\DefaultSagaResolver;
@@ -31,6 +33,7 @@ use stdClass;
 final class RdbmsSagaStoreTest extends TestCase
 {
     private RdbmsSagaStore $sagaStore;
+    private TestRdbmsSagaStoreRepository $repository;
 
     #[Override]
     protected function setUp(): void
@@ -49,7 +52,7 @@ final class RdbmsSagaStoreTest extends TestCase
                 new AttributeSagaIdResolver($attributeResolver),
                 new AttributeSagaEventSubscriberResolver($attributeResolver),
             ),
-            new TestRdbmsSagaStoreRepository(),
+            $this->repository = new TestRdbmsSagaStoreRepository(),
             new SagaFactory($serializer = new TestSerializer()),
             $serializer,
             new TestClock(),
@@ -72,5 +75,70 @@ final class RdbmsSagaStoreTest extends TestCase
         $saga = $this->sagaStore->get(TestSaga::class, 'saga-id');
 
         self::assertEquals(new stdClass(), $saga);
+    }
+
+    #[Test]
+    public function itShouldSaveWithTheRevisionTheSagaIsAt(): void
+    {
+        $sagaStore = $this->createSagaStoreRoundTrippingSagas();
+
+        $sagaStore->save(new TestSaga('saga-id', 'another-id'));
+
+        $saga = $sagaStore->get(TestSaga::class, 'saga-id');
+        $sagaStore->save($saga);
+        $sagaStore->save($saga);
+
+        // New saga, then the loaded revision, then the revision after its own save
+        self::assertSame([null, 0, 1], $this->repository->expectedRevisions);
+    }
+
+    #[Test]
+    public function itShouldThrowSagaConcurrencyExceptionWhenSagaChangedConcurrently(): void
+    {
+        $sagaStore = $this->createSagaStoreRoundTrippingSagas();
+
+        $sagaStore->save(new TestSaga('saga-id', 'another-id'));
+
+        $loadedByFirst = $sagaStore->get(TestSaga::class, 'saga-id');
+        $loadedBySecond = $sagaStore->get(TestSaga::class, 'saga-id');
+
+        $sagaStore->save($loadedByFirst);
+
+        self::expectException(SagaConcurrencyException::class);
+
+        $sagaStore->save($loadedBySecond);
+    }
+
+    private function createSagaStoreRoundTrippingSagas(): RdbmsSagaStore
+    {
+        $serializer = new class implements Serializer {
+            public function serialize(object $object): string
+            {
+                return serialize($object);
+            }
+
+            public function deserialize(string $payload, string $className): object
+            {
+                /** @var object */
+                return unserialize($payload);
+            }
+        };
+
+        $attributeResolver = new ReflectorAttributeResolver();
+
+        return new RdbmsSagaStore(
+            new DefaultSagaResolver(
+                new StackedSagaNameResolver(
+                    [new AttributeSagaNameResolver($attributeResolver), new InterfaceSagaNameResolver()],
+                    new ClassNameSagaNameResolver(new NativeFriendlyClassNamer(new NativeInflector())),
+                ),
+                new AttributeSagaIdResolver($attributeResolver),
+                new AttributeSagaEventSubscriberResolver($attributeResolver),
+            ),
+            $this->repository,
+            new SagaFactory($serializer),
+            $serializer,
+            new TestClock(),
+        );
     }
 }

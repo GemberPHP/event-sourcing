@@ -23,6 +23,10 @@ final class TestSagaEventExecutor implements SagaEventExecutor
         public ?string $lastMethodName = null,
         public string|Stringable|null $lastSagaIdValue = null,
         public ?Exception $shouldThrow = null,
+        public ?object $sagaToReturn = null,
+        public int $executeCount = 0,
+        /** @var list<string> */
+        public array $executedSagaIdValues = [],
     ) {}
 
     #[Override]
@@ -32,8 +36,10 @@ final class TestSagaEventExecutor implements SagaEventExecutor
         string $sagaClassName,
         string $methodName,
         string|Stringable $sagaIdValue,
-    ): void {
+    ): ?object {
         $this->wasExecuted = true;
+        ++$this->executeCount;
+        $this->executedSagaIdValues[] = (string) $sagaIdValue;
         $this->lastEvent = $event;
         $this->lastEventSubscriberDefinition = $eventSubscriberDefinition;
         $this->lastSagaClassName = $sagaClassName;
@@ -43,5 +49,7 @@ final class TestSagaEventExecutor implements SagaEventExecutor
         if ($this->shouldThrow !== null) {
             throw $this->shouldThrow;
         }
+
+        return $this->sagaToReturn;
     }
 }

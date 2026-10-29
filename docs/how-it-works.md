@@ -127,7 +127,16 @@ The Doctrine DBAL event store supports MySQL and MariaDB (InnoDB) and SQLite; ot
 
 #### Saga concurrency
 
-The saga store uses the same boundary lock mechanism. When a saga is saved, the store acquires an exclusive lock on the saga's boundary (based on saga name and saga IDs), then performs the get-modify-save cycle within a single transaction. This prevents concurrent events for the same saga from overwriting each other's state changes.
+A saga's state is saved as a whole after each event, so two events handled at the same time for the same saga could otherwise overwrite each other's changes. The saga store prevents this with an optimistic revision:
+
+1. **Load** — the saga is loaded together with its current revision.
+2. **Handle** — the event subscriber changes the saga in memory and records commands.
+3. **Save** — the saga is only saved while it's still at the revision it was loaded with (`UPDATE … WHERE revision = ?`), and its revision is increased. If another process saved it in between, the save is rejected.
+4. **Retry** — a rejected save is retried up to 3 times: the saga is reloaded (now including the other process's change), the subscriber runs again, and the saga is saved. Recorded commands are only dispatched after a successful save, so a rejected attempt never dispatches commands.
+
+Saga IDs are unique per saga: creating a saga concurrently for the same Saga ID, or assigning a Saga ID that already belongs to another saga, is rejected and retried the same way. When an event carries several Saga IDs that belong to the same saga, the saga handles the event once.
+
+Event subscribers should still be idempotent: an event can be delivered again (for example when the outbox retries a failed dispatch).
 
 ### CQRS and the read side
 
