@@ -28,13 +28,13 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
         string $sagaClassName,
         string $methodName,
         string|Stringable $sagaIdValue,
-    ): void {
+    ): ?object {
         // Get persisted Saga by saga id from repository
         try {
             $saga = $this->sagaStore->get($sagaClassName, $sagaIdValue);
         } catch (SagaNotFoundException) {
             if ($eventSubscriberDefinition->policy !== CreationPolicy::IfMissing) {
-                return;
+                return null;
             }
 
             $saga = new $sagaClassName();
@@ -50,5 +50,7 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
 
         // Dispatch recorded commands after saga state is persisted
         $commandRecorder->flush();
+
+        return $saga;
     }
 }

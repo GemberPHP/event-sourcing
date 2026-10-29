@@ -43,6 +43,7 @@ final class SagaFactoryTest extends TestCase
                 '{}',
                 new DateTimeImmutable(),
                 null,
+                0,
             ),
         );
 

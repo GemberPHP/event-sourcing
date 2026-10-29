@@ -26,7 +26,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
         string $sagaClassName,
         string $methodName,
         string|Stringable $sagaIdValue,
-    ): void {
+    ): ?object {
         $startTime = microtime(true);
 
         $this->logger->info(sprintf(
@@ -38,7 +38,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
         ]);
 
         try {
-            $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue);
+            $saga = $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue);
         } catch (Throwable $exception) {
             $this->logger->info(sprintf(
                 '[Saga] Failed handling %s by %s',
@@ -62,5 +62,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
             'sagaId' => (string) $sagaIdValue,
             'duration' => microtime(true) - $startTime,
         ]);
+
+        return $saga;
     }
 }

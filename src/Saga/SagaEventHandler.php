@@ -22,20 +22,41 @@ final readonly class SagaEventHandler
 
     public function __invoke(object $event): void
     {
+        /*
+         * Saga ids of the sagas that already handled this event, per saga class. An event can carry several saga ids
+         * that belong to the same saga (e.g. an order id and a payment id): that saga must handle the event only once.
+         * A saga id belongs to at most one saga, so a handled saga's ids never point to another saga.
+         *
+         * @var array<class-string, array<string, true>> $handledSagaIds
+         */
+        $handledSagaIds = [];
+
         foreach ($this->getSagaDefinitionsForEvent($event) as [$sagaDefinition, $sagaIdDefinition, $eventSubscriberDefinition]) {
             $sagaId = SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition);
 
-            if ($sagaId === null) {
+            if ($sagaId === null || isset($handledSagaIds[$sagaDefinition->sagaClassName][(string) $sagaId])) {
                 continue;
             }
 
-            $this->sagaEventExecutor->execute(
+            $saga = $this->sagaEventExecutor->execute(
                 $event,
                 $eventSubscriberDefinition,
                 $sagaDefinition->sagaClassName,
                 $eventSubscriberDefinition->methodName,
                 $sagaId,
             );
+
+            if ($saga === null) {
+                continue;
+            }
+
+            foreach ($sagaDefinition->sagaIds as $sagaIdDefinitionOfSaga) {
+                $handledSagaId = SagaIdValueHelper::getSagaIdValue($saga, $sagaIdDefinitionOfSaga);
+
+                if ($handledSagaId !== null) {
+                    $handledSagaIds[$sagaDefinition->sagaClassName][(string) $handledSagaId] = true;
+                }
+            }
         }
     }
 

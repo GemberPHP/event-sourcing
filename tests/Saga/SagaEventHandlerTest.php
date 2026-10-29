@@ -25,8 +25,11 @@ use Gember\EventSourcing\Resolver\Saga\Default\SagaName\Stacked\StackedSagaNameR
 use Gember\EventSourcing\Saga\Default\DefaultSagaEventExecutor;
 use Gember\EventSourcing\Test\Repository\Rdbms\TestRdbmsSagaStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEvent;
+use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaEventExecutor;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaForEventHandler;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaSecondEvent;
+use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaTwoIdsEvent;
+use Gember\EventSourcing\Test\TestDoubles\Saga\TestSagaWithTwoIds;
 use Gember\EventSourcing\Test\TestDoubles\Util\Messaging\MessageBus\TestCommandBus;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
@@ -47,6 +50,8 @@ final class SagaEventHandlerTest extends TestCase
 {
     private SagaEventHandler $handler;
     private TestRdbmsSagaStoreRepository $repository;
+    private DefaultDomainEventResolver $domainEventResolver;
+    private ReflectorSagaRegistry $sagaRegistry;
 
     #[Override]
     protected function setUp(): void
@@ -54,7 +59,7 @@ final class SagaEventHandlerTest extends TestCase
         parent::setUp();
 
         $this->handler = new SagaEventHandler(
-            new DefaultDomainEventResolver(
+            $this->domainEventResolver = new DefaultDomainEventResolver(
                 new StackedEventNameResolver(
                     [
                         new AttributeEventNameResolver($attributeResolver = new ReflectorAttributeResolver()),
@@ -70,7 +75,7 @@ final class SagaEventHandlerTest extends TestCase
                 ),
                 new AttributeSagaIdResolver($attributeResolver),
             ),
-            new ReflectorSagaRegistry(
+            $this->sagaRegistry = new ReflectorSagaRegistry(
                 new NativeFinder(),
                 new NativeReflector(),
                 $sagaResolver = new DefaultSagaResolver(
@@ -133,5 +138,33 @@ final class SagaEventHandlerTest extends TestCase
         // Verify saga was NOT created in repository
         self::assertArrayNotHasKey('saga.test-event-handler-afb200a7-4f94-4d40-87b2-50575a1553c7', $this->repository->sagas);
         self::assertEmpty($this->repository->sagas);
+    }
+
+    #[Test]
+    public function itShouldHandleEventOnceWhenSeveralSagaIdsPointToTheSameSaga(): void
+    {
+        $this->handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        $saga = unserialize($this->repository->sagas['saga.test-two-ids-payment-1']->payload);
+
+        self::assertInstanceOf(TestSagaWithTwoIds::class, $saga);
+        self::assertSame('order-1', $saga->orderId);
+        self::assertSame(1, $saga->handled);
+    }
+
+    #[Test]
+    public function itShouldHandleEventForEachSagaIdWhenNoSagaHandledIt(): void
+    {
+        $executor = new TestSagaEventExecutor();
+
+        $handler = new SagaEventHandler(
+            $this->domainEventResolver,
+            $this->sagaRegistry,
+            $executor,
+        );
+
+        $handler->__invoke(new TestSagaTwoIdsEvent(orderId: 'order-1', paymentId: 'payment-1'));
+
+        self::assertSame(['order-1', 'payment-1'], $executor->executedSagaIdValues);
     }
 }
