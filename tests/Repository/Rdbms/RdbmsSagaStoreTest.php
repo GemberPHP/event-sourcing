@@ -97,14 +97,32 @@ final class RdbmsSagaStoreTest extends TestCase
     }
 
     #[Test]
-    public function itShouldThrowSagaIdAlreadyInUseExceptionWhenNewSagaUsesIdOfAnotherSaga(): void
+    public function itShouldThrowSagaConcurrencyExceptionWhenNewSagaUsesIdOfAnotherSaga(): void
     {
         $this->sagaStore->save(new TestSaga('saga-id', 'another-id'));
+
+        // Created concurrently: reloading finds the other saga
+        self::expectException(SagaConcurrencyException::class);
+
+        $this->sagaStore->save(new TestSaga('other-saga-id', 'another-id'));
+    }
+
+    #[Test]
+    public function itShouldThrowSagaIdAlreadyInUseExceptionWhenExistingSagaTakesIdOfAnotherSaga(): void
+    {
+        $sagaStore = $this->createSagaStoreRoundTrippingSagas();
+
+        $sagaStore->save(new TestSaga('saga-id', 'another-id'));
+        $sagaStore->save(new TestSaga('other-saga-id', 'other-another-id'));
+
+        $saga = $sagaStore->get(TestSaga::class, 'other-saga-id');
+        self::assertInstanceOf(TestSaga::class, $saga);
+        $saga->anotherId = 'another-id';
 
         self::expectException(SagaIdAlreadyInUseException::class);
         self::expectExceptionMessageMatches('/another-id/');
 
-        $this->sagaStore->save(new TestSaga('other-saga-id', 'another-id'));
+        $sagaStore->save($saga);
     }
 
     #[Test]

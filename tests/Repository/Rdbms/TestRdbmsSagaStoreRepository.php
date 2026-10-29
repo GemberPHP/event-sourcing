@@ -14,7 +14,8 @@ use Stringable;
 
 /**
  * In-memory equivalent of the RDBMS saga store: an update compares and sets the revision of the saga it was loaded
- * from, and a saga id belongs to at most one saga per saga name.
+ * from, and a saga id belongs to at most one saga per saga name (a taken saga id of a new saga is a concurrent
+ * creation, of an existing saga an id in use).
  */
 final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
 {
@@ -56,12 +57,17 @@ final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
             throw RdbmsSagaConcurrencyException::create();
         }
 
+        $sagaIds = array_values(array_unique(array_map(strval(...), $sagaIds)));
+
         foreach ($sagaIds as $sagaId) {
             foreach ($this->sagas as $saga) {
                 if ($saga->sagaName === $sagaName
                     && $saga->id !== $previous?->id
-                    && in_array((string) $sagaId, array_map(strval(...), $saga->sagaIds), true)) {
-                    throw RdbmsSagaIdAlreadyInUseException::create($sagaName, $sagaId);
+                    && in_array($sagaId, array_map(strval(...), $saga->sagaIds), true)) {
+                    // A taken saga id of a new saga means it was created concurrently: reloading finds it
+                    throw $previous === null
+                        ? RdbmsSagaConcurrencyException::create()
+                        : RdbmsSagaIdAlreadyInUseException::create($sagaName, $sagaId);
                 }
             }
         }
@@ -69,7 +75,7 @@ final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
         $rdbmsSaga = new RdbmsSaga(
             $previous->id ?? (string) $this->nextId++,
             $sagaName,
-            array_values($sagaIds),
+            $sagaIds,
             $payload,
             $previous->createdAt ?? $now,
             $previous !== null ? $now : null,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gember\EventSourcing\Test\TestDoubles\Saga;
 
 use Exception;
+use LogicException;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Gember\EventSourcing\Saga\SagaEventExecutor;
 use Override;
@@ -44,6 +45,11 @@ final class TestSagaEventExecutor implements SagaEventExecutor
     ): ?object {
         $this->wasExecuted = true;
         ++$this->executeCount;
+
+        // Fail a test that would otherwise never end (e.g. a handler looping without progress)
+        if ($this->executeCount > 100) {
+            throw new LogicException('Executed more than 100 times');
+        }
         $this->executedSagaIdValues[] = array_values(array_map(strval(...), $sagaIdValues));
         $this->executedEventSubscriberDefinitions[] = $eventSubscriberDefinition;
         $this->lastEvent = $event;
