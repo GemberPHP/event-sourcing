@@ -131,10 +131,17 @@ A saga's state is saved as a whole after each event, so two events handled at th
 
 1. **Load** — the saga is loaded together with its current revision.
 2. **Handle** — the event subscriber changes the saga in memory and records commands.
-3. **Save** — the saga is only saved while it's still at the revision it was loaded with (`UPDATE … WHERE revision = ?`), and its revision is increased. If another process saved it in between, the save is rejected.
-4. **Retry** — a rejected save is retried up to 3 times: the saga is reloaded (now including the other process's change), the subscriber runs again, and the saga is saved. Recorded commands are only dispatched after a successful save, so a rejected attempt never dispatches commands.
+3. **Save** — the saga is only saved while it's still at the revision it was loaded with (`UPDATE … WHERE id = ? AND revision = ?`), and its revision is increased. If another process saved it in between, the save is rejected with a `SagaConcurrencyException`.
+4. **Retry** — handling the event is attempted up to 5 times in total, with a short, randomized and growing pause in between: the saga is reloaded (now including the other process's change), the subscriber runs again, and the saga is saved. Recorded commands are only dispatched after a successful save, so a rejected attempt never dispatches commands. When all attempts fail, a warning is logged and the exception is rethrown (with the [Outbox](usage/outbox.md), the message is then retried later).
 
-Saga IDs are unique per saga: creating a saga concurrently for the same Saga ID, or assigning a Saga ID that already belongs to another saga, is rejected and retried the same way. When an event carries several Saga IDs that belong to the same saga, the saga handles the event once.
+Only a saga instance loaded from the saga store (or newly created by the framework) can be saved as an update: a clone, or an instance that was serialized and unserialized elsewhere, is saved as a new saga.
+
+!!! warning "Inside a transaction you own"
+    A retry needs a fresh transaction: the transaction of the rejected attempt still holds its writes and, under `REPEATABLE READ`, keeps reading the old state. When sagas are handled inside a transaction the framework didn't open (for example a `doctrine_transaction` middleware around a command handler that dispatches events synchronously), the save isn't retried: the `SagaConcurrencyException` is rethrown, and the owner of that transaction should roll back and retry the whole unit of work.
+
+**A Saga ID value belongs to at most one saga instance per saga name**, across all its Saga ID names. Creating a saga concurrently for the same Saga ID is rejected and retried as above (the retry then finds the saga created by the other process). Saving a saga with a Saga ID value that already belongs to another saga instance is rejected with a `SagaIdAlreadyInUseException`, which isn't retried: it can't succeed later. Sagas with a different saga name can use the same Saga ID values.
+
+When an event carries several Saga IDs, they are handled together: the saga instance owning any of them handles the event once, and is only created (with `CreationPolicy::IfMissing`) when none of them belongs to a saga yet. Any of the event's Saga IDs not belonging to that instance can only belong to other, existing instances, which then handle the event as well. Each `#[SagaEventSubscriber]` method subscribed to the event is invoked.
 
 Event subscribers should still be idempotent: an event can be delivered again (for example when the outbox retries a failed dispatch).
 
@@ -174,12 +181,13 @@ With synchronous event transport, read models are updated immediately after the 
 
 ### Saga store
 
-Sagas are persisted directly (not event-sourced) in a saga store with three structures:
+Sagas are persisted directly (not event-sourced) in a saga store with two structures:
 
 | Structure | Purpose |
 |-----------|---------|
-| Saga store | Stores serialized saga instances (ID, name, payload, timestamps) |
-| Saga store relations | Links Saga ID values to saga instances for routing |
-| Saga store lock | Serializes concurrent writes per saga boundary (same mechanism as the event store) |
+| Saga store | Stores serialized saga instances (ID, name, payload, timestamps, revision) |
+| Saga store relations | Links Saga ID values to saga instances for routing; unique per saga name and Saga ID value |
+
+Concurrent changes to a saga are detected with its revision, see [Saga concurrency](#saga-concurrency).
 
 When a domain event is published, the saga framework extracts `#[SagaId]` values from the event and uses the saga store relations to find the correct saga instance to invoke.

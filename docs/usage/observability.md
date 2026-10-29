@@ -33,8 +33,15 @@ Each decorator logs the start, completion, and failure of its wrapped operation:
 
 **Saga event handling:**
 ```
-[Saga] Started handling OrderPlacedEvent by OrderFulfillmentSaga  {sagaId: "order-123"}
-[Saga] Finished handling OrderPlacedEvent by OrderFulfillmentSaga {sagaId: "order-123", duration: 0.0023}
+[Saga] Started handling OrderPlacedEvent by OrderFulfillmentSaga  {sagaIds: ["order-123"]}
+[Saga] Finished handling OrderPlacedEvent by OrderFulfillmentSaga {sagaIds: ["order-123"], duration: 0.0023}
+```
+
+`sagaIds` lists the event's Saga ID values the saga was looked up by.
+
+A saga changed concurrently is retried (see [How it works - Saga concurrency](../how-it-works.md#saga-concurrency)): each failed attempt is logged as a failure with `exceptionClass` `SagaConcurrencyException`. When all attempts fail, `RetryingSagaEventExecutorDecorator` logs a `WARNING`:
+```
+[Saga] Gave up handling OrderPlacedEvent by OrderFulfillmentSaga after 5 attempt(s): saga was changed concurrently {sagaIds: ["order-123"], insideTransaction: false}
 ```
 
 On failure, the log includes `exception` (message) and `exceptionClass` in the context. All durations are measured in seconds using `microtime(true)`.

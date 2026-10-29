@@ -25,7 +25,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
         SagaEventSubscriberDefinition $eventSubscriberDefinition,
         string $sagaClassName,
         string $methodName,
-        string|Stringable $sagaIdValue,
+        string|Stringable ...$sagaIdValues,
     ): ?object {
         $startTime = microtime(true);
 
@@ -34,11 +34,11 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
             ClassNameSegmentHelper::getLastSegment($event::class),
             ClassNameSegmentHelper::getLastSegment($sagaClassName),
         ), [
-            'sagaId' => (string) $sagaIdValue,
+            'sagaIds' => array_map(strval(...), $sagaIdValues),
         ]);
 
         try {
-            $saga = $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue);
+            $saga = $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, ...$sagaIdValues);
         } catch (Throwable $exception) {
             $this->logger->info(sprintf(
                 '[Saga] Failed handling %s by %s',
@@ -47,7 +47,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
             ), [
                 'exception' => $exception->getMessage(),
                 'exceptionClass' => $exception::class,
-                'sagaId' => (string) $sagaIdValue,
+                'sagaIds' => array_map(strval(...), $sagaIdValues),
                 'duration' => microtime(true) - $startTime,
             ]);
 
@@ -59,7 +59,7 @@ final readonly class LoggableSagaEventExecutorDecorator implements SagaEventExec
             ClassNameSegmentHelper::getLastSegment($event::class),
             ClassNameSegmentHelper::getLastSegment($sagaClassName),
         ), [
-            'sagaId' => (string) $sagaIdValue,
+            'sagaIds' => array_map(strval(...), $sagaIdValues),
             'duration' => microtime(true) - $startTime,
         ]);
 

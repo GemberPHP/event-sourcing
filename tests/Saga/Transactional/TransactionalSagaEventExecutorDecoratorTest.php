@@ -46,13 +46,16 @@ final class TransactionalSagaEventExecutorDecoratorTest extends TestCase
             CreationPolicy::IfMissing,
         );
 
-        $this->decorator->execute($event, $definition, stdClass::class, 'onEvent', 'saga-id-1');
+        $this->innerExecutor->sagaToReturn = $saga = new stdClass();
 
+        $result = $this->decorator->execute($event, $definition, stdClass::class, 'onEvent', 'saga-id-1', 'saga-id-2');
+
+        self::assertSame($saga, $result);
         self::assertTrue($this->transactional->wasCalled);
         self::assertTrue($this->innerExecutor->wasExecuted);
         self::assertSame($event, $this->innerExecutor->lastEvent);
         self::assertSame(stdClass::class, $this->innerExecutor->lastSagaClassName);
         self::assertSame('onEvent', $this->innerExecutor->lastMethodName);
-        self::assertSame('saga-id-1', (string) $this->innerExecutor->lastSagaIdValue);
+        self::assertSame([['saga-id-1', 'saga-id-2']], $this->innerExecutor->executedSagaIdValues);
     }
 }

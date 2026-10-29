@@ -6,10 +6,12 @@ namespace Gember\EventSourcing\Saga\Default;
 
 use Gember\DependencyContracts\Util\Messaging\MessageBus\CommandBus;
 use Gember\EventSourcing\Common\CreationPolicy;
+use Gember\EventSourcing\Repository\SagaConcurrencyException;
 use Gember\EventSourcing\Repository\SagaNotFoundException;
 use Gember\EventSourcing\Repository\SagaStore;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Gember\EventSourcing\Saga\CommandRecorder;
+use Gember\EventSourcing\Saga\SagaCommandDispatchFailedException;
 use Gember\EventSourcing\Saga\SagaEventExecutor;
 use Override;
 use Stringable;
@@ -27,11 +29,11 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
         SagaEventSubscriberDefinition $eventSubscriberDefinition,
         string $sagaClassName,
         string $methodName,
-        string|Stringable $sagaIdValue,
+        string|Stringable ...$sagaIdValues,
     ): ?object {
         // Get persisted Saga by saga id from repository
         try {
-            $saga = $this->sagaStore->get($sagaClassName, $sagaIdValue);
+            $saga = $this->sagaStore->get($sagaClassName, ...$sagaIdValues);
         } catch (SagaNotFoundException) {
             if ($eventSubscriberDefinition->policy !== CreationPolicy::IfMissing) {
                 return null;
@@ -49,7 +51,15 @@ final readonly class DefaultSagaEventExecutor implements SagaEventExecutor
         $this->sagaStore->save($saga);
 
         // Dispatch recorded commands after saga state is persisted
-        $commandRecorder->flush();
+        try {
+            $commandRecorder->flush();
+        } catch (SagaConcurrencyException $exception) {
+            /*
+             * Another saga, handling a dispatched command's events synchronously, ran out of retries. This saga is
+             * saved already: don't let it be retried (and its commands dispatched again).
+             */
+            throw SagaCommandDispatchFailedException::create($sagaClassName, $exception);
+        }
 
         return $saga;
     }

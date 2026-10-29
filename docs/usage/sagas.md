@@ -85,7 +85,7 @@ Saga IDs link events to specific saga instances. Each saga must have at least on
 - **Must be public** - Saga ID properties must have public visibility
 - **May be uninitialized** - A new saga instance is created before the first event subscriber populates the Saga ID properties, so they can be uninitialized at that point. Use `isset()` to check, or make the property nullable (`?string`) and initialize to `null` as an alternative
 - **Must be serializable** - Values must be serializable, either primitive, `Stringable` or a serializable Value Object
-- **Must be set in the first subscriber** - The event subscriber with `CreationPolicy::IfMissing` must assign all Saga ID properties from the triggering event
+- **Must be set in the first subscriber** - The event subscriber with `CreationPolicy::IfMissing` must assign the Saga ID properties known from the triggering event; Saga IDs that only become known later can be assigned by later subscribers
 
 **Custom naming:**
 - Use `#[SagaId(name: 'customName')]` to specify a custom Saga ID name
@@ -101,18 +101,21 @@ final class OrderFulfillmentSaga
     #[SagaId(name: 'orderId')]
     public string $orderId;
 
-    #[SagaId] // Uses property name 'customerId' as Saga ID name
-    public string $customerId;
+    #[SagaId] // Uses property name 'shipmentId' as Saga ID name
+    public string $shipmentId;
 
-    // Saga can be triggered by events with either orderId or customerId
+    // Saga can be triggered by events with either orderId or shipmentId
 }
 ```
 
 Events route to sagas using **OR logic**: if any of the event's `#[SagaId]` properties match a saga's registered Saga ID name, the saga receives the event. This means different events can find the same saga instance through different identifiers. For example:
 - `OrderPlacedEvent` (with `#[SagaId] $orderId`) routes via `orderId`
-- `CustomerAddressChangedEvent` (with `#[SagaId] $customerId`) routes via `customerId`
+- `ShipmentDeliveredEvent` (with `#[SagaId] $shipmentId`) routes via `shipmentId`
 
 Both reach the same `OrderFulfillmentSaga` type, but locate the saga instance through different Saga ID values. Each Saga ID value is stored as a separate relation in the saga store, enabling lookup by any of them.
+
+!!! warning "A Saga ID value identifies one saga instance"
+    A Saga ID value belongs to at most one saga instance per saga name, across all its Saga ID names. Only use identifiers that relate one-to-one to a saga instance: an order saga can have an `orderId` and a `shipmentId`, but not a `customerId`, as a customer places many orders. Saving a saga with a Saga ID value that already belongs to another instance throws a `SagaIdAlreadyInUseException`. To react to customer events for all of a customer's orders, use a separate saga per customer, or let the customer's events carry the order IDs.
 
 ### Saga event subscribers
 
@@ -217,8 +220,8 @@ final class OrderFulfillmentSaga
     #[SagaId(name: 'orderId')]
     public ?string $orderId = null;
 
-    #[SagaId] // Uses property name 'customerId' as Saga ID name
-    public ?string $customerId = null;
+    #[SagaId] // Uses property name 'shipmentId' as Saga ID name
+    public ?string $shipmentId = null;
 }
 ```
 
@@ -231,28 +234,27 @@ use Gember\EventSourcing\Saga\Attribute\SagaId;
 use Gember\EventSourcing\UseCase\Attribute\DomainEvent;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 
-#[DomainEvent(name: 'order.placed')]
-final readonly class OrderPlacedEvent
+#[DomainEvent(name: 'shipment.scheduled')]
+final readonly class ShipmentScheduledEvent
 {
     public function __construct(
         #[DomainTag]
-        #[SagaId(name: 'orderId')]
-        public string $id,
+        #[SagaId] // Uses property name 'shipmentId'
+        public string $shipmentId,
         #[DomainTag]
-        #[SagaId] // Links to 'customerId' Saga ID
-        public string $customerId,
-        public float $amount,
+        #[SagaId(name: 'orderId')]
+        public string $forOrder,
     ) {}
 }
 
-#[DomainEvent(name: 'payment.received')]
-final readonly class PaymentReceivedEvent
+#[DomainEvent(name: 'shipment.delivered')]
+final readonly class ShipmentDeliveredEvent
 {
     public function __construct(
         #[DomainTag]
-        #[SagaId] // Uses property name 'orderId'
-        public string $orderId,
-        // No customerId - this event only routes via orderId
+        #[SagaId] // Uses property name 'shipmentId'
+        public string $shipmentId,
+        // No orderId - this event only routes via shipmentId
     ) {}
 }
 ```
@@ -262,16 +264,17 @@ final readonly class PaymentReceivedEvent
 When a domain event is published, the following process occurs:
 
 1. **Extract Saga IDs** - The `SagaEventHandler` extracts all Saga ID values from the event
-2. **Route by Saga ID** - For each Saga ID in the event (e.g., `orderId`, `customerId`):
+2. **Route by Saga ID** - For each Saga ID in the event (e.g., `orderId`, `shipmentId`):
    - If the Saga ID value is **null**, that routing path is skipped
    - Otherwise, it finds all saga classes registered for that Saga ID name
-3. **Match event subscribers** - For each matching saga class, checks if there's an event subscriber for this specific event type
-4. **Retrieve saga instance** - Loads the saga instance from the saga store using the Saga ID value
+3. **Match event subscribers** - For each matching saga class, checks if there's an event subscriber for this specific event type. The event's Saga ID values are grouped per saga class and subscriber method
+4. **Retrieve saga instance** - Loads the saga instance owning any of the grouped Saga ID values from the saga store
 5. **Handle missing sagas**:
    - With `CreationPolicy::IfMissing` - A new saga instance is created
    - With `CreationPolicy::Never` - Processing is skipped
 6. **Invoke subscriber** - The saga's event subscriber method is invoked with the event and CommandRecorder
-7. **Persist saga** - The saga instance is persisted back to the saga store
+7. **Persist saga** - The saga instance is persisted back to the saga store, after which the recorded commands are dispatched
+8. **Remaining Saga IDs** - Grouped Saga ID values not belonging to the handled saga instance can only belong to other instances: these existing instances handle the event too (they are never created for it)
 
 **What this enables:**
 - Multiple events with the same Saga ID route to the same saga instance (saga continuity)
@@ -287,12 +290,12 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 
 | Table | Purpose |
 |-------|---------|
-| Saga store | Stores serialized saga instances (ID, name, payload, timestamps) |
+| Saga store | Stores serialized saga instances (ID, name, payload, timestamps, revision) |
 | Saga store relations | Links Saga ID values to saga instances for routing |
 
-When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, the old relations are replaced with the current set, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga.
+When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, relations of removed Saga ID values are deleted and relations of added ones are inserted, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga name (see [Saga IDs](#saga-ids)).
 
-Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga. See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
+Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga (up to 5 attempts). See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
 
 ### Serialization
 
@@ -445,7 +448,7 @@ final class OrderProcessingSaga
 
 #### Example 2: Complex fulfillment saga with compensating transactions
 
-A more complex saga demonstrating multiple Saga IDs, parallel processing, and compensating transactions:
+A more complex saga demonstrating multiple Saga IDs, parallel processing, and compensating transactions. The shipment ID is only known once the shipment is scheduled; from then on, shipment events find the saga through it:
 
 ```php
 use Gember\EventSourcing\Saga\CommandRecorder;
@@ -461,7 +464,7 @@ final class OrderFulfillmentSaga
     public ?string $orderId = null;
 
     #[SagaId]
-    public ?string $customerId = null;
+    public ?string $shipmentId = null;
 
     private bool $paymentReceived = false;
     private bool $inventoryReserved = false;
@@ -471,7 +474,6 @@ final class OrderFulfillmentSaga
     public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->orderId = $event->orderId;
-        $this->customerId = $event->customerId;
 
         // Start the fulfillment process
         $commandRecorder->record(new ProcessPaymentCommand($event->orderId, $event->amount));
@@ -523,29 +525,35 @@ final class OrderFulfillmentSaga
     }
 
     #[SagaEventSubscriber]
-    public function onOrderShippedEvent(OrderShippedEvent $event, CommandRecorder $commandRecorder): void
+    public function onShipmentScheduledEvent(ShipmentScheduledEvent $event, CommandRecorder $commandRecorder): void
+    {
+        // Routed via orderId; from now on the saga can also be found via its shipmentId
+        $this->shipmentId = $event->shipmentId;
+    }
+
+    #[SagaEventSubscriber]
+    public function onShipmentDelayedEvent(ShipmentDelayedEvent $event, CommandRecorder $commandRecorder): void
+    {
+        // Routed via shipmentId: shipment events don't know the order
+        if (!$this->itemsShipped) {
+            $commandRecorder->record(new NotifyCustomerOfDelayCommand($this->orderId, $event->expectedAt));
+        }
+    }
+
+    #[SagaEventSubscriber]
+    public function onShipmentDeliveredEvent(ShipmentDeliveredEvent $event, CommandRecorder $commandRecorder): void
     {
         $this->itemsShipped = true;
 
         // Notify customer and complete the saga
-        $commandRecorder->record(new SendShippingNotificationCommand($event->orderId));
-    }
-
-    #[SagaEventSubscriber]
-    public function onCustomerAddressChangedEvent(CustomerAddressChangedEvent $event, CommandRecorder $commandRecorder): void
-    {
-        // This saga can also respond to customer events via the customerId Saga ID
-        // If shipping hasn't occurred yet, update the shipping address
-        if (!$this->itemsShipped && $this->inventoryReserved) {
-            $commandRecorder->record(new UpdateShippingAddressCommand($this->orderId, $event->newAddress));
-        }
+        $commandRecorder->record(new SendShippingNotificationCommand($this->orderId));
     }
 }
 ```
 
 **Key characteristics:**
-- **Multiple Saga IDs** - Can be triggered by events with `orderId` or `customerId`
+- **Multiple Saga IDs** - Can be triggered by events with `orderId` or, once known, `shipmentId`
 - **Parallel processing** - Payment and inventory reservation happen concurrently
 - **Compensating transactions** - Rolls back partial operations when failures occur
-- **Cross-context coordination** - Responds to both order and customer events
+- **Cross-context coordination** - Responds to both order and shipment events
 - **State-based decisions** - Uses boolean flags to coordinate parallel steps

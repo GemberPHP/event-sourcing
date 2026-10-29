@@ -7,10 +7,15 @@ namespace Gember\EventSourcing\Test\Repository\Rdbms;
 use DateTimeImmutable;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSaga;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaConcurrencyException;
+use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaIdAlreadyInUseException;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaNotFoundException;
 use Gember\DependencyContracts\EventStore\Saga\RdbmsSagaStoreRepository;
 use Stringable;
 
+/**
+ * In-memory equivalent of the RDBMS saga store: an update compares and sets the revision of the saga it was loaded
+ * from, and a saga id belongs to at most one saga per saga name.
+ */
 final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
 {
     /**
@@ -19,15 +24,19 @@ final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
     public array $sagas = [];
 
     /**
-     * @var list<int|null>
+     * @var list<?RdbmsSaga>
      */
-    public array $expectedRevisions = [];
+    public array $previousSagas = [];
+
+    private int $nextId = 1;
 
     public function get(string $sagaName, Stringable|string ...$sagaIds): RdbmsSaga
     {
         foreach ($sagaIds as $sagaId) {
-            if (isset($this->sagas[sprintf('%s-%s', $sagaName, $sagaId)])) {
-                return $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)];
+            foreach ($this->sagas as $saga) {
+                if ($saga->sagaName === $sagaName && in_array((string) $sagaId, array_map(strval(...), $saga->sagaIds), true)) {
+                    return $saga;
+                }
             }
         }
 
@@ -38,32 +47,36 @@ final class TestRdbmsSagaStoreRepository implements RdbmsSagaStoreRepository
         string $sagaName,
         string $payload,
         DateTimeImmutable $now,
-        ?int $expectedRevision,
+        ?RdbmsSaga $previous,
         Stringable|string ...$sagaIds,
     ): RdbmsSaga {
-        $this->expectedRevisions[] = $expectedRevision;
+        $this->previousSagas[] = $previous;
+
+        if ($previous !== null && ($this->sagas[$previous->id] ?? null)?->revision !== $previous->revision) {
+            throw RdbmsSagaConcurrencyException::create();
+        }
 
         foreach ($sagaIds as $sagaId) {
-            $current = $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)] ?? null;
-
-            if ($current !== null && $current->revision !== $expectedRevision) {
-                throw RdbmsSagaConcurrencyException::create();
+            foreach ($this->sagas as $saga) {
+                if ($saga->sagaName === $sagaName
+                    && $saga->id !== $previous?->id
+                    && in_array((string) $sagaId, array_map(strval(...), $saga->sagaIds), true)) {
+                    throw RdbmsSagaIdAlreadyInUseException::create($sagaName, $sagaId);
+                }
             }
         }
 
         $rdbmsSaga = new RdbmsSaga(
-            '',
+            $previous->id ?? (string) $this->nextId++,
             $sagaName,
             array_values($sagaIds),
             $payload,
-            $now,
-            null,
-            $expectedRevision === null ? 0 : $expectedRevision + 1,
+            $previous->createdAt ?? $now,
+            $previous !== null ? $now : null,
+            $previous !== null ? $previous->revision + 1 : 0,
         );
 
-        foreach ($sagaIds as $sagaId) {
-            $this->sagas[sprintf('%s-%s', $sagaName, $sagaId)] = $rdbmsSaga;
-        }
+        $this->sagas[$rdbmsSaga->id] = $rdbmsSaga;
 
         return $rdbmsSaga;
     }

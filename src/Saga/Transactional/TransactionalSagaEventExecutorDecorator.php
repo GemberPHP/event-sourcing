@@ -23,11 +23,11 @@ final readonly class TransactionalSagaEventExecutorDecorator implements SagaEven
         SagaEventSubscriberDefinition $eventSubscriberDefinition,
         string $sagaClassName,
         string $methodName,
-        string|Stringable $sagaIdValue,
+        string|Stringable ...$sagaIdValues,
     ): ?object {
         /** @var object|null */
         return $this->transactional->transactional(
-            fn() => $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, $sagaIdValue),
+            fn() => $this->sagaEventExecutor->execute($event, $eventSubscriberDefinition, $sagaClassName, $methodName, ...$sagaIdValues),
         );
     }
 }

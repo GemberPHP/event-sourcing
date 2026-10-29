@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Saga;
 
+use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Registry\Saga\SagaRegistry;
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdDefinition;
 use Gember\EventSourcing\Resolver\Common\SagaId\SagaIdValueHelper;
@@ -11,6 +12,7 @@ use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Generator;
+use Stringable;
 
 final readonly class SagaEventHandler
 {
@@ -22,42 +24,73 @@ final readonly class SagaEventHandler
 
     public function __invoke(object $event): void
     {
-        /*
-         * Saga ids of the sagas that already handled this event, per saga class. An event can carry several saga ids
-         * that belong to the same saga (e.g. an order id and a payment id): that saga must handle the event only once.
-         * A saga id belongs to at most one saga, so a handled saga's ids never point to another saga.
-         *
-         * @var array<class-string, array<string, true>> $handledSagaIds
-         */
-        $handledSagaIds = [];
+        foreach ($this->groupSagaIdsBySubscriber($event) as [$sagaDefinition, $eventSubscriberDefinition, $sagaIds]) {
+            $definition = $eventSubscriberDefinition;
+
+            /*
+             * The event's saga ids are handled together: the saga that owns any of them handles the event once,
+             * however many of its ids the event carries. A saga id belongs to at most one saga, so remaining ids can
+             * only belong to other existing sagas, which handle the event too (but are never created for it).
+             */
+            while ($sagaIds !== []) {
+                $saga = $this->sagaEventExecutor->execute(
+                    $event,
+                    $definition,
+                    $sagaDefinition->sagaClassName,
+                    $definition->methodName,
+                    ...array_values($sagaIds),
+                );
+
+                if ($saga === null) {
+                    break;
+                }
+
+                $remaining = $sagaIds;
+
+                foreach ($sagaDefinition->sagaIds as $sagaIdDefinition) {
+                    $handledSagaId = SagaIdValueHelper::getSagaIdValue($saga, $sagaIdDefinition);
+
+                    if ($handledSagaId !== null) {
+                        unset($remaining[(string) $handledSagaId]);
+                    }
+                }
+
+                // The saga doesn't own any of the event's saga ids (anymore): nothing to attribute the rest to
+                if (count($remaining) === count($sagaIds)) {
+                    break;
+                }
+
+                $sagaIds = $remaining;
+                $definition = new SagaEventSubscriberDefinition(
+                    $eventSubscriberDefinition->eventClassName,
+                    $eventSubscriberDefinition->methodName,
+                    CreationPolicy::Never,
+                );
+            }
+        }
+    }
+
+    /**
+     * @return list<array{SagaDefinition, SagaEventSubscriberDefinition, array<array-key, string|Stringable>}>
+     */
+    private function groupSagaIdsBySubscriber(object $event): array
+    {
+        $groups = [];
 
         foreach ($this->getSagaDefinitionsForEvent($event) as [$sagaDefinition, $sagaIdDefinition, $eventSubscriberDefinition]) {
             $sagaId = SagaIdValueHelper::getSagaIdValue($event, $sagaIdDefinition);
 
-            if ($sagaId === null || isset($handledSagaIds[$sagaDefinition->sagaClassName][(string) $sagaId])) {
+            if ($sagaId === null) {
                 continue;
             }
 
-            $saga = $this->sagaEventExecutor->execute(
-                $event,
-                $eventSubscriberDefinition,
-                $sagaDefinition->sagaClassName,
-                $eventSubscriberDefinition->methodName,
-                $sagaId,
-            );
+            $key = $sagaDefinition->sagaClassName . '::' . $eventSubscriberDefinition->methodName;
 
-            if ($saga === null) {
-                continue;
-            }
-
-            foreach ($sagaDefinition->sagaIds as $sagaIdDefinitionOfSaga) {
-                $handledSagaId = SagaIdValueHelper::getSagaIdValue($saga, $sagaIdDefinitionOfSaga);
-
-                if ($handledSagaId !== null) {
-                    $handledSagaIds[$sagaDefinition->sagaClassName][(string) $handledSagaId] = true;
-                }
-            }
+            $groups[$key] ??= [$sagaDefinition, $eventSubscriberDefinition, []];
+            $groups[$key][2][(string) $sagaId] = $sagaId;
         }
+
+        return array_values($groups);
     }
 
     /**

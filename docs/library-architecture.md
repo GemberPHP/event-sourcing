@@ -389,13 +389,17 @@ flowchart TD
         nullCheck{"Saga ID value null?"}
         extractId --> nullCheck
         nullCheck -->|"yes"| skip["Skip"]
-        nullCheck -->|"no"| exec["SagaEventExecutor::execute()"]
+        nullCheck -->|"no"| group["Group saga ID values
+        per saga class + subscriber method"]
+        group --> exec["SagaEventExecutor::execute(...sagaIds)
+        once per group; remaining IDs not owned by the
+        handled saga: again with CreationPolicy::Never"]
     end
 
     resolve --> routing
 
     subgraph execution ["DefaultSagaEventExecutor"]
-        load["SagaStore::get()
+        load["SagaStore::get(...sagaIds)
         RdbmsSagaStoreRepository → SagaFactory"]
         notFound{"SagaNotFoundException?"}
         load --> notFound
@@ -409,13 +413,20 @@ flowchart TD
         SagaResolver → sagaName, sagaIds
         Serializer → payload
         SagaIdValueHelper → current saga ID values
-        RdbmsSagaStoreRepository::save()"]
+        RdbmsSagaStoreRepository::save()
+        → revision compare-and-set"]
+
+        flush["CommandRecorder::flush()
+        dispatch recorded commands"]
 
         run --> save
+        save --> flush
     end
 
     exec --> execution
 ```
+
+`SagaEventExecutor` is decorated by `RetryingSagaEventExecutorDecorator` (outermost: retries on a `SagaConcurrencyException`, unless inside a transaction it didn't open), `TransactionalSagaEventExecutorDecorator` (outbox) and `LoggableSagaEventExecutorDecorator`.
 
 The routing uses a three-level nested lookup: event saga IDs → saga registry (by saga ID name) → event subscriber filter (by event class). This allows a single event to trigger multiple sagas through different saga IDs, and a single saga to respond to events with different identifiers.
 
@@ -436,13 +447,13 @@ These interfaces must be implemented by a framework integration package (e.g., [
 | `EventBus` | Publish domain events after persistence | `EventSourcedUseCaseRepository` |
 | `IdentityGenerator` | Generate unique event IDs | `DomainEventEnvelopeFactory` |
 | `RdbmsOutboxRepository` | Database persistence for outbox messages | `RdbmsOutboxStore` |
-| `Transactional` | Database transaction wrapper | `TransactionalUseCaseRepositoryDecorator`, `TransactionalSagaEventExecutorDecorator` |
+| `Transactional` | Database transaction wrapper | `TransactionalUseCaseRepositoryDecorator`, `TransactionalSagaEventExecutorDecorator`, `RetryingSagaEventExecutorDecorator` (`isActive()`) |
 
 #### PSR interfaces
 
 | Interface | Standard | Used by |
 |-----------|----------|---------|
-| `LoggerInterface` | PSR-3 (`psr/log`) | `LoggableEventStoreDecorator`, `LoggableUseCaseCommandExecutorDecorator`, `LoggableSagaEventExecutorDecorator` |
+| `LoggerInterface` | PSR-3 (`psr/log`) | `LoggableEventStoreDecorator`, `LoggableUseCaseCommandExecutorDecorator`, `LoggableSagaEventExecutorDecorator`, `RetryingSagaEventExecutorDecorator` |
 | `CacheInterface` | PSR-16 (`psr/simple-cache`) | All `Cached*Decorator` classes |
 
 #### Internal interfaces
