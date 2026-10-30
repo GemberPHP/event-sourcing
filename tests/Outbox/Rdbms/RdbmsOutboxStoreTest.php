@@ -7,11 +7,13 @@ namespace Gember\EventSourcing\Test\Outbox\Rdbms;
 use DateTimeImmutable;
 use Exception;
 use Gember\DependencyContracts\Outbox\Rdbms\RdbmsOutboxMessage;
+use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\Outbox\OutboxMessageType;
 use Gember\EventSourcing\Outbox\OutboxStoreFailedException;
 use Gember\EventSourcing\Outbox\Rdbms\RdbmsOutboxStore;
 use Gember\EventSourcing\Test\TestDoubles\Outbox\TestRdbmsOutboxRepository;
 use Gember\EventSourcing\Test\TestDoubles\Util\Generator\Identity\TestIdentityGenerator;
+use Gember\EventSourcing\Test\TestDoubles\Util\Log\TestLogger;
 use Gember\EventSourcing\Test\TestDoubles\Util\Serialization\Serializer\TestSerializer;
 use Gember\EventSourcing\Test\TestDoubles\Util\Time\Clock\TestClock;
 use Override;
@@ -91,6 +93,43 @@ final class RdbmsOutboxStoreTest extends TestCase
         self::assertSame('message-id-1', $messages[0]->id);
         self::assertSame(OutboxMessageType::Event, $messages[0]->type);
         self::assertInstanceOf(stdClass::class, $messages[0]->message);
+    }
+
+    #[Test]
+    public function itShouldDeadLetterMessageThatCannotBeDeserializedAndReturnTheOthers(): void
+    {
+        $serializer = new class implements Serializer {
+            public function serialize(object $object): string
+            {
+                return serialize($object);
+            }
+
+            public function deserialize(string $payload, string $className): object
+            {
+                if ($payload === 'broken') {
+                    throw new Exception('Class not found');
+                }
+
+                return new stdClass();
+            }
+        };
+
+        $store = new RdbmsOutboxStore($this->repository, $serializer, new TestIdentityGenerator(), $this->clock, $logger = new TestLogger());
+
+        $this->repository->unprocessedMessages = [
+            new RdbmsOutboxMessage('message-id-1', 'event', 'App\RenamedEvent', 'broken', new DateTimeImmutable('2024-10-14 12:00:00')),
+            new RdbmsOutboxMessage('message-id-2', 'event', stdClass::class, serialize(new stdClass()), new DateTimeImmutable('2024-10-14 12:00:01')),
+            new RdbmsOutboxMessage('message-id-3', 'unknown-type', stdClass::class, serialize(new stdClass()), new DateTimeImmutable('2024-10-14 12:00:02')),
+        ];
+
+        $messages = $store->getUnprocessedMessages(10);
+
+        self::assertSame(['message-id-2'], array_map(fn($message) => $message->id, $messages));
+        self::assertSame(['message-id-1', 'message-id-3'], $this->repository->incrementedRetryCountIds);
+        self::assertSame([0, 0], $this->repository->incrementedRetryCountMaxRetries);
+        self::assertCount(2, $logger->logs);
+        self::assertSame('[Outbox] Dead-lettered event App\RenamedEvent: it can\'t be deserialized', $logger->logs[0]['message']);
+        self::assertSame('Class not found', $logger->logs[0]['context']['exception']);
     }
 
     #[Test]
