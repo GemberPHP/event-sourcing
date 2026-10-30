@@ -58,6 +58,8 @@ Events are persisted in two storage structures:
 
 When an event is persisted, a relation row is created for each `#[DomainTag]` property on the event. This allows the event store to efficiently query events when loading a use case. The query is scoped by both the domain tags (from the command) and the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods), so only relevant events are loaded.
 
+Domain tags are compared exactly (case-sensitively): `course-1` and `COURSE-1` are different tags, so make sure the same identifier always has the same spelling (e.g. normalize UUIDs to lowercase).
+
 ### Domain tags across components
 
 Domain tags appear on commands, use cases, and events, each serving a different purpose:
@@ -124,6 +126,15 @@ The Doctrine DBAL event store supports MySQL and MariaDB (InnoDB) and SQLite; ot
 
 !!! note "Upgrading from per-boundary locks"
     Earlier versions locked a single row per exact boundary. Old and new versions lock different rows and therefore don't serialize against each other: don't run them side by side, deploy as a cut-over. The old lock rows are no longer used; they are harmless and can be deleted once no old version is running.
+
+!!! note "Upgrading to case-sensitive domain tags"
+    Before `gember/rdbms-event-store-doctrine-dbal` 0.20.0, MySQL and MariaDB compared domain tags ignoring case when loading and counting events, while the locks compared them exactly: writers using `course-1` and `COURSE-1` read each other's events without locking each other out. The released migrations were changed in place, so a database that already ran them needs this change applied manually (it rebuilds the table: about 3 seconds per 500,000 tag rows):
+
+    ```sql
+    ALTER TABLE event_store_relation MODIFY domain_tag varchar(100) COLLATE utf8mb4_bin NOT NULL;
+    ```
+
+    Tags that differ only in case become separate streams. If your application relied on those matching, normalize the identifiers before upgrading. SQLite already compared tags exactly.
 
 #### Saga concurrency
 
