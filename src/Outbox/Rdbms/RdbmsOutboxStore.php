@@ -14,6 +14,7 @@ use Gember\EventSourcing\Outbox\OutboxStore;
 use Gember\EventSourcing\Outbox\OutboxStoreFailedException;
 use Gember\EventSourcing\Util\Time\Clock\Clock;
 use Override;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 final readonly class RdbmsOutboxStore implements OutboxStore
@@ -23,6 +24,7 @@ final readonly class RdbmsOutboxStore implements OutboxStore
         private Serializer $serializer,
         private IdentityGenerator $identityGenerator,
         private Clock $clock,
+        private ?LoggerInterface $logger = null,
     ) {}
 
     #[Override]
@@ -41,26 +43,37 @@ final readonly class RdbmsOutboxStore implements OutboxStore
         }
     }
 
+    /**
+     * A message that can't be deserialized (e.g. its class was renamed or removed) can't succeed on a retry: it's
+     * dead-lettered right away, so it doesn't keep the other messages of its batch from being dispatched.
+     */
     #[Override]
     public function getUnprocessedMessages(int $limit): array
     {
         try {
-            return array_map(
-                function (RdbmsOutboxMessage $rdbmsMessage) {
-                    /** @var class-string $messageName */
-                    $messageName = $rdbmsMessage->messageName;
-
-                    return new OutboxMessage(
-                        $rdbmsMessage->id,
-                        OutboxMessageType::from($rdbmsMessage->messageType),
-                        $this->serializer->deserialize($rdbmsMessage->payload, $messageName),
-                    );
-                },
-                $this->repository->getUnprocessedMessages($limit),
-            );
+            $rdbmsMessages = $this->repository->getUnprocessedMessages($limit);
         } catch (Throwable $exception) {
             throw OutboxStoreFailedException::withException($exception);
         }
+
+        $messages = [];
+
+        foreach ($rdbmsMessages as $rdbmsMessage) {
+            try {
+                /** @var class-string $messageName */
+                $messageName = $rdbmsMessage->messageName;
+
+                $messages[] = new OutboxMessage(
+                    $rdbmsMessage->id,
+                    OutboxMessageType::from($rdbmsMessage->messageType),
+                    $this->serializer->deserialize($rdbmsMessage->payload, $messageName),
+                );
+            } catch (Throwable $exception) {
+                $this->deadLetter($rdbmsMessage, $exception);
+            }
+        }
+
+        return $messages;
     }
 
     #[Override]
@@ -78,6 +91,27 @@ final readonly class RdbmsOutboxStore implements OutboxStore
     {
         try {
             $this->repository->incrementRetryCount($maxRetries, ...$messageIds);
+        } catch (Throwable $exception) {
+            throw OutboxStoreFailedException::withException($exception);
+        }
+    }
+
+    private function deadLetter(RdbmsOutboxMessage $rdbmsMessage, Throwable $exception): void
+    {
+        $this->logger?->error(sprintf(
+            '[Outbox] Dead-lettered %s %s: it can\'t be deserialized',
+            $rdbmsMessage->messageType,
+            $rdbmsMessage->messageName,
+        ), [
+            'messageId' => $rdbmsMessage->id,
+            'messageType' => $rdbmsMessage->messageType,
+            'messageName' => $rdbmsMessage->messageName,
+            'exception' => $exception->getMessage(),
+            'exceptionClass' => $exception::class,
+        ]);
+
+        try {
+            $this->repository->incrementRetryCount(0, $rdbmsMessage->id);
         } catch (Throwable $exception) {
             throw OutboxStoreFailedException::withException($exception);
         }

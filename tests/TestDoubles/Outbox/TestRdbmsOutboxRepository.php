@@ -35,6 +35,11 @@ final class TestRdbmsOutboxRepository implements RdbmsOutboxRepository
      */
     public array $incrementedRetryCountIds = [];
 
+    /**
+     * @var list<int>
+     */
+    public array $incrementedRetryCountMaxRetries = [];
+
     public function getUnprocessedMessages(int $limit): array
     {
         if ($this->shouldThrow !== null) {
@@ -72,6 +77,7 @@ final class TestRdbmsOutboxRepository implements RdbmsOutboxRepository
 
         foreach ($messageIds as $id) {
             $this->incrementedRetryCountIds[] = $id;
+            $this->incrementedRetryCountMaxRetries[] = $maxRetries;
         }
     }
 }
