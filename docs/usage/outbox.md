@@ -116,6 +116,8 @@ The outbox uses a single table for both events and commands:
 | `retry_count` | int, default 0 | Number of failed dispatch attempts |
 | `processed_at` | timestamp(6), nullable | Set when successfully dispatched |
 | `dead_lettered_at` | timestamp(6), nullable | Set when `retry_count` exceeds `max_retries` |
+| `claimed_by` | varchar(100), nullable | The processor that claimed the message (`host:pid:random`) |
+| `claimed_until` | timestamp(6), nullable | Until when the claim holds (its lease) |
 
 The table is created by a migration shipped with the [rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal) package (both Doctrine Migrations and Phinx migrations are provided).
 
@@ -151,12 +153,28 @@ WHERE id = 'message-id';
 The outbox provides **at-least-once delivery**. This means:
 
 - Every message will be dispatched at least once
-- In rare failure scenarios (e.g., process crash after dispatch but before `markAsProcessed`), a message may be dispatched more than once
+- In rare failure scenarios, a message may be dispatched more than once: a processor crashing after dispatch but before marking the message as processed, or a batch taking longer to dispatch than the lease (see below)
 - Event handlers and command handlers **must be idempotent** — processing the same message twice should produce the same result
 
 ### Concurrent processors
 
-Multiple processor instances can run safely in parallel. The outbox query uses `SELECT ... FOR UPDATE SKIP LOCKED`, which ensures each message is picked up by exactly one processor instance. This allows horizontal scaling of the processor without coordination.
+Multiple processor instances can run in parallel, without coordination. Each processor **claims** the batch of messages it takes: in a short transaction, the messages are marked with the processor (`claimed_by`) and a lease (`claimed_until`, 300 seconds by default). Other processors skip claimed messages, so every message is dispatched by one processor at a time. Dispatching happens after the claim is committed, outside any transaction.
+
+- **Lease:** a claim expires after the lease. When a processor crashes or hangs, other processors take its messages over after that time. The lease must exceed the time to dispatch one batch (`--limit`, 100 by default): otherwise other processors take over the rest of a batch that is still being dispatched, and dispatch those messages again. Lower `--limit` for slow handlers. The lease is a constructor argument of `DoctrineDbalRdbmsOutboxRepository` (`$leaseSeconds`).
+- **Failures:** a failed dispatch is counted only by the processor holding the claim, which releases the message for a retry.
+- **No ordering across processors:** with one processor, messages are dispatched oldest first (apart from retries). With several processors, messages are dispatched in parallel, so two events for the same use case or saga can be handled at the same time and in any order. Use several processors when your handlers don't depend on the order of events; keep one processor when they do.
+- **Databases without `SKIP LOCKED`** (SQLite, MySQL 5.7, MariaDB < 10.6): claiming stays correct, but concurrent processors compete for the same messages more often, so adding processors helps less.
+
+!!! note "Upgrading to claimed outbox messages"
+    Before `gember/rdbms-event-store-doctrine-dbal` 0.21.0, concurrent processors dispatched the same messages (the `SKIP LOCKED` locks were released right away). The released migrations were changed in place, so a database that already ran them needs the two columns added manually:
+
+    ```sql
+    ALTER TABLE outbox
+      ADD COLUMN claimed_by varchar(100) COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+      ADD COLUMN claimed_until timestamp(6) NULL DEFAULT NULL;
+    ```
+
+    This is instant on MySQL 8 and MariaDB 10.3+ (no table rebuild). The previous version ignores the new columns, so add them before deploying; a rolling deploy works. Stop processors of the previous version before starting new ones: running side by side, the old ones still dispatch messages the new ones claimed. SQLite: two `ALTER TABLE outbox ADD COLUMN …` statements.
 
 ### Architecture
 
@@ -183,8 +201,10 @@ The outbox is implemented as a composable layer on top of the existing architect
 ┌─────────────────────────────────────────────────────┐
 │ OutboxProcessor (background worker)                 │
 │   ├── OutboxStore.getUnprocessedMessages()          │
+│   │     → claims a batch (short transaction)        │
 │   ├── EventBus.handle() / CommandBus.handle()       │
-│   └── OutboxStore.markAsProcessed()                 │
+│   │     → outside any transaction                   │
+│   └── OutboxStore.markAsProcessed() / markAsFailed()│
 └─────────────────────────────────────────────────────┘
 ```
 
