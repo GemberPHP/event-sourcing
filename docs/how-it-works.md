@@ -143,7 +143,9 @@ Only a saga instance loaded from the saga store (or newly created by the framewo
 
 **A Saga ID value belongs to at most one saga instance per saga name**, across all its Saga ID names; values are compared case-sensitively. A new saga is only created when none of the event's Saga IDs belongs to a saga, so when one of its Saga IDs turns out to be taken while saving, another process created the saga concurrently: the save is rejected and retried as above, and the retry finds the saga created by the other process. Adding a Saga ID value to an existing saga while it belongs to another saga instance is rejected with a `SagaIdAlreadyInUseException`, which isn't retried: it can't succeed later. Sagas with a different saga name can use the same Saga ID values.
 
-When an event carries several Saga IDs, they are handled together: the saga instance owning any of them handles the event once, and is only created (with `CreationPolicy::IfMissing`) when none of them belongs to a saga yet. Any of the event's Saga IDs not belonging to that instance can only belong to other, existing instances, which then handle the event as well. Each `#[SagaEventSubscriber]` method subscribed to the event is invoked.
+When an event carries several Saga IDs, they are handled together: the saga instance owning any of them handles the event, and is only created (with `CreationPolicy::IfMissing`) when none of them belongs to a saga yet. Any of the event's Saga IDs not belonging to that instance can only belong to other, existing instances, which then handle the event as well. Each `#[SagaEventSubscriber]` method subscribed to the event is invoked.
+
+A saga instance normally handles such an event once. If another process adds the event's remaining Saga ID to the same instance at that very moment, it can handle the event a second time, which is one more reason for idempotent subscribers.
 
 Event subscribers should still be idempotent: an event can be delivered again (for example when the outbox retries a failed dispatch).
 
