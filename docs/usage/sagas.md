@@ -274,7 +274,7 @@ When a domain event is published, the following process occurs:
    - With `CreationPolicy::Never` - Processing is skipped
 6. **Invoke subscriber** - The saga's event subscriber method is invoked with the event and CommandRecorder
 7. **Persist saga** - The saga instance is persisted back to the saga store, after which the recorded commands are dispatched
-8. **Remaining Saga IDs** - Grouped Saga ID values not belonging to the handled saga instance can only belong to other instances: these existing instances handle the event too (they are never created for it)
+8. **Remaining Saga IDs** - Grouped Saga ID values not belonging to the handled saga instance can only belong to other instances: these existing instances handle the event too (they are never created for it). This relies on the handled saga keeping the Saga IDs it was found by during that event: when its subscriber clears or replaces them, other instances owning the event's remaining Saga IDs aren't looked up anymore
 
 **What this enables:**
 - Multiple events with the same Saga ID route to the same saga instance (saga continuity)
@@ -299,34 +299,53 @@ Concurrent events for the same saga instance are handled safely: each save check
 
 #### Upgrading the saga store
 
-The saga store got a revision, a saga name per Saga ID with a unique key (case-sensitive), and lost its lock table. The released migrations were changed in place, so **a database that already ran them needs these changes applied manually**. Old and new code can't run against each other's schema, so upgrade with everything stopped:
+This applies to databases created with `gember/rdbms-event-store-doctrine-dbal` before 0.19.0. The saga store got a revision, a saga name per Saga ID with a unique key, and lost its lock table. The released migrations were changed in place, so **a database that already ran them needs these changes applied manually**. Old and new code can't run against each other's schema, so upgrade with everything stopped:
 
 1. Take a backup.
-2. Stop all processes handling saga events (outbox processors, message consumers).
+2. Stop everything that handles saga events: outbox processors and message consumers, and in direct dispatch mode the whole application.
 3. Run the pre-flight query below and resolve every row it returns.
 4. Apply the upgrade SQL.
-5. Deploy the new version, then start the processes again.
+5. Remove the deleted migration from the migration history (see below).
+6. Deploy the new version, then start everything again.
+
+Saga ID values are now compared case-sensitively. On MySQL and MariaDB, looking up a saga ignored case before: an event with Saga ID `Order-1` found the saga stored with `order-1`. After the upgrade it doesn't (a new saga is created with `CreationPolicy::IfMissing`, the event is skipped with `Never`). Make sure events carry Saga ID values exactly as they were stored.
 
 **Pre-flight: Saga ID values owned by more than one saga.** These block the unique key:
 
 ```sql
 -- MySQL / MariaDB
-SELECT s.saga_name, MIN(r.saga_id) AS saga_id, GROUP_CONCAT(s.id ORDER BY s.created_at) AS saga_store_ids
+SET SESSION group_concat_max_len = 1000000;
+
+SELECT s.saga_name, MIN(r.saga_id) AS saga_id, COUNT(DISTINCT s.id) AS sagas,
+       GROUP_CONCAT(CONCAT(s.id, ' (updated: ', COALESCE(s.updated_at, 'never'), ')')
+                    ORDER BY s.updated_at DESC SEPARATOR ', ') AS saga_store_ids
 FROM saga_store_relation r
 JOIN saga_store s ON s.id = r.id
 GROUP BY s.saga_name, r.saga_id COLLATE utf8mb4_bin
 HAVING COUNT(DISTINCT s.id) > 1;
 
 -- SQLite
-SELECT s.saga_name, r.saga_id, GROUP_CONCAT(s.id) AS saga_store_ids
+SELECT s.saga_name, r.saga_id, COUNT(DISTINCT s.id) AS sagas,
+       GROUP_CONCAT(s.id || ' (updated: ' || COALESCE(s.updated_at, 'never') || ')', ', ') AS saga_store_ids
 FROM saga_store_relation r
 JOIN saga_store s ON s.id = r.id
 GROUP BY s.saga_name, r.saga_id
 HAVING COUNT(DISTINCT s.id) > 1;
 ```
 
-- **A Saga ID that isn't one-to-one with a saga** (such as a `customerId` on order sagas, see [Saga IDs](#saga-ids)): remove it from the saga class, and delete only its relation rows (`DELETE FROM saga_store_relation WHERE saga_id = ? AND id IN (…)`). Don't delete these sagas: they are separate, live sagas.
-- **The same saga created twice** (by concurrent events in earlier versions): keep one, typically the oldest, and delete the others: first their rows in `saga_store_relation`, then in `saga_store`.
+Each row is a Saga ID value (`saga_id`) shared by several sagas (`sagas`) of one saga name. Resolve it depending on its cause:
+
+- **A Saga ID that isn't one-to-one with a saga** (such as a `customerId` on order sagas, see [Saga IDs](#saga-ids)): remove it from the saga class, and delete only the relation rows of that value. Don't delete these sagas: they are separate, live sagas. Relations of values that weren't shared are removed on the saga's next save.
+
+    ```sql
+    DELETE r FROM saga_store_relation r
+    JOIN saga_store s ON s.id = r.id
+    WHERE s.saga_name = 'order.fulfillment' AND r.saga_id = 'customer-1';
+    ```
+
+    (SQLite: `DELETE FROM saga_store_relation WHERE saga_id = 'customer-1' AND id IN (SELECT id FROM saga_store WHERE saga_name = 'order.fulfillment');`)
+
+- **The same saga created twice** (by concurrent events in earlier versions): keep the one that was updated most recently (see `updated`: it received the later events), and delete the others, first their rows in `saga_store_relation`, then in `saga_store`. If a deleted saga has Saga ID values the kept one lacks, move them first: `UPDATE saga_store_relation SET id = '<kept id>' WHERE id = '<deleted id>' AND saga_id = '<value>';`.
 
 **Upgrade SQL (MySQL / MariaDB):**
 
@@ -345,7 +364,8 @@ ALTER TABLE saga_store_relation
 
 DROP TABLE IF EXISTS saga_store_lock;
 
--- Only for databases created with version 0.13.0 or later (fails with error 1091 otherwise, which is fine)
+-- Only for databases created with gember/rdbms-event-store-doctrine-dbal 0.13.0 or later
+-- (fails with error 1091 otherwise, which is fine)
 ALTER TABLE saga_store_relation DROP KEY saga_id;
 ```
 
@@ -363,7 +383,7 @@ DROP TABLE IF EXISTS saga_store_lock;
 
 This is equivalent to a fresh install (the column order and default differ).
 
-**Deleted migration.** The migration that created `saga_store_lock` (Doctrine `Version20260818130000`, Phinx `20260818130000`, released in 0.13.0) no longer exists. Remove it from the migration history:
+**Deleted migration.** The migration that created `saga_store_lock` (Doctrine `Version20260818130000`, Phinx `20260818130000`, released in `gember/rdbms-event-store-doctrine-dbal` 0.13.0) no longer exists. Remove it from the migration history (otherwise Doctrine Migrations warns about an executed unavailable migration):
 
 ```bash
 bin/console doctrine:migrations:version 'DoctrineMigrations\Version20260818130000' --delete --no-interaction
@@ -371,7 +391,7 @@ bin/console doctrine:migrations:version 'DoctrineMigrations\Version2026081813000
 
 For Phinx: `DELETE FROM phinxlog WHERE version = 20260818130000;`. Migrations copied into your application need the same changes.
 
-**Rolling back** to the previous version after the upgrade (MySQL / MariaDB; the `revision` column can stay):
+**Rolling back** to the previous version after the upgrade (MySQL / MariaDB):
 
 ```sql
 CREATE TABLE IF NOT EXISTS saga_store_lock (
@@ -384,7 +404,17 @@ ALTER TABLE saga_store_relation
   DROP COLUMN saga_name,
   MODIFY saga_id varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   ADD KEY saga_id (saga_id);
+
+ALTER TABLE saga_store DROP COLUMN revision;
 ```
+
+Then, before the previous version runs its migrations, put the deleted migration back in the history, as its table exists again:
+
+```bash
+bin/console doctrine:migrations:version 'DoctrineMigrations\Version20260818130000' --add --no-interaction
+```
+
+For Phinx: `INSERT INTO phinxlog (version, migration_name, start_time, end_time, breakpoint) VALUES (20260818130000, 'V20260818130000', NOW(), NOW(), 0);`. The upgrade can be applied again later as described above.
 
 ### Serialization
 
