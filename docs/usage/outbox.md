@@ -57,7 +57,7 @@ Configure the dispatch strategy in your bundle configuration:
 gember_event_sourcing:
     dispatch:
         strategy: outbox    # 'direct' (default) or 'outbox'
-        max_retries: 5      # default: 5, minimum: 1
+        max_retries: 5      # retries after the first attempt; default: 5, minimum: 1
 ```
 
 Setting `strategy: outbox` automatically:
@@ -115,7 +115,7 @@ The outbox uses a single table for both events and commands:
 | `created_at` | timestamp(6) | When the message was written |
 | `retry_count` | int, default 0 | Number of failed dispatch attempts |
 | `processed_at` | timestamp(6), nullable | Set when successfully dispatched |
-| `dead_lettered_at` | timestamp(6), nullable | Set when `retry_count` exceeds `max_retries` |
+| `dead_lettered_at` | timestamp(6), nullable | Set when `retry_count` exceeds `max_retries`, or right away for a message that can't be deserialized |
 | `claimed_by` | varchar(100), nullable | The processor that claimed the message (`host:pid:random`) |
 | `claimed_until` | datetime(6), nullable | Until when the claim holds (its lease), in UTC by the database clock |
 
@@ -126,10 +126,12 @@ The table is created by a migration shipped with the [rdbms-event-store-doctrine
 When a message fails to dispatch, the processor:
 
 1. Logs a warning with the message ID, type, class name, and exception details
-2. Increments `retry_count` on the outbox row
+2. Increments `retry_count` on the outbox row and schedules a retry after a backoff (in `claimed_until`)
 3. Continues processing the remaining messages in the batch
 
-The message will be retried on the next processor run. When `retry_count` exceeds `max_retries`, the `dead_lettered_at` timestamp is set and the message is permanently excluded from processing.
+The backoff starts at 5 seconds and doubles per failed attempt, up to 5 minutes (the `$retryDelaySeconds` and `$maxRetryDelaySeconds` arguments of `DoctrineDbalRdbmsOutboxRepository`), so a short outage of a dependency doesn't use up the retries: with `max_retries: 5`, a message is retried for about 2.5 minutes. After the first attempt and `max_retries` retries (`retry_count` exceeds `max_retries`), the `dead_lettered_at` timestamp is set and the message is permanently excluded from processing.
+
+Retried messages are dispatched after messages that were written later: messages aren't dispatched in order after a failure. Event handlers shouldn't depend on the order of events across failures.
 
 A message that can't be deserialized (e.g. its class was renamed or removed) can't succeed on a retry: it's dead-lettered right away, logged as an error, and the other messages of its batch are dispatched as usual.
 
@@ -146,7 +148,7 @@ After investigating and fixing the root cause, you can reset a message for repro
 
 ```sql
 UPDATE outbox
-SET dead_lettered_at = NULL, retry_count = 0
+SET dead_lettered_at = NULL, retry_count = 0, claimed_until = NULL
 WHERE id = 'message-id';
 ```
 
@@ -163,8 +165,8 @@ The outbox provides **at-least-once delivery**. This means:
 Multiple processor instances can run in parallel, without coordination. Each processor **claims** the batch of messages it takes: the messages are marked with the processor (`claimed_by`) and a lease (`claimed_until`, 300 seconds by default). Other processors skip claimed messages, so every message is dispatched by one processor at a time. Dispatching happens after the claim is committed, outside any transaction: run the processor outside any transaction (not inside e.g. a `doctrine_transaction` middleware), otherwise the claim and its locks stay in your transaction while the batch is dispatched.
 
 - **Lease:** a claim expires after the lease, measured in UTC with the database clock (all processors share it, whatever their PHP or database session time zone). When a processor crashes or hangs, other processors take its messages over after that time. The lease must exceed the time to dispatch one batch (`--limit`, 100 by default): otherwise other processors take over the rest of a batch that is still being dispatched, and dispatch those messages again. Lower `--limit` for slow handlers. The lease is a constructor argument of `DoctrineDbalRdbmsOutboxRepository` (`$leaseSeconds`).
-- **Failures:** a failed dispatch is counted only by the processor holding the claim, which releases the message for a retry.
-- **No ordering across processors:** with one processor, messages are dispatched oldest first (apart from retries). With several processors, messages are dispatched in parallel, so two events for the same use case or saga can be handled at the same time and in any order. Use several processors when your handlers don't depend on the order of events; keep one processor when they do.
+- **Failures:** a failed dispatch is counted only by the processor holding the claim, which releases the message for a retry after the backoff (see [Failure handling](#failure-handling)).
+- **No ordering across processors:** with one processor, messages are dispatched oldest first (apart from retries after a failure). With several processors, messages are dispatched in parallel, so two events for the same use case or saga can be handled at the same time and in any order. Use several processors when your handlers don't depend on the order of events; keep one processor when they do.
 - **Databases without `SKIP LOCKED`** (SQLite, MySQL 5.7, MariaDB < 10.6): claiming stays correct, but concurrent processors compete for the same messages more often, so adding processors helps less.
 
 Inspect the claims of messages that aren't processed yet:
