@@ -2,7 +2,7 @@
 
 While in 0.x, a minor version (0.x.0) can contain breaking changes, and a patch version (0.x.y) only fixes bugs. Apply the notes of every version you pass, oldest first.
 
-This file lists what you need to do or know when upgrading this package. For every change, see the [release notes](https://github.com/GemberPHP/event-sourcing/releases). Changes to the database migrations of `gember/rdbms-event-store-doctrine-dbal` are in [Upgrading](https://gemberphp.github.io/event-sourcing/upgrading/).
+This file lists what you need to do or know when upgrading this package. For every change, see the [release notes](https://github.com/GemberPHP/event-sourcing/releases). Changes to the database migrations of `gember/rdbms-event-store-doctrine-dbal` are in its [UPGRADE.md](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal/blob/main/UPGRADE.md).
 
 ## 0.22.0
 
