@@ -55,7 +55,6 @@ final class CachedSagaResolverDecoratorTest extends TestCase
                 new AttributeSagaEventSubscriberResolver($attributeResolver),
             ),
             $this->cache = new TestCache(),
-            new NativeFriendlyClassNamer(new NativeInflector()),
         );
     }
 
@@ -82,7 +81,7 @@ final class CachedSagaResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set(CacheKey::create('resolver.saga', 'std-class'), json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.saga', stdClass::class), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -94,7 +93,7 @@ final class CachedSagaResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestSaga::class);
 
-        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.saga', 'gember.event-sourcing.test.test-doubles.saga.test-saga'));
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.saga', TestSaga::class));
 
         self::assertEquals(SagaDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }
