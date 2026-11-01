@@ -11,6 +11,8 @@ _Use case driven EventSourcing - Let go of the Aggregate with the Dynamic Consis
 
 Full documentation is available at **[gemberphp.github.io/event-sourcing](https://gemberphp.github.io/event-sourcing/)**.
 
+Upgrading? See [UPGRADE.md](UPGRADE.md).
+
 ## In a nutshell
 
 #### Traditional 'Aggregate driven' EventSourcing

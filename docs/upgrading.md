@@ -1,5 +1,7 @@
 ## Upgrading
 
+> Upgrading `gember/event-sourcing` itself? See [UPGRADE.md](https://github.com/GemberPHP/event-sourcing/blob/main/UPGRADE.md). This page covers the database migrations of `gember/rdbms-event-store-doctrine-dbal`.
+
 While _Gember Event Sourcing_ is in its 0.x phase, the released database migrations of [gember/rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal) are changed in place instead of adding new ones. A database that already ran an earlier version of a migration needs the change applied manually. Apply the steps for every version you pass, oldest first. Migrations copied into your application need the same changes.
 
 Versions below are versions of `gember/rdbms-event-store-doctrine-dbal`, unless stated otherwise.
