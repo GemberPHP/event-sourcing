@@ -62,14 +62,15 @@ nav:
   - Example: example.md
   - How It Works: how-it-works.md
   - Library Architecture: library-architecture.md
+  - Upgrading: upgrading.md
   - Usage:
       - usage/index.md
-      - Use Cases: usage/use-cases.md
-      - Commands: usage/commands.md
-      - Command Handlers: usage/command-handlers.md
       - Domain Events: usage/domain-events.md
-      - Snapshotting: usage/snapshotting.md
+      - Commands: usage/commands.md
+      - Use Cases: usage/use-cases.md
+      - Command Handlers: usage/command-handlers.md
       - Sagas: usage/sagas.md
+      - Snapshotting: usage/snapshotting.md
       - Outbox: usage/outbox.md
-      - Caching: usage/caching.md
       - Observability: usage/observability.md
+      - Caching: usage/caching.md
