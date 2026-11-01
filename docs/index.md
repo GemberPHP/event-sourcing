@@ -15,4 +15,4 @@ Gember Event Sourcing is a PHP library that takes a different approach to event 
 - [How It Works](how-it-works.md) — Understand the core concepts
 - [Usage](usage/index.md) — Detailed usage guide
 - [Library Architecture](library-architecture.md) — The internal code organization, for contributors
-- [Upgrading](upgrading.md) — Database changes per version
+- [Upgrading](upgrading.md) — Upgrade steps per package and version
