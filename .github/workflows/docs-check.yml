@@ -1,0 +1,34 @@
+name: Check docs
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/docs/requirements.txt'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/docs/requirements.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - run: pip install -r .github/docs/requirements.txt
+
+      # Fails on broken links, missing pages and other warnings
+      - run: mkdocs build --strict
+        env:
+          NO_MKDOCS_2_WARNING: '1'

@@ -1,14 +1,18 @@
 name: Deploy docs
 
+# The site documents the latest release: it's published when a release is published, not on every push to main.
+# Run it by hand for a docs-only fix: on main only when main's docs still describe the latest release.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -20,6 +24,8 @@ jobs:
         with:
           python-version: '3.x'
 
-      - run: pip install mkdocs-material
+      - run: pip install -r .github/docs/requirements.txt
 
-      - run: mkdocs gh-deploy --force
+      - run: mkdocs gh-deploy --force --strict
+        env:
+          NO_MKDOCS_2_WARNING: '1'
