@@ -4,21 +4,22 @@ _Gember Event Sourcing_ provides built-in logging through decorator classes that
 
 ### Logging
 
-Three loggable decorators provide structured logging for the main execution paths:
+Loggable decorators provide structured logging for the main execution paths:
 
 | Decorator | Wraps | Logs |
 |-----------|-------|------|
 | `LoggableEventStoreDecorator` | `EventStore` | Event loading and appending |
 | `LoggableUseCaseCommandExecutorDecorator` | `UseCaseCommandExecutor` | Command handling on use cases |
 | `LoggableSagaEventExecutorDecorator` | `SagaEventExecutor` | Event handling on sagas |
+| `LoggableSnapshotStoreDecorator` | `SnapshotStore` | Snapshot loading and saving (when [snapshotting](snapshotting.md) is enabled) |
 
-All decorators log at `INFO` level using PSR-3's `LoggerInterface`.
+They log at `INFO` level using PSR-3's `LoggerInterface`, except failures of the snapshot store, which are logged at `ERROR`. Some components log problems that need attention at `WARNING` or `ERROR`: saga retries that gave up (below), snapshots that couldn't be loaded or saved (see [Snapshotting](snapshotting.md)), and outbox messages that failed or couldn't be deserialized (see [Outbox](outbox.md)).
 
 ### What gets logged
 
 Each decorator logs the start, completion, and failure of its wrapped operation:
 
-**Event store (load/append):**
+**Event store (load):**
 ```
 [EventStore] Started loading events          {domainTags: [...]}
 [EventStore] Loaded event CourseCreatedEvent  {eventId: "...", appliedAt: "...", metadata: {...}, domainTags: [...]}
@@ -48,7 +49,7 @@ On failure, the log includes `exception` (message) and `exceptionClass` in the c
 
 ### Symfony bundle configuration
 
-When using the Symfony bundle, logging decorators are **enabled by default**. They automatically wrap the core components using Symfony's service decoration. No additional configuration is needed.
+When using the Symfony bundle, the logging decorators are **always enabled**. They automatically wrap the core components using Symfony's service decoration. No additional configuration is needed.
 
 The logger service can be customized in `gember_event_sourcing.yaml`:
 

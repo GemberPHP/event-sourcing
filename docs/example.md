@@ -2,7 +2,7 @@
 
 This example demonstrates all key features of the library: a DCB use case with command handler, domain events, and a saga coordinating a workflow.
 
-**Scenario**: A student subscribes to a course. When subscription succeeds, a saga automatically sends a welcome email.
+**Scenario**: A student subscribes to a course. When a student subscribes for the first time, a saga sends them a welcome email, once.
 
 ### Domain Events
 
@@ -36,10 +36,9 @@ final readonly class StudentSubscribedEvent
 {
     public function __construct(
         #[DomainTag]
-        #[SagaId]  // Links to SubscriptionWelcomeSaga
         public string $courseId,
         #[DomainTag]
-        #[SagaId]
+        #[SagaId]  // Links to the student's StudentWelcomeSaga
         public string $studentId,
     ) {}
 }
@@ -48,7 +47,7 @@ final readonly class StudentSubscribedEvent
 ### Use Case with Command Handler
 
 ```php
-use Gember\EventSourcing\Common\CreationPolicy;
+use DomainException;
 use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
 use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
@@ -65,22 +64,27 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
     #[DomainTag]
     private StudentId $studentId;
 
+    private bool $isCourseCreated = false;
+    private bool $isStudentRegistered = false;
     private bool $isSubscribed = false;
 
     /**
      * Subscribes a student to a course (DCB pattern with multiple domain tags).
      * Uses __invoke to emphasize this is a single-purpose use case.
      */
-    #[DomainCommandHandler(policy: CreationPolicy::IfMissing)]
+    #[DomainCommandHandler]
     public function __invoke(SubscribeStudentCommand $command): void
     {
-        // 1. Check idempotency
+        // 1. Protect invariants (simplified for example)
+        // In real scenarios: check capacity, prerequisites, etc.
+        if (!$this->isCourseCreated || !$this->isStudentRegistered) {
+            throw new DomainException('Unknown course or student');
+        }
+
+        // 2. Check idempotency
         if ($this->isSubscribed) {
             return;
         }
-
-        // 2. Protect invariants (simplified for example)
-        // In real scenarios: check capacity, prerequisites, etc.
 
         // 3. Apply domain event
         $this->apply(new StudentSubscribedEvent(
@@ -93,18 +97,24 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
     private function onCourseCreated(CourseCreatedEvent $event): void
     {
         $this->courseId = new CourseId($event->courseId);
+        $this->isCourseCreated = true;
     }
 
     #[DomainEventSubscriber]
     private function onStudentRegistered(StudentRegisteredEvent $event): void
     {
         $this->studentId = new StudentId($event->studentId);
+        $this->isStudentRegistered = true;
     }
 
     #[DomainEventSubscriber]
     private function onStudentSubscribed(StudentSubscribedEvent $event): void
     {
-        $this->isSubscribed = true;
+        // Events matching any of the domain tags are loaded: also other students'
+        // subscriptions to this course, and this student's other subscriptions
+        if ($event->courseId === (string) $this->courseId && $event->studentId === (string) $this->studentId) {
+            $this->isSubscribed = true;
+        }
     }
 }
 ```
@@ -118,25 +128,26 @@ use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
 use Gember\EventSourcing\Saga\Attribute\SagaId;
 use Gember\EventSourcing\Saga\CommandRecorder;
 
-#[Saga(name: 'subscription.welcome')]
-final class SubscriptionWelcomeSaga
+#[Saga(name: 'student.welcome')]
+final class StudentWelcomeSaga
 {
-    #[SagaId]
-    public ?string $courseId = null;
-
     #[SagaId]
     public ?string $studentId = null;
 
-    private bool $welcomeEmailSent = false;
+    // Saga state is persisted: keep it in public properties (see Sagas - Serialization)
+    public bool $welcomeEmailSent = false;
 
     /**
-     * When a student subscribes, automatically send a welcome email.
+     * On the student's first subscription, send a welcome email (once per student).
      */
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
     public function onStudentSubscribed(StudentSubscribedEvent $event, CommandRecorder $commandRecorder): void
     {
-        $this->courseId = $event->courseId;
         $this->studentId = $event->studentId;
+
+        if ($this->welcomeEmailSent) {
+            return;
+        }
 
         // Record command to send welcome email (dispatched after saga is persisted)
         $commandRecorder->record(new SendWelcomeEmailCommand(

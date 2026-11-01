@@ -45,10 +45,10 @@ use Gember\EventSourcing\Saga\Attribute\SagaId;
 final class OrderFulfillmentSaga
 {
     #[SagaId]
-    public string $orderId;
+    public ?string $orderId = null;
 
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
+    public bool $paymentReceived = false;
+    public bool $itemsShipped = false;
 
     // Event subscribers will go here
 }
@@ -65,10 +65,10 @@ use Gember\EventSourcing\Saga\NamedSaga;
 final class OrderFulfillmentSaga implements NamedSaga
 {
     #[SagaId(name: 'orderId')]
-    public string $orderId;
+    public ?string $orderId = null;
 
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
+    public bool $paymentReceived = false;
+    public bool $itemsShipped = false;
 
     public static function getName(): string
     {
@@ -83,8 +83,8 @@ Saga IDs link events to specific saga instances. Each saga must have at least on
 
 **Requirements for Saga ID properties:**
 - **Must be public** - Saga ID properties must have public visibility
-- **May be uninitialized** - A new saga instance is created before the first event subscriber populates the Saga ID properties, so they can be uninitialized at that point. Use `isset()` to check, or make the property nullable (`?string`) and initialize to `null` as an alternative
-- **Must be serializable** - Values must be serializable, either primitive, `Stringable` or a serializable Value Object
+- **Must be nullable and initialized to `null`** - A new saga instance is created before the first event subscriber populates the Saga ID properties, and Saga IDs are read when the saga is saved: an uninitialized property fails (`public ?string $orderId = null;`)
+- **Must be a `string` or `Stringable`** (or `null` while unknown) - other types, such as `int`, fail; values are compared case-sensitively and stored in a column of 50 characters
 - **Must be set in the first subscriber** - The event subscriber with `CreationPolicy::IfMissing` must assign the Saga ID properties known from the triggering event; Saga IDs that only become known later can be assigned by later subscribers
 
 **Custom naming:**
@@ -99,10 +99,10 @@ A saga can have multiple Saga ID properties, allowing it to be triggered by even
 final class OrderFulfillmentSaga
 {
     #[SagaId(name: 'orderId')]
-    public string $orderId;
+    public ?string $orderId = null;
 
     #[SagaId] // Uses property name 'shipmentId' as Saga ID name
-    public string $shipmentId;
+    public ?string $shipmentId = null;
 
     // Saga can be triggered by events with either orderId or shipmentId
 }
@@ -132,7 +132,7 @@ public function methodName(EventClass $event, CommandRecorder $commandRecorder):
 
 **Parameters:**
 - **First parameter** - The domain event (type-hinted with the event class)
-- **Second parameter** - Instance of `CommandRecorder` for recording commands to be dispatched after saga persistence (required)
+- **Second parameter** (optional) - Instance of `CommandRecorder` for recording commands to be dispatched after saga persistence; omit it when the subscriber records no commands
 - **Return type** - Must be `void`
 
 #### CreationPolicy
@@ -160,8 +160,8 @@ final class OrderFulfillmentSaga
     #[SagaId]
     public ?string $orderId = null;
 
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
+    public bool $paymentReceived = false;
+    public bool $itemsShipped = false;
 
     /**
      * Starts the fulfillment saga when an order is placed.
@@ -434,14 +434,14 @@ final class OrderFulfillmentSaga
     #[SagaId]
     public ?string $orderId = null;
 
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
+    public bool $paymentReceived = false;
+    public bool $itemsShipped = false;
 
     // Event subscribers...
 }
 ```
 
-Public properties are automatically serialized and deserialized. Note that **private properties are not serialized** by the default Symfony Serializer — if your saga uses private properties for state, use the `Serializable` interface (Option 2) instead.
+Public properties are automatically serialized and deserialized. Note that **private properties are not serialized** by the default Symfony Serializer — keep saga state in public properties, as above, or use the `Serializable` interface (Option 2) for private state.
 
 This is the **recommended approach** for sagas that use only public properties.
 
@@ -528,8 +528,8 @@ final class OrderProcessingSaga
     #[SagaId]
     public ?string $orderId = null;
 
-    private bool $paymentProcessed = false;
-    private bool $orderShipped = false;
+    public bool $paymentProcessed = false;
+    public bool $orderShipped = false;
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
     public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
@@ -585,9 +585,9 @@ final class OrderFulfillmentSaga
     #[SagaId]
     public ?string $shipmentId = null;
 
-    private bool $paymentReceived = false;
-    private bool $inventoryReserved = false;
-    private bool $itemsShipped = false;
+    public bool $paymentReceived = false;
+    public bool $inventoryReserved = false;
+    public bool $itemsShipped = false;
 
     #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
     public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void

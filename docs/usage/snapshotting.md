@@ -65,20 +65,11 @@ use Gember\EventSourcing\Util\Time\Duration;
 #[Snapshot(afterSourcingTime: new Duration(milliseconds: 500))]
 ```
 
-The `Duration` class supports both `milliseconds` and `seconds`:
-
-```php
-new Duration(milliseconds: 500)
-new Duration(seconds: 2)
-
-// Static constructors available for use outside attributes:
-Duration::milliseconds(500)
-Duration::seconds(2)
-```
+The `Duration` constructor takes milliseconds. Outside attributes, the static constructors `Duration::milliseconds(500)` and `Duration::seconds(2)` are available too.
 
 > **Note:** PHP attributes require `new` expressions, not static method calls. Use `new Duration(milliseconds: 500)` in attributes.
 
-> **Best practice:** Use `afterSourcingTime` as a safety net, not a primary trigger. Since it measures wall-clock time, it's affected by server load and database latency. Prefer `afterEvents` as the primary trigger — it's deterministic and predictable. Combine both for a belt-and-suspenders approach: `#[Snapshot(afterEvents: 500, afterSourcingTime: new Duration(seconds: 2))]`.
+> **Best practice:** Use `afterSourcingTime` as a safety net, not a primary trigger. Since it measures wall-clock time, it's affected by server load and database latency. Prefer `afterEvents` as the primary trigger — it's deterministic and predictable. Combine both for a belt-and-suspenders approach: `#[Snapshot(afterEvents: 500, afterSourcingTime: new Duration(milliseconds: 2000))]`.
 
 #### onEvent / onEvents
 
@@ -123,18 +114,7 @@ Note that the default Symfony Serializer only serializes **public properties**. 
 
 #### Option A: Configure Symfony to serialize private properties
 
-Register the `PropertyNormalizer` in your Symfony serializer configuration. This normalizer uses reflection to access private properties:
-
-```yaml
-# config/packages/framework.yaml
-framework:
-    serializer:
-        default_context:
-            # No additional config needed — PropertyNormalizer is auto-registered
-            # when symfony/property-info is installed
-```
-
-Or register it explicitly as a service with higher priority:
+Register the `PropertyNormalizer`, which uses reflection to access private properties. Symfony doesn't enable it by default, so register it as a normalizer:
 
 ```yaml
 # config/services.yaml
@@ -144,7 +124,7 @@ services:
             - { name: serializer.normalizer, priority: -500 }
 ```
 
-This handles all use cases transparently without any code changes.
+This handles all use cases transparently without any code changes. Note that it applies to every use of the Symfony serializer in your application, so private properties are then serialized elsewhere too.
 
 #### Option B: Implement the Serializable interface
 

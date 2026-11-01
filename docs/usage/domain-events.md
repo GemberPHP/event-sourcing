@@ -92,7 +92,7 @@ final readonly class ComplexEvent implements SpecifiedDomainTags
 **Key points:**
 - Provides full control over domain tag extraction
 - Can return computed or transformed values
-- **Completely replaces attribute-based resolution** - if this interface is implemented, `#[DomainTag]` attributes are ignored
+- **Only used when the event has no `#[DomainTag]` properties** - attributes take precedence, so don't combine both on one event
 
 **When to use `SpecifiedDomainTags` over `#[DomainTag]` attributes:**
 - Domain tags need to be **derived or computed** from multiple properties (e.g., a composite key)
@@ -372,14 +372,14 @@ The `Metadata` class is an immutable key-value container attached to each `Domai
 
 #### How metadata flows
 
-1. **Created empty** — When a domain event is applied via `$this->apply()`, the `DomainEventEnvelopeFactory` wraps it in an envelope with empty metadata
-2. **Enriched before persistence** — Metadata can be added to the envelope before it reaches the event store, typically via middleware or a decorator on the repository
+1. **Created empty** — When a use case is saved, the repository wraps each applied event in an envelope with empty metadata (`DomainEventEnvelopeFactory`) and passes the envelopes to `EventStore::append()`
+2. **Enriched before persistence** — Metadata can only be added in a decorator around the `EventStore` (in `append()`): the envelopes are created inside the repository's `save()`, so a repository decorator or message bus middleware never sees them
 3. **Stored alongside the event** — The metadata array is persisted as part of the event record
-4. **Available during reconstitution** — When events are replayed, the metadata is available on each `DomainEventEnvelope`
+4. **Available when loading** — `EventStore::load()` returns the envelopes including their metadata. Use case subscribers and event bus handlers receive the event only, without metadata
 
 #### Enriching events with metadata
 
-The `DomainEventEnvelope` provides a `withMetadata()` method that returns a new envelope with replaced metadata. This is typically used in a repository decorator or middleware to enrich events before they are persisted:
+The `DomainEventEnvelope` provides a `withMetadata()` method that returns a new envelope with replaced metadata. Use it in an `EventStore` decorator to enrich events before they are persisted:
 
 ```php
 use Gember\EventSourcing\UseCase\DomainEventEnvelope;

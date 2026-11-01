@@ -31,7 +31,7 @@ flowchart TD
 
 ### Event store
 
-Events are persisted in two storage structures:
+Events are persisted in three tables:
 
 **Event store** - The primary event log:
 
@@ -50,11 +50,12 @@ Events are persisted in two storage structures:
 | `event_id` | Reference to the event |
 | `domain_tag` | A domain tag value from the event |
 
-**Event store lock** - Serializes concurrent writes per consistency boundary:
+**Event store lock** - Serializes concurrent writes, one row per (domain tag, event type) pair:
 
 | Field | Description |
 |-------|-------------|
-| `boundary_hash` | SHA-256 hash of the domain tags + event types |
+| `boundary_hash` | SHA-256 hash of one domain tag and one event type |
+| `version` | Increased on every write to the pair (see [stale snapshots](#how-writes-are-serialized)) |
 
 When an event is persisted, a relation row is created for each `#[DomainTag]` property on the event. This allows the event store to efficiently query events when loading a use case. The query is scoped by both the domain tags (from the command) and the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods), so only relevant events are loaded.
 
@@ -92,20 +93,20 @@ Using the DCB pattern, unrelated changes don't conflict. For example, renaming a
 
 When a use case is saved, the event store performs the following steps atomically within a single database transaction:
 
-1. **Acquire boundary locks** — A dedicated lock table holds one row per (domain tag, event type) pair. The writer locks every pair it reads (its domain tags × its subscribed event types) and every pair it writes (each appended event's domain tags × its event type). All rows are locked exclusively in a single statement, in a fixed (sorted) order to prevent deadlocks; missing rows are created first. Any two conflicting writers share at least one pair, so they are serialized — one blocks until the other commits. Writers that share no pair proceed concurrently.
+1. **Acquire boundary locks** — A dedicated lock table holds one row per (domain tag, event type) pair. The writer locks every pair it reads (its domain tags × its subscribed event types) and every pair it writes (each appended event's domain tags × its event type). All rows are locked exclusively in a single statement, in a fixed (sorted) order to prevent deadlocks. Missing rows are created by the same statement; when the event store opens the transaction itself on MySQL/MariaDB, they are created and committed upfront, so a rolled-back writer can't remove a row others are waiting on. Any two conflicting writers share at least one pair, so they are serialized — one blocks until the other commits. Writers that share no pair proceed concurrently.
 
     Pairs that are only read are locked exclusively as well. Writers reading the same pair therefore wait for each other, even when they don't conflict. For example, renaming a course and enrolling a student both subscribe to the event that created the course, so for the same course they run one after the other — but neither fails. The lock table grows by one row per distinct (domain tag, event type) pair.
 
-2. **Check the optimistic lock** — With the boundary locks held, the event store counts the events matching the use case's domain tags and subscribed event types, and compares the count to the number of events the use case was based on when loading. Events are append-only, so if another writer committed a matching event in between, the count has changed and an `OptimisticLockException` is thrown. Comparing counts (rather than, for example, the ID of the newest event) doesn't depend on timestamps or commit order: an event that commits late with an earlier timestamp is detected as well.
+2. **Check the optimistic lock** — With the boundary locks held, the event store counts the events matching the use case's domain tags and subscribed event types, and compares the count to the number of events the use case was based on when loading. Events are append-only, so if another writer committed a matching event in between, the count has changed and the save fails with an `OptimisticLockException` (see [Handling conflicts](usage/use-cases.md#handling-conflicts)). Comparing counts (rather than, for example, the ID of the newest event) doesn't depend on timestamps or commit order: an event that commits late with an earlier timestamp is detected as well.
 
 3. **Persist events** — If the check passes, the new events are inserted within the same transaction.
 
 4. **Commit** — The transaction commits, releasing the boundary locks.
 
-When the event store is called within an already active transaction (e.g. when using the outbox), it runs inside that transaction instead of opening a savepoint, and the locks are held until it commits. In that case:
+When the event store is called within an already active transaction, it runs inside that transaction (no savepoint), and the locks are held until that transaction commits. With the [Outbox](usage/outbox.md), the library opens and rolls back this transaction itself. When you open it yourself (for example a `doctrine_transaction` middleware around the command handler):
 
 - **Roll back on any exception.** The transaction may contain part of the events (e.g. when a deadlock or duplicate event ID occurs halfway), so it must never be committed after the event store threw. Deadlocks are retryable: roll back and retry the whole operation.
-- **Loading inside the same transaction is detected.** Under MySQL's default `REPEATABLE READ`, a transaction reads from a snapshot taken at its first read. If that happened before saving (for example when a middleware wraps the whole command handler, including loading), the optimistic lock check would count from that old snapshot. To detect this, every writer increments a version on the lock rows it writes; after acquiring its locks, the event store compares the versions of the lock rows it reads as seen by the transaction's snapshot with the latest committed versions. If another writer committed a matching event after the snapshot, they differ and an `OptimisticLockException` is thrown, so the command is retried with fresh data.
+- **Loading inside the same transaction is detected.** Under MySQL's default `REPEATABLE READ`, a transaction reads from a snapshot taken at its first read. If that happened before saving (for example when a middleware wraps the whole command handler, including loading), the optimistic lock check would count from that old snapshot. To detect this, every writer increments a version on the lock rows it writes; after acquiring its locks, the event store compares the versions of the lock rows it reads as seen by the transaction's snapshot with the latest committed versions. If another writer committed a matching event after the snapshot, they differ and the save fails with an `OptimisticLockException`: roll back and retry the command, so it loads fresh data.
 
 ```
 Writer A                                Writer B
