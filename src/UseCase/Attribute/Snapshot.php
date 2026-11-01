@@ -19,15 +19,23 @@ final readonly class Snapshot
     /**
      * @param class-string|list<class-string>|null $onEvent
      * @param list<class-string>|null $onEvents
+     * @param int $version Bump when the use case's state from the same events changes (e.g. an event subscriber
+     *                     changed, or a state property with a default value was added): snapshots of other
+     *                     versions are no longer used
      */
     public function __construct(
         public ?int $afterEvents = null,
         public ?Duration $afterSourcingTime = null,
         string|array|null $onEvent = null,
         ?array $onEvents = null,
+        public int $version = 1,
     ) {
         if ($afterEvents !== null && $afterEvents < 1) {
             throw new InvalidArgumentException('afterEvents must be at least 1');
+        }
+
+        if ($version < 1) {
+            throw new InvalidArgumentException('version must be at least 1');
         }
 
         $this->onEvents = match (true) {

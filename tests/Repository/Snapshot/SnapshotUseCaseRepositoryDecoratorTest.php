@@ -124,6 +124,21 @@ final class MultiplePolicyMatchTestUseCase implements EventSourcedUseCase
     }
 }
 
+#[Snapshot(afterEvents: 5, version: 2)]
+final class VersionedSnapshotTestUseCase implements EventSourcedUseCase
+{
+    use EventSourcedUseCaseBehaviorTrait;
+
+    #[DomainTag]
+    public string $id = '';
+
+    #[DomainEventSubscriber]
+    private function onCreated(TestUseCaseCreatedEvent $event): void
+    {
+        $this->id = $event->id;
+    }
+}
+
 final class NoSnapshotTestUseCase implements EventSourcedUseCase
 {
     use EventSourcedUseCaseBehaviorTrait;
@@ -332,6 +347,43 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
         self::assertNotNull($this->snapshotStore->storedSnapshot);
         self::assertSame(5, $this->snapshotStore->storedSnapshot->eventCount);
         self::assertSame(['domain-tag-1'], $this->snapshotStore->storedSnapshot->domainTags);
+        self::assertSame(
+            [TestUseCaseCreatedEvent::class, sprintf('use-case:%s@v1', SnapshotTestUseCase::class)],
+            $this->snapshotStore->storedSnapshot->eventNames,
+        );
+    }
+
+    #[Test]
+    public function itShouldLoadSnapshotByUseCaseClassAndVersion(): void
+    {
+        $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertSame(
+            [TestUseCaseCreatedEvent::class, sprintf('use-case:%s@v1', SnapshotTestUseCase::class)],
+            $this->snapshotStore->lastLoadEventNames,
+        );
+    }
+
+    #[Test]
+    public function itShouldNotShareSnapshotsBetweenUseCasesWithSameDomainTagsAndEvents(): void
+    {
+        $this->decorator->get(SnapshotTestUseCase::class, 'domain-tag-1');
+        $snapshotNames = $this->snapshotStore->lastLoadEventNames;
+
+        $this->decorator->get(OnEventSnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertNotSame($snapshotNames, $this->snapshotStore->lastLoadEventNames);
+    }
+
+    #[Test]
+    public function itShouldLoadSnapshotOfDeclaredVersion(): void
+    {
+        $this->decorator->get(VersionedSnapshotTestUseCase::class, 'domain-tag-1');
+
+        self::assertSame(
+            [TestUseCaseCreatedEvent::class, sprintf('use-case:%s@v2', VersionedSnapshotTestUseCase::class)],
+            $this->snapshotStore->lastLoadEventNames,
+        );
     }
 
     #[Test]

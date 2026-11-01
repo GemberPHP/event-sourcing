@@ -10,7 +10,8 @@ use Gember\EventSourcing\Util\Serialization\Serializable;
  * @phpstan-type SnapshotDefinitionPayload array{
  *     afterEvents: ?int,
  *     afterSourcingTimeMs: ?int,
- *     onEvents: ?list<class-string>
+ *     onEvents: ?list<class-string>,
+ *     version?: int
  * }
  *
  * @implements Serializable<SnapshotDefinitionPayload, SnapshotDefinition>
@@ -24,6 +25,7 @@ final readonly class SnapshotDefinition implements Serializable
         public ?int $afterEvents = null,
         public ?int $afterSourcingTimeMs = null,
         public ?array $onEvents = null,
+        public int $version = 1,
     ) {}
 
     public function toPayload(): array
@@ -32,6 +34,7 @@ final readonly class SnapshotDefinition implements Serializable
             'afterEvents' => $this->afterEvents,
             'afterSourcingTimeMs' => $this->afterSourcingTimeMs,
             'onEvents' => $this->onEvents,
+            'version' => $this->version,
         ];
     }
 
@@ -41,6 +44,7 @@ final readonly class SnapshotDefinition implements Serializable
             $payload['afterEvents'],
             $payload['afterSourcingTimeMs'],
             $payload['onEvents'],
+            $payload['version'] ?? 1,
         );
     }
 }

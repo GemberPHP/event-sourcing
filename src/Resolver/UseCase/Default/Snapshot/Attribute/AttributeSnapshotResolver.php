@@ -34,6 +34,7 @@ final readonly class AttributeSnapshotResolver implements SnapshotResolver
             $snapshot->afterEvents,
             $snapshot->afterSourcingTime?->milliseconds,
             $snapshot->onEvents,
+            $snapshot->version,
         );
     }
 }

@@ -207,13 +207,13 @@ Snapshots are an optimization, never a requirement for correctness. Both loading
 
 #### Automatic stale snapshot recovery
 
-Snapshots are versioned — each save inserts a new row rather than overwriting the previous one. When loading, the system always retrieves the latest snapshot (highest `event_count`).
+Snapshots are insert-only — each save inserts a new row rather than overwriting the previous one. When loading, the system always retrieves the latest snapshot (highest `event_count`).
 
 Events after a snapshot are loaded in `applied_at` order, which doesn't follow commit order: an event committed after the snapshot, but with an earlier timestamp, would not be loaded. Therefore, after loading a snapshot and the events after it, the system verifies that together they account for all events matching the use case (the snapshot records its event count). If not, it falls back to a full event replay.
 
 If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, the snapshot's `lastEventId` is no longer in the event store, or the snapshot doesn't account for all events), the system automatically falls back to a full event replay, logged at `info` level (see [Observability](#observability)). The next successful save creates a fresh snapshot.
 
-So snapshots never need to be removed after a deployment. Truncating `snapshot_store` is still safe, for example to reclaim disk space.
+This recovers from snapshots that can't be used. It doesn't detect a snapshot that can still be used, but was built by previous logic: see [Snapshot version](#snapshot-version). Truncating `snapshot_store` is always safe, for example to reclaim disk space.
 
 ### Symfony bundle configuration
 
@@ -231,11 +231,27 @@ This activates the snapshot decorator, snapshot store, and all built-in policies
 
 Snapshot creation happens synchronously during `save()`. For most use cases this is negligible, but for use cases with large state, the serialization + database write adds latency to the saves that trigger a snapshot. This only occurs when a policy threshold is reached — not on every save. Choose trigger thresholds that balance reconstitution speed against snapshot creation frequency.
 
+### Snapshot version
+
+A snapshot belongs to one use case class, its domain tags and subscribed events, and the snapshot `version` (default `1`). When any of them changes, existing snapshots are no longer used: the next load replays all events, and the next snapshot is created from that.
+
+A snapshot stores the state your code built from the events up to it. When you change **how** the use case builds its state from the same events, a snapshot of the previous logic still loads: only the events after it are applied with the new logic, which mixes both. Nothing fails, and the use case decides on state neither version of your code would build. Bump the `version` when you:
+
+- change what an event subscriber does with an event
+- add a state property with a default value (a snapshot without it still loads, with the default)
+
+```php
+#[Snapshot(afterEvents: 500, version: 2)]
+final class ManageAccount implements EventSourcedUseCase
+```
+
+No bump is needed when the snapshots can't be used anyway: when you add or remove a subscribed event, change the domain tags, rename the class, or change the state so that deserializing a previous snapshot fails.
+
 ### Deployment considerations
 
-Snapshots serialize the use case's state. If the use case class changes (e.g., properties renamed, event handlers modified, serialization format changed), existing snapshots may become incompatible. The system handles this automatically — a failed deserialization triggers a full event replay, and a fresh snapshot is created on the next save.
+Snapshots serialize the use case's state. If the use case class changes so that a previous snapshot can't be deserialized (e.g., a property renamed or its type changed), the system handles this automatically: a failed deserialization triggers a full event replay, and a fresh snapshot is created on the next save. Changes that still deserialize need a [version bump](#snapshot-version).
 
-Because snapshots are versioned (insert-only), old snapshots accumulate over time. This is generally harmless, but for large-scale systems you may want to periodically clean up old snapshots:
+Because snapshots are insert-only, old snapshots accumulate over time. This is generally harmless, but for large-scale systems you may want to periodically clean up old snapshots:
 
 ```sql
 -- Remove all snapshots (safe — only affects performance, not correctness)

@@ -84,6 +84,20 @@ final class SnapshotTest extends TestCase
     }
 
     #[Test]
+    public function itShouldDefaultToVersionOne(): void
+    {
+        self::assertSame(1, (new Snapshot(afterEvents: 10))->version);
+    }
+
+    #[Test]
+    public function itShouldRejectVersionBelowOne(): void
+    {
+        self::expectException(InvalidArgumentException::class);
+
+        new Snapshot(afterEvents: 10, version: 0);
+    }
+
+    #[Test]
     public function itShouldRejectNegativeAfterEvents(): void
     {
         self::expectException(InvalidArgumentException::class);

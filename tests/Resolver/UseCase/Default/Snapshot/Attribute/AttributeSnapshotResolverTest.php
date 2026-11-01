@@ -49,6 +49,7 @@ final class AttributeSnapshotResolverTest extends TestCase
                 afterEvents: 100,
                 afterSourcingTimeMs: 5000,
                 onEvents: [stdClass::class],
+                version: 3,
             ),
             $result,
         );
@@ -57,5 +58,5 @@ final class AttributeSnapshotResolverTest extends TestCase
 
 final class TestUseCaseWithoutSnapshot {}
 
-#[Snapshot(afterEvents: 100, afterSourcingTime: new Duration(5000), onEvents: [stdClass::class])]
+#[Snapshot(afterEvents: 100, afterSourcingTime: new Duration(5000), onEvents: [stdClass::class], version: 3)]
 final class TestUseCaseWithSnapshot {}
