@@ -9,7 +9,6 @@ use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerRegistry;
 use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\Util\Cache\CacheKey;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Psr\SimpleCache\CacheInterface;
 use Override;
 use JsonException;
@@ -26,7 +25,6 @@ final readonly class CachedCommandHandlerRegistryDecorator implements CommandHan
     public function __construct(
         private CommandHandlerRegistry $commandHandlerRegistry,
         private CacheInterface $cache,
-        private FriendlyClassNamer $friendlyClassNamer,
     ) {}
 
     /**
@@ -70,6 +68,6 @@ final readonly class CachedCommandHandlerRegistryDecorator implements CommandHan
      */
     private function createCacheKey(string $commandName): string
     {
-        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($commandName));
+        return CacheKey::create(self::CACHE_TYPE, $commandName);
     }
 }

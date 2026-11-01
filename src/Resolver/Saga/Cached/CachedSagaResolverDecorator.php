@@ -7,7 +7,6 @@ namespace Gember\EventSourcing\Resolver\Saga\Cached;
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaResolver;
 use Gember\EventSourcing\Util\Cache\CacheKey;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Override;
 use Psr\SimpleCache\CacheInterface;
 use JsonException;
@@ -24,7 +23,6 @@ final readonly class CachedSagaResolverDecorator implements SagaResolver
     public function __construct(
         private SagaResolver $sagaResolver,
         private CacheInterface $cache,
-        private FriendlyClassNamer $friendlyClassNamer,
     ) {}
 
     /**
@@ -60,6 +58,6 @@ final readonly class CachedSagaResolverDecorator implements SagaResolver
      */
     private function createCacheKey(string $className): string
     {
-        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
+        return CacheKey::create(self::CACHE_TYPE, $className);
     }
 }

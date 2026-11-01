@@ -22,8 +22,6 @@ use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
-use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\UseCase\Cached\CachedUseCaseResolverDecorator;
 use PHPUnit\Framework\Attributes\Test;
@@ -52,7 +50,6 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
                 new AttributeSnapshotResolver($attributeResolver),
             ),
             $this->cache = new TestCache(),
-            new NativeFriendlyClassNamer(new NativeInflector()),
         );
     }
 
@@ -83,7 +80,7 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set(CacheKey::create('resolver.use_case', 'std-class'), json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.use_case', stdClass::class), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -95,7 +92,7 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestUseCase::class);
 
-        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.use_case', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case'));
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.use_case', TestUseCase::class));
 
         self::assertEquals(UseCaseDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }
@@ -103,7 +100,7 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
     #[Test]
     public function itShouldResolveAgainWhenCachedEntryIsUnreadable(): void
     {
-        $cacheKey = CacheKey::create('resolver.use_case', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case');
+        $cacheKey = CacheKey::create('resolver.use_case', TestUseCase::class);
 
         $this->cache->set($cacheKey, 'not json');
 

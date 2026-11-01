@@ -7,7 +7,6 @@ namespace Gember\EventSourcing\Resolver\DomainCommand\Cached;
 use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandDefinition;
 use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandResolver;
 use Gember\EventSourcing\Util\Cache\CacheKey;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Psr\SimpleCache\CacheInterface;
 use Override;
 use JsonException;
@@ -24,7 +23,6 @@ final readonly class CachedDomainCommandResolverDecorator implements DomainComma
     public function __construct(
         private DomainCommandResolver $domainCommandResolver,
         private CacheInterface $cache,
-        private FriendlyClassNamer $friendlyClassNamer,
     ) {}
 
     /**
@@ -60,6 +58,6 @@ final readonly class CachedDomainCommandResolverDecorator implements DomainComma
      */
     private function createCacheKey(string $className): string
     {
-        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
+        return CacheKey::create(self::CACHE_TYPE, $className);
     }
 }

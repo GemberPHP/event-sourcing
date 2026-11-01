@@ -15,8 +15,6 @@ use Gember\EventSourcing\Resolver\DomainEvent\DomainEventDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
-use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +41,6 @@ final class CachedDomainEventResolverDecoratorTest extends TestCase
                 new AttributeSagaIdResolver($attributeResolver),
             ),
             $this->cache = new TestCache(),
-            new NativeFriendlyClassNamer(new NativeInflector()),
         );
     }
 
@@ -60,7 +57,7 @@ final class CachedDomainEventResolverDecoratorTest extends TestCase
             [],
         );
 
-        $this->cache->set(CacheKey::create('resolver.domain_event', 'std-class'), json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.domain_event', stdClass::class), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -72,7 +69,7 @@ final class CachedDomainEventResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestUseCaseCreatedEvent::class);
 
-        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.domain_event', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case-created-event'));
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.domain_event', TestUseCaseCreatedEvent::class));
 
         self::assertEquals(DomainEventDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }

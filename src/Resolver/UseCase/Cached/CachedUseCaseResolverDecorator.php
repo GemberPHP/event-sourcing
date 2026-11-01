@@ -7,7 +7,6 @@ namespace Gember\EventSourcing\Resolver\UseCase\Cached;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseDefinition;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
 use Gember\EventSourcing\Util\Cache\CacheKey;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Psr\SimpleCache\CacheInterface;
 use Override;
 use JsonException;
@@ -24,7 +23,6 @@ final readonly class CachedUseCaseResolverDecorator implements UseCaseResolver
     public function __construct(
         private UseCaseResolver $useCaseResolver,
         private CacheInterface $cache,
-        private FriendlyClassNamer $friendlyClassNamer,
     ) {}
 
     /**
@@ -60,6 +58,6 @@ final readonly class CachedUseCaseResolverDecorator implements UseCaseResolver
      */
     private function createCacheKey(string $className): string
     {
-        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
+        return CacheKey::create(self::CACHE_TYPE, $className);
     }
 }

@@ -13,8 +13,6 @@ use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandDefinition;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\Util\Cache\TestCache;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
-use Gember\EventSourcing\Util\String\FriendlyClassNamer\Native\NativeFriendlyClassNamer;
-use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Override;
@@ -39,7 +37,6 @@ final class CachedDomainCommandResolverDecoratorTest extends TestCase
                 new AttributeDomainTagResolver(new ReflectorAttributeResolver()),
             ),
             $this->cache = new TestCache(),
-            new NativeFriendlyClassNamer(new NativeInflector()),
         );
     }
 
@@ -54,7 +51,7 @@ final class CachedDomainCommandResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set(CacheKey::create('resolver.domain_command', 'std-class'), json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.domain_command', stdClass::class), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -66,7 +63,7 @@ final class CachedDomainCommandResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestUseCaseWithCommand::class);
 
-        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.domain_command', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command'));
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.domain_command', TestUseCaseWithCommand::class));
 
         self::assertEquals(DomainCommandDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }
