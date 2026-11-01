@@ -295,7 +295,7 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 | Saga store | Stores serialized saga instances (ID, name, payload, timestamps, revision) |
 | Saga store relations | Links Saga ID values to saga instances for routing |
 
-When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, relations of removed Saga ID values are deleted and relations of added ones are inserted, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga name (see [Saga IDs](#saga-ids)).
+When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, relations of removed Saga ID values are deleted and relations of added ones are inserted, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga name (see [Saga IDs](#saga-ids)). When upgrading from an earlier version, see [Upgrading](../upgrading.md).
 
 Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga (up to 5 attempts). The retry is skipped inside a transaction you opened yourself (e.g. a `doctrine_transaction` middleware): roll back and retry the whole unit of work. See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
 
@@ -304,125 +304,6 @@ Concurrent events for the same saga instance are handled safely: each save check
 - **Subscribers must be idempotent.** An event can be handled again, for example when its dispatch is retried, so a subscriber may see an event it handled before. Keep track of what the saga already did in its state (as in the examples below).
 - **Commands are dispatched after the save.** Without the [Outbox](outbox.md), a command handler that fails after the saga was saved leaves the saga's state advanced while the remaining recorded commands aren't dispatched; the failure is rethrown to the event's dispatcher. Use the outbox when recorded commands must be delivered: the saga's state and its commands are then stored in one transaction and dispatched by the processor, with retries.
 - **`SagaCommandDispatchFailedException`**: when a recorded command, handled synchronously, causes another saga that runs out of retries, the exception is wrapped in a `SagaCommandDispatchFailedException`. It isn't retried, because this saga is saved already and a retry would dispatch its commands again.
-
-#### Upgrading the saga store
-
-This applies to databases created with `gember/rdbms-event-store-doctrine-dbal` before 0.19.0. The saga store got a revision, a saga name per Saga ID with a unique key, and lost its lock table. The released migrations were changed in place, so **a database that already ran them needs these changes applied manually**. Old and new code can't run against each other's schema, so upgrade with everything stopped:
-
-1. Take a backup.
-2. Stop everything that handles saga events: outbox processors and message consumers, and in direct dispatch mode the whole application.
-3. Run the pre-flight query below and resolve every row it returns.
-4. Apply the upgrade SQL.
-5. Remove the deleted migration from the migration history (see below).
-6. Deploy the new version, then start everything again.
-
-Saga ID values are now compared case-sensitively. On MySQL and MariaDB, looking up a saga ignored case before: an event with Saga ID `Order-1` found the saga stored with `order-1`. After the upgrade it doesn't (a new saga is created with `CreationPolicy::IfMissing`, the event is skipped with `Never`). Make sure events carry Saga ID values exactly as they were stored.
-
-**Pre-flight: Saga ID values owned by more than one saga.** These block the unique key:
-
-```sql
--- MySQL / MariaDB
-SET SESSION group_concat_max_len = 1000000;
-
-SELECT s.saga_name, MIN(r.saga_id) AS saga_id, COUNT(DISTINCT s.id) AS sagas,
-       GROUP_CONCAT(CONCAT(s.id, ' (updated: ', COALESCE(s.updated_at, 'never'), ')')
-                    ORDER BY s.updated_at DESC SEPARATOR ', ') AS saga_store_ids
-FROM saga_store_relation r
-JOIN saga_store s ON s.id = r.id
-GROUP BY s.saga_name, r.saga_id COLLATE utf8mb4_bin
-HAVING COUNT(DISTINCT s.id) > 1;
-
--- SQLite
-SELECT s.saga_name, r.saga_id, COUNT(DISTINCT s.id) AS sagas,
-       GROUP_CONCAT(s.id || ' (updated: ' || COALESCE(s.updated_at, 'never') || ')', ', ') AS saga_store_ids
-FROM saga_store_relation r
-JOIN saga_store s ON s.id = r.id
-GROUP BY s.saga_name, r.saga_id
-HAVING COUNT(DISTINCT s.id) > 1;
-```
-
-Each row is a Saga ID value (`saga_id`) shared by several sagas (`sagas`) of one saga name. Resolve it depending on its cause:
-
-- **A Saga ID that isn't one-to-one with a saga** (such as a `customerId` on order sagas, see [Saga IDs](#saga-ids)): remove it from the saga class, and delete only the relation rows of that value. Don't delete these sagas: they are separate, live sagas. Relations of values that weren't shared are removed on the saga's next save.
-
-    ```sql
-    DELETE r FROM saga_store_relation r
-    JOIN saga_store s ON s.id = r.id
-    WHERE s.saga_name = 'order.fulfillment' AND r.saga_id = 'customer-1';
-    ```
-
-    (SQLite: `DELETE FROM saga_store_relation WHERE saga_id = 'customer-1' AND id IN (SELECT id FROM saga_store WHERE saga_name = 'order.fulfillment');`)
-
-- **The same saga created twice** (by concurrent events in earlier versions): keep the one that was updated most recently (see `updated`: it received the later events), and delete the others, first their rows in `saga_store_relation`, then in `saga_store`. If a deleted saga has Saga ID values the kept one lacks, move them first: `UPDATE saga_store_relation SET id = '<kept id>' WHERE id = '<deleted id>' AND saga_id = '<value>';`.
-
-**Upgrade SQL (MySQL / MariaDB):**
-
-```sql
-ALTER TABLE saga_store ADD COLUMN revision int NOT NULL DEFAULT 0;
-
-ALTER TABLE saga_store_relation
-  ADD COLUMN saga_name varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' AFTER id,
-  MODIFY saga_id varchar(50) COLLATE utf8mb4_bin NOT NULL;
-
-UPDATE saga_store_relation r JOIN saga_store s ON s.id = r.id SET r.saga_name = s.saga_name WHERE r.saga_name = '';
-
-ALTER TABLE saga_store_relation
-  ADD UNIQUE KEY saga_name_saga_id (saga_name, saga_id),
-  ALTER COLUMN saga_name DROP DEFAULT;
-
-DROP TABLE IF EXISTS saga_store_lock;
-
--- Only for databases created with gember/rdbms-event-store-doctrine-dbal 0.13.0 or later
--- (fails with error 1091 otherwise, which is fine)
-ALTER TABLE saga_store_relation DROP KEY saga_id;
-```
-
-The result is identical to a fresh install. Schema changes aren't transactional: if the unique key fails (a duplicate the pre-flight didn't resolve), the statements before it are applied already. Resolve the duplicate and continue from the `UPDATE`.
-
-**Upgrade SQL (SQLite):**
-
-```sql
-ALTER TABLE saga_store ADD COLUMN revision int NOT NULL DEFAULT 0;
-ALTER TABLE saga_store_relation ADD COLUMN saga_name varchar(255) NOT NULL DEFAULT '';
-UPDATE saga_store_relation SET saga_name = (SELECT s.saga_name FROM saga_store s WHERE s.id = saga_store_relation.id) WHERE saga_name = '';
-CREATE UNIQUE INDEX saga_name_saga_id ON saga_store_relation (saga_name, saga_id);
-DROP TABLE IF EXISTS saga_store_lock;
-```
-
-This is equivalent to a fresh install (the column order and default differ).
-
-**Deleted migration.** The migration that created `saga_store_lock` (Doctrine `Version20260818130000`, Phinx `20260818130000`, released in `gember/rdbms-event-store-doctrine-dbal` 0.13.0) no longer exists. Remove it from the migration history (otherwise Doctrine Migrations warns about an executed unavailable migration):
-
-```bash
-bin/console doctrine:migrations:version 'DoctrineMigrations\Version20260818130000' --delete --no-interaction
-```
-
-For Phinx: `DELETE FROM phinxlog WHERE version = 20260818130000;`. Migrations copied into your application need the same changes.
-
-**Rolling back** to the previous version after the upgrade (MySQL / MariaDB):
-
-```sql
-CREATE TABLE IF NOT EXISTS saga_store_lock (
-  boundary_hash char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (boundary_hash)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE saga_store_relation
-  DROP KEY saga_name_saga_id,
-  DROP COLUMN saga_name,
-  MODIFY saga_id varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  ADD KEY saga_id (saga_id);
-
-ALTER TABLE saga_store DROP COLUMN revision;
-```
-
-Then, before the previous version runs its migrations, put the deleted migration back in the history, as its table exists again:
-
-```bash
-bin/console doctrine:migrations:version 'DoctrineMigrations\Version20260818130000' --add --no-interaction
-```
-
-For Phinx: `INSERT INTO phinxlog (version, migration_name, start_time, end_time, breakpoint) VALUES (20260818130000, 'V20260818130000', NOW(), NOW(), 0);`. The upgrade can be applied again later as described above.
 
 ### Serialization
 
@@ -450,8 +331,6 @@ final class OrderFulfillmentSaga
 ```
 
 Public properties are automatically serialized and deserialized. Note that **private properties are not serialized** by the default Symfony Serializer — keep saga state in public properties, as above, or use the `Serializable` interface (Option 2) for private state.
-
-This is the **recommended approach** for sagas that use only public properties.
 
 #### Option 2: Explicit serialization with Serializable interface
 
@@ -501,81 +380,13 @@ final class OrderFulfillmentSaga implements Serializable
 }
 ```
 
-**When to use explicit serialization:**
-- Your saga has **private properties** that need to be persisted (the default Symfony Serializer only handles public properties)
-- You need control over the serialization format (e.g., excluding transient properties)
-- You want to handle schema evolution when saga structure changes
-- You prefer explicit, testable serialization logic
-
-#### How the StackedSerializer works
-
-When using the Symfony bundle, both serialization approaches work together via the `StackedSerializer`:
-
-1. **First**, it tries `SerializableInterfaceSerializer` - for sagas implementing `Serializable`
-2. **Then**, it falls back to `SymfonySerializer` - for automatic serialization
-3. **Finally**, if both fail, it throws an exception with detailed error information
-
-This is the same mechanism used for [domain event serialization](domain-events.md#serialization), and you can mix both approaches across different sagas in the same application.
+Use it when your saga keeps state in private properties, or to handle older payloads when the saga's structure changes. Both approaches can be mixed across sagas, as for [domain events](domain-events.md#serialization).
 
 ### Examples
 
-#### Example 1: Simple order processing saga
+#### Example: fulfillment saga with compensating transactions
 
-A basic saga that coordinates a simple order fulfillment process:
-
-```php
-use Gember\EventSourcing\Saga\CommandRecorder;
-use Gember\EventSourcing\Common\CreationPolicy;
-use Gember\EventSourcing\Saga\Attribute\Saga;
-use Gember\EventSourcing\Saga\Attribute\SagaEventSubscriber;
-use Gember\EventSourcing\Saga\Attribute\SagaId;
-
-#[Saga(name: 'order.processing')]
-final class OrderProcessingSaga
-{
-    #[SagaId]
-    public ?string $orderId = null;
-
-    public bool $paymentProcessed = false;
-    public bool $orderShipped = false;
-
-    #[SagaEventSubscriber(policy: CreationPolicy::IfMissing)]
-    public function onOrderPlacedEvent(OrderPlacedEvent $event, CommandRecorder $commandRecorder): void
-    {
-        $this->orderId = $event->orderId;
-
-        // Start payment processing
-        $commandRecorder->record(new ProcessPaymentCommand($event->orderId, $event->amount));
-    }
-
-    #[SagaEventSubscriber]
-    public function onPaymentProcessedEvent(PaymentProcessedEvent $event, CommandRecorder $commandRecorder): void
-    {
-        $this->paymentProcessed = true;
-
-        // Proceed to shipping
-        $commandRecorder->record(new ShipOrderCommand($event->orderId));
-    }
-
-    #[SagaEventSubscriber]
-    public function onOrderShippedEvent(OrderShippedEvent $event, CommandRecorder $commandRecorder): void
-    {
-        $this->orderShipped = true;
-
-        // Notify customer
-        $commandRecorder->record(new NotifyCustomerCommand($event->orderId));
-    }
-}
-```
-
-**Key characteristics:**
-- **Single Saga ID** - Uses only `orderId` for routing
-- **Linear workflow** - Events progress the saga through sequential steps
-- **Simple coordination** - Dispatches commands to trigger next steps
-
-#### Example 2: Complex fulfillment saga with compensating transactions
-
-A more complex saga demonstrating multiple Saga IDs, parallel processing, and compensating transactions. The shipment ID is only known once the shipment is scheduled; from then on, shipment events find the saga through it:
+A saga demonstrating multiple Saga IDs, parallel processing, and compensating transactions. The shipment ID is only known once the shipment is scheduled; from then on, shipment events find the saga through it:
 
 ```php
 use Gember\EventSourcing\Saga\CommandRecorder;

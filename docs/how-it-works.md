@@ -97,7 +97,7 @@ When a use case is saved, the event store performs the following steps atomicall
 
     Pairs that are only read are locked exclusively as well. Writers reading the same pair therefore wait for each other, even when they don't conflict. For example, renaming a course and enrolling a student both subscribe to the event that created the course, so for the same course they run one after the other — but neither fails. The lock table grows by one row per distinct (domain tag, event type) pair.
 
-2. **Check the optimistic lock** — With the boundary locks held, the event store counts the events matching the use case's domain tags and subscribed event types, and compares the count to the number of events the use case was based on when loading. Events are append-only, so if another writer committed a matching event in between, the count has changed and the save fails with an `OptimisticLockException` (see [Handling conflicts](usage/use-cases.md#handling-conflicts)). Comparing counts (rather than, for example, the ID of the newest event) doesn't depend on timestamps or commit order: an event that commits late with an earlier timestamp is detected as well.
+2. **Check the optimistic lock** — With the boundary locks held, the event store counts the events matching the use case's domain tags and subscribed event types, and compares the count to the number of events the use case was based on when loading. Events are append-only, so if another writer committed a matching event in between, the count has changed and the save fails with an `OptimisticLockException` (see [Handling conflicts](usage/use-cases.md#handling-conflicts)). Comparing counts doesn't depend on timestamps or commit order: an event that commits late with an earlier timestamp is detected as well.
 
 3. **Persist events** — If the check passes, the new events are inserted within the same transaction.
 
@@ -125,17 +125,7 @@ This two-layer approach avoids the classic time-of-check-time-of-use (TOCTOU) ra
 
 The Doctrine DBAL event store supports MySQL and MariaDB (InnoDB) and SQLite; other database platforms throw an `UnsupportedPlatformException`.
 
-!!! note "Upgrading from per-boundary locks"
-    Earlier versions locked a single row per exact boundary. Old and new versions lock different rows and therefore don't serialize against each other: don't run them side by side, deploy as a cut-over. The old lock rows are no longer used; they are harmless and can be deleted once no old version is running.
-
-!!! note "Upgrading to case-sensitive domain tags"
-    Before `gember/rdbms-event-store-doctrine-dbal` 0.20.0, MySQL and MariaDB compared domain tags ignoring case when loading and counting events, while the locks compared them exactly: writers using `course-1` and `COURSE-1` read each other's events without locking each other out. The released migrations were changed in place, so a database that already ran them needs this change applied manually (it rebuilds the table: about 3 seconds per 500,000 tag rows):
-
-    ```sql
-    ALTER TABLE event_store_relation MODIFY domain_tag varchar(100) COLLATE utf8mb4_bin NOT NULL;
-    ```
-
-    Tags that differ only in case become separate streams. If your application relied on those matching, normalize the identifiers before upgrading. SQLite already compared tags exactly.
+When upgrading from an earlier version, see [Upgrading](upgrading.md).
 
 #### Saga concurrency
 
@@ -146,7 +136,7 @@ A saga's state is saved as a whole after each event, so two events handled at th
 3. **Save** — the saga is only saved while it's still at the revision it was loaded with (`UPDATE … WHERE id = ? AND revision = ?`), and its revision is increased. If another process saved it in between, the save is rejected with a `SagaConcurrencyException`.
 4. **Retry** — handling the event is attempted up to 5 times in total, with a short, randomized and growing pause in between: the saga is reloaded (now including the other process's change), the subscriber runs again, and the saga is saved. Recorded commands are only dispatched after a successful save, so a rejected attempt never dispatches commands. When all attempts fail, a warning is logged and the exception is rethrown (with the [Outbox](usage/outbox.md), the message is then retried later).
 
-Only a saga instance loaded from the saga store (or newly created by the framework) is saved as an update. Any other instance, such as a clone or an instance that was serialized and unserialized elsewhere, is saved as a new saga: as its Saga IDs belong to the stored saga already, that save is rejected (and retried with the stored saga).
+The saga store only updates the saga instances it loaded or created itself. Any other instance, such as a clone or an instance that was unserialized elsewhere, is saved as a new saga, which is rejected as its Saga IDs belong to the stored saga already.
 
 !!! warning "Inside a transaction you own"
     A retry needs a fresh transaction: the transaction of the rejected attempt still holds its writes and, under `REPEATABLE READ`, keeps reading the old state. When a transaction is already active when the saga starts handling the event (for example a `doctrine_transaction` middleware around a command handler that dispatches events synchronously), the save isn't retried: the `SagaConcurrencyException` is rethrown, and the owner of that transaction should roll back and retry the whole unit of work.
@@ -157,9 +147,7 @@ Only a saga instance loaded from the saga store (or newly created by the framewo
 
 When an event carries several Saga IDs, they are handled together: the saga instance owning any of them handles the event, and is only created (with `CreationPolicy::IfMissing`) when none of them belongs to a saga yet. Any of the event's Saga IDs not belonging to that instance can only belong to other, existing instances, which then handle the event as well. Each `#[SagaEventSubscriber]` method subscribed to the event is invoked.
 
-A saga instance normally handles such an event once. If another process adds the event's remaining Saga ID to the same instance at that very moment, it can handle the event a second time, which is one more reason for idempotent subscribers.
-
-Event subscribers should still be idempotent: an event can be delivered again (for example when the outbox retries a failed dispatch).
+Event subscribers must be idempotent: an event can be delivered again (for example when the outbox retries a failed dispatch), and in a rare race an instance can handle an event with several Saga IDs twice.
 
 ### CQRS and the read side
 
@@ -167,7 +155,7 @@ _Gember Event Sourcing_ implements the write side of CQRS (Command Query Respons
 
 #### Write side (event store)
 
-The event store is the single source of truth. State is reconstructed by replaying events through use case event subscribers. This provides strong consistency through boundary locking and optimistic lock checks.
+The event store is the single source of truth. State is reconstructed by replaying events through use case event subscribers. This provides strong consistency through lock rows and optimistic lock checks.
 
 #### Read side (projections)
 
@@ -188,10 +176,10 @@ Projectors are not part of the _Gember Event Sourcing_ library itself - they are
 
 | Side | Consistency | Description |
 |------|-------------|-------------|
-| Write (event store) | Strong | Atomic writes with boundary locking per stream query (domain tags + subscribed event types) |
+| Write (event store) | Strong | Atomic writes, serialized by lock rows per (domain tag, event type) pair |
 | Read (projections) | Eventual | Updated after events are persisted and published |
 
-With synchronous event transport, read models are updated immediately after the write completes. Asynchronous transport introduces a delay but improves throughput.
+With synchronous event transport and direct dispatch, read models are updated right after the write completes. An asynchronous transport, or the outbox, introduces a delay.
 
 > **Note:** By default, events are dispatched synchronously after persistence. If the process crashes between persisting and dispatching, events can be lost. The [Outbox](usage/outbox.md) pattern solves this by writing events to an outbox table atomically with the event store, then dispatching them via a background processor with at-least-once delivery guarantees.
 

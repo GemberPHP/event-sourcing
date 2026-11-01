@@ -40,23 +40,7 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
-#### Domain tag purposes
-
-Domain tags appear on commands, use cases, and events, each serving a different purpose:
-
-| Component | Domain tag purpose |
-|-----------|-------------------|
-| **Command** | Which events to **load** from the event store |
-| **Use case** | **Optimistic lock** scope (must match command) |
-| **Event** | How to **index** the event for future retrieval |
-
-> **Important:** The use case's domain tags **must match the command's domain tags exactly**. The use case tags determine the optimistic lock scope; the command tags determine which events are loaded. If they differ, the lock scope won't match what was loaded, leading to incorrect concurrency behavior.
-
-See [Commands](commands.md) for more detail on command domain tags.
-
-#### Choosing domain tags
-
-Use as few domain tags as possible. Each tag widens the optimistic lock scope - more tags mean more events are loaded and more potential for concurrency conflicts. Only add a tag when the use case genuinely needs events from that scope for validation.
+> **Important:** The use case's domain tags **must match the command's domain tags exactly**: the command's tags determine which events are loaded, the use case's tags the optimistic lock scope. See [Commands - Choosing domain tags](commands.md#choosing-domain-tags) and [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components).
 
 #### Domain tag rules
 

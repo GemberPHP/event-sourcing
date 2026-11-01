@@ -16,7 +16,7 @@ The outbox introduces three mechanisms:
 
 1. **Outbox bus implementations** — `OutboxEventBus` and `OutboxCommandBus` implement the standard `EventBus` and `CommandBus` interfaces, but write messages to the outbox table instead of dispatching them. They are swapped in via dependency injection — no changes to existing application code.
 
-2. **Transactional decorators** — `TransactionalUseCaseRepositoryDecorator` wraps the use case repository's `save()` in a database transaction, ensuring the event store append and the outbox writes commit atomically. `TransactionalSagaEventExecutorDecorator` does the same for saga state persistence and command outbox writes. These decorators can also be used independently of the outbox — for example, to wrap event store writes and event bus dispatching in a single transaction without using the outbox pattern.
+2. **Transactional decorators** — `TransactionalUseCaseRepositoryDecorator` wraps the use case repository's `save()` in a database transaction, ensuring the event store append and the outbox writes commit atomically. `TransactionalSagaEventExecutorDecorator` does the same for saga state persistence and command outbox writes.
 
 3. **Outbox processor** — A background worker that polls the outbox table, dispatches messages via the real event bus and command bus, and marks them as processed.
 
@@ -138,7 +138,7 @@ The outbox uses a single table for both events and commands:
 | `claimed_by` | varchar(100), nullable | The processor that claimed the message (`host:pid:random`) |
 | `claimed_until` | datetime(6), nullable | In UTC by the database clock: until when the claim holds (its lease) or, for a failed message (`claimed_by` empty), when it's retried |
 
-The table is created by a migration shipped with the [rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal) package (both Doctrine Migrations and Phinx migrations are provided).
+The table is created by a migration shipped with the [rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal) package (both Doctrine Migrations and Phinx migrations are provided). When upgrading from an earlier version, see [Upgrading](../upgrading.md).
 
 ### Failure handling
 
@@ -266,77 +266,11 @@ UPDATE outbox SET claimed_by = NULL, claimed_until = NULL
 WHERE claimed_by = '<claimed_by>' AND processed_at IS NULL;
 ```
 
-!!! note "Upgrading to claimed outbox messages"
-    Before `gember/rdbms-event-store-doctrine-dbal` 0.21.0, concurrent processors dispatched the same messages (the `SKIP LOCKED` locks were released right away). The released migrations were changed in place, so a database that already ran them needs the two columns added manually:
-
-    ```sql
-    -- Fail instead of waiting long for a metadata lock behind long-running transactions on the outbox
-    SET SESSION lock_wait_timeout = 5;
-
-    ALTER TABLE outbox
-      ADD COLUMN claimed_by varchar(100) COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
-      ADD COLUMN claimed_until datetime(6) NULL DEFAULT NULL,
-      ALGORITHM=INSTANT;
-    ```
-
-    This is instant on MySQL 8.0.12+ and MariaDB 10.3+ (no table rebuild; `ALGORITHM=INSTANT` makes it fail instead of rebuilding the table otherwise). The previous version ignores the new columns, so add them before deploying; a rolling deploy works. Stop processors of the previous version before starting new ones: running side by side, the old ones still dispatch messages the new ones claimed.
-
-    SQLite:
-
-    ```sql
-    ALTER TABLE outbox ADD COLUMN claimed_by varchar(100) NULL DEFAULT NULL;
-    ALTER TABLE outbox ADD COLUMN claimed_until datetime(6) NULL DEFAULT NULL;
-    ```
-
-!!! note "Upgrading to retries with a backoff"
-    Since `gember/rdbms-event-store-doctrine-dbal` 0.22.0, a failed message is retried after a backoff instead of on the next poll, and on MySQL and MariaDB it gets one more attempt than before: dead-lettering now happens after the first attempt and `max_retries` retries on every database. Messages waiting for a retry are skipped through the `outbox_unprocessed` index, which now includes `claimed_until` (changed in place in the released migrations). Existing databases:
-
-    ```sql
-    SET SESSION lock_wait_timeout = 5;
-
-    ALTER TABLE outbox
-      DROP INDEX outbox_unprocessed,
-      ADD INDEX outbox_unprocessed (processed_at, dead_lettered_at, claimed_until, created_at, id),
-      ALGORITHM=INPLACE, LOCK=NONE;
-    ```
-
-    This rebuilds the index online (about 4 seconds per 1.5 million rows), without blocking writes. Version 0.21 works with either index, so run it before or after deploying. SQLite (when the index exists):
-
-    ```sql
-    DROP INDEX outbox_unprocessed;
-    CREATE INDEX outbox_unprocessed ON outbox (processed_at, dead_lettered_at, claimed_until, created_at, id);
-    ```
-
-### Architecture
-
-The outbox is implemented as a composable layer on top of the existing architecture:
+### Processor flow
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ TransactionalUseCaseRepositoryDecorator             │
-│   └── EventSourcedUseCaseRepository                 │
-│         ├── EventStore.append()                     │
-│         └── OutboxEventBus.handle() → outbox table  │
-└─────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────┐
-│ RetryingSagaEventExecutorDecorator                  │
-│   └── TransactionalSagaEventExecutorDecorator       │
-│         └── DefaultSagaEventExecutor                │
-│               ├── SagaStore.save()                  │
-│               └── CommandRecorder.flush()           │
-│                     └── OutboxCommandBus.handle()   │
-│                           → outbox table            │
-└─────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────┐
-│ OutboxProcessor (background worker)                 │
-│   ├── OutboxStore.getUnprocessedMessages()          │
-│   │     → claims a batch (short transaction)        │
-│   ├── EventBus.handle() / CommandBus.handle()       │
-│   │     → outside any transaction                   │
-│   └── OutboxStore.markAsProcessed() / markAsFailed()│
-└─────────────────────────────────────────────────────┘
+OutboxProcessor (background worker)
+  ├── OutboxStore.getUnprocessedMessages()   → claims a batch (short transaction)
+  ├── EventBus.handle() / CommandBus.handle() → outside any transaction
+  └── OutboxStore.markAsProcessed() / markAsFailed()
 ```
-
-No existing classes are modified. The outbox is activated purely through dependency injection wiring in the bundle.

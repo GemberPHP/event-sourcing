@@ -37,15 +37,7 @@ Use as few domain tags as possible. Each tag widens the optimistic lock scope - 
 
 Multiple tags use **OR logic**: events matching any tag (and any subscribed event type) are loaded.
 
-### How domain tags work across components
-
-Domain tags appear on commands, use cases, and events, each serving a different purpose:
-
-| Component | Domain tag purpose |
-|-----------|-------------------|
-| **Command** | Which events to **load** from the event store |
-| **Use case** | **Optimistic lock** scope (must match command) |
-| **Event** | How to **index** the event for future retrieval |
+See [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components) for how the domain tags of commands, use cases and events relate.
 
 ### Best practices
 

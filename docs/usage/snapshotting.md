@@ -211,20 +211,9 @@ Snapshots are versioned — each save inserts a new row rather than overwriting 
 
 Events after a snapshot are loaded in `applied_at` order, which doesn't follow commit order: an event committed after the snapshot, but with an earlier timestamp, would not be loaded. Therefore, after loading a snapshot and the events after it, the system verifies that together they account for all events matching the use case (the snapshot records its event count). If not, it falls back to a full event replay.
 
-If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, the snapshot's `lastEventId` is no longer in the event store, or the snapshot doesn't account for all events), the system automatically falls back to a full event replay. This is logged at `info` level:
+If a snapshot becomes stale (e.g., the use case class changed and deserialization fails, the snapshot's `lastEventId` is no longer in the event store, or the snapshot doesn't account for all events), the system automatically falls back to a full event replay, logged at `info` level (see [Observability](#observability)). The next successful save creates a fresh snapshot.
 
-```
-[Snapshot] Stale snapshot detected, falling back to full replay                          {lastEventId: "...", domainTags: [...]}
-[Snapshot] Snapshot does not account for all events, falling back to full replay         {lastEventId: "...", domainTags: [...]}
-[Snapshot] Stale snapshot, falling back to full replay                                   {exception: "...", exceptionClass: "...", domainTags: [...]}
-```
-
-The first message indicates the snapshot doesn't match the events (e.g., event store was rebuilt). The second indicates events the snapshot plus the loaded events don't account for (e.g., an event committed late, or new events committed while loading). The third indicates a deserialization failure (e.g., class structure changed). In all cases, the next successful save will create a fresh snapshot.
-
-!!! note "Upgrading to the count-based optimistic lock"
-    Snapshots created before this version could count events the use case doesn't subscribe to. They mostly fail the verification above and are replaced automatically, but it's recommended to truncate `snapshot_store` once after upgrading.
-
-This means **truncating `snapshot_store` after deployments is no longer required** — the system auto-recovers. However, truncating is still safe and can be used to reclaim disk space from accumulated old snapshots.
+So snapshots never need to be removed after a deployment. Truncating `snapshot_store` is still safe, for example to reclaim disk space.
 
 ### Symfony bundle configuration
 
@@ -258,31 +247,6 @@ DELETE FROM snapshot_store WHERE id IN (
         SELECT id, ROW_NUMBER() OVER (PARTITION BY boundary_hash ORDER BY event_count DESC) AS rn
         FROM snapshot_store
     ) ranked WHERE rn > 3
-);
-```
-
-### Upgrading from pre-versioned snapshots
-
-If upgrading from a version that used upsert semantics (single snapshot per boundary), the `snapshot_store` table schema has changed:
-
-- New `id` column (primary key, UUID)
-- `boundary_hash` is no longer the primary key
-- New unique constraint on `(boundary_hash, event_count)`
-- `updated_at` column removed (rows are immutable)
-
-Since all packages are 0.x, **drop and recreate the `snapshot_store` table** using the updated schema. Existing snapshots will be rebuilt automatically by the configured policies.
-
-Additionally, `RdbmsSnapshotStore` now requires an `IdentityGenerator` (`Gember\DependencyContracts\Util\Generator\Identity\IdentityGenerator`) as its second constructor argument and a `Clock` (`Gember\EventSourcing\Util\Time\Clock\Clock`) as its third. The `gember/identity-generator-symfony` package provides two implementations: `SymfonyUuidIdentityGenerator` and `SymfonyUlidIdentityGenerator`. If you wire services manually (outside the Symfony bundle or universal service provider):
-
-```php
-use Gember\EventSourcing\Snapshot\Rdbms\RdbmsSnapshotStore;
-use Gember\EventSourcing\Util\Time\Clock\Native\NativeClock;
-use Gember\IdentityGeneratorSymfony\Uuid\SymfonyUuidIdentityGenerator;
-
-$snapshotStore = new RdbmsSnapshotStore(
-    $rdbmsSnapshotStoreRepository,
-    new SymfonyUuidIdentityGenerator($uuidFactory),
-    new NativeClock(),
 );
 ```
 

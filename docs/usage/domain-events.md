@@ -13,19 +13,7 @@ Domain tags are identifiers that link events to specific domain concepts (e.g., 
 - Query events by domain context
 - Support DCB patterns with multiple domain concepts per use case
 
-#### How domain tags work across components
-
-Domain tags appear on commands, use cases, and events, each serving a different purpose:
-
-| Component | Domain tag purpose |
-|-----------|-------------------|
-| **Command** | Which events to **load** from the event store |
-| **Use case** | **Optimistic lock** scope (must match command) |
-| **Event** | How to **index** the event for future retrieval |
-
-> When loading a use case, Gember builds a **stream query** combining the domain tags (from the command) with the subscribed event types (from the use case's `#[DomainEventSubscriber]` methods). Only events matching at least one tag **and** a subscribed type are loaded.
-
-An event's domain tags do not need to match the command's domain tags. They serve independent purposes. A command tag determines what gets loaded; an event tag determines how the event is discoverable in the future.
+An event's domain tags index the event for the use cases that load it later (see [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components)). They do not need to match the command's domain tags. They serve independent purposes. A command tag determines what gets loaded; an event tag determines how the event is discoverable in the future.
 
 #### Choosing event domain tags
 
@@ -194,13 +182,7 @@ final readonly class CourseCreatedEvent
 }
 ```
 
-**Key benefits:**
-- **Zero boilerplate** - No interface implementation required
-- **Automatic handling** - Works with any DTO structure
-- **Complex type support** - Can handle `DateTimeImmutable`, nested objects, and more
-- **Framework integration** - Configured automatically by the Symfony bundle
-
-> **Note:** This is the **recommended approach** for most applications, especially when using Symfony.
+No boilerplate is needed, and types such as `DateTimeImmutable` and nested objects are handled. This is the **recommended approach** for most applications.
 
 #### Option 2: Explicit serialization with Serializable interface
 
@@ -254,31 +236,16 @@ final readonly class CourseCreatedEvent implements Serializable
 }
 ```
 
-**Key points about the `Serializable` interface:**
+`toPayload()` converts the event to an array, `fromPayload()` reconstructs it from stored data; the generic type parameters document the payload shape and the class. Use this approach for explicit control over the stored format (e.g. to read older payloads, see [Changing events](#changing-events)), or without a framework integration.
 
-- **Generic type parameters** - Document the payload structure and return type using PHPStan/Psalm annotations
-  - First parameter: The array shape (`array{courseId: string, ...}`)
-  - Second parameter: The implementing class (`CourseCreatedEvent`)
-- **`toPayload()`** - Converts the event to an array for JSON serialization
-- **`fromPayload()`** - Static factory method to reconstruct the event from stored data
-- **When to use** - Useful when you need explicit control, want to avoid framework dependencies, or are not using a framework integration
-
-#### How the StackedSerializer works
-
-When using the Symfony bundle, both serialization approaches work together via the `StackedSerializer`:
-
-1. **First**, it tries `SerializableInterfaceSerializer` - for events implementing `Serializable`
-2. **Then**, it falls back to `SymfonySerializer` - for automatic reflection-based serialization
-3. **Finally**, if both fail, it throws an exception with detailed error information
-
-This means you can mix both approaches in your application - some events with explicit `Serializable` implementation, others with automatic serialization.
+Both approaches can be mixed: the `StackedSerializer` uses `toPayload()`/`fromPayload()` for classes implementing `Serializable`, and the framework serializer for the others.
 
 #### Best practices for event properties
 
 Events are serialized and stored permanently in the event store. Use **primitive types** (`string`, `int`, `float`, `bool`, `DateTimeImmutable`) for all properties rather than domain Value Objects. This ensures:
 
 - **Simple serialization** - Primitives serialize to JSON without custom logic
-- **Schema evolution** - Historical events remain readable even when domain classes change
+- **Stable payloads** - Historical events remain readable even when domain classes change
 - **No replay dependencies** - Events can be deserialized without depending on domain model classes
 
 ```php
@@ -312,22 +279,9 @@ Additional guidelines:
 2. **Make events readonly** - Use `readonly` classes or properties to ensure immutability
 3. **Include all data** - An event should carry everything needed to describe the change, so consumers don't need to look up additional data
 
-#### Choosing between approaches
-
-**Use automatic serialization when:**
-- You're using Symfony or another framework with serializer integration
-- You want minimal boilerplate code
-- You prefer convention over explicit configuration
-
-**Use the Serializable interface when:**
-- You need explicit control over the serialization format
-- You want to avoid framework dependencies
-- You're working without a framework integration
-- You prefer explicit, testable code
-
 #### Custom serializers
 
-For advanced scenarios (e.g., encryption, compression, custom formats), you can provide custom serializer implementations by implementing the `Serializer` interface from `gember/dependency-contracts`. These can be added to the `StackedSerializer` chain alongside the built-in serializers.
+For advanced scenarios (e.g., encryption, compression, custom formats), you can provide custom serializer implementations by implementing the `Serializer` interface from `gember/dependency-contracts`. These can be added to the `StackedSerializer` chain alongside the built-in serializers (with the Symfony bundle, by overriding its serializer service).
 
 ### Saga IDs on events
 
