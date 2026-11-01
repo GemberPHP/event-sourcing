@@ -11,6 +11,7 @@ use Gember\EventSourcing\EventStore\DomainEventEnvelopeFactory;
 use Gember\EventSourcing\EventStore\EventStore;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\StreamQuery;
+use Gember\EventSourcing\Repository\InvalidUseCaseDomainTagsException;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
@@ -41,6 +42,10 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
     public function get(string $useCaseClassName, string|Stringable ...$domainTag): EventSourcedUseCase
     {
         try {
+            if ($domainTag === []) {
+                throw InvalidUseCaseDomainTagsException::noDomainTags($useCaseClassName);
+            }
+
             $eventEnvelopes = $this->eventStore->load(new StreamQuery(
                 array_values($domainTag),
                 array_map(
@@ -82,13 +87,19 @@ final readonly class EventSourcedUseCaseRepository implements UseCaseRepository
         $appliedEvents = $useCase->getAppliedEvents();
 
         try {
+            $domainTags = $useCase->getDomainTags();
+
+            if ($domainTags === []) {
+                throw InvalidUseCaseDomainTagsException::noDomainTags($useCase::class);
+            }
+
             $eventEnvelopes = array_map(
                 fn($appliedEvent) => $this->domainEventEnvelopeFactory->createFromAppliedEvent($appliedEvent),
                 $appliedEvents,
             );
 
             $streamQuery = new StreamQuery(
-                $useCase->getDomainTags(),
+                $domainTags,
                 array_map(
                     fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
                     $this->useCaseResolver->resolve($useCase::class)->eventSubscribers,

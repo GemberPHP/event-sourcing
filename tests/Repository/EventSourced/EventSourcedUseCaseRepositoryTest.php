@@ -28,6 +28,7 @@ use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
 use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
 use Gember\EventSourcing\Repository\EventSourced\EventSourcedUseCaseRepository;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCase;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithoutDomainTags;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestDomainTag;
 use Gember\EventSourcing\Test\TestDoubles\EventStore\Rdbms\TestRdbmsEventStoreRepository;
 use Gember\EventSourcing\Test\TestDoubles\Registry\TestEventRegistry;
@@ -136,6 +137,15 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
     }
 
     #[Test]
+    public function itShouldFailGetWhenNoDomainTagsAreGiven(): void
+    {
+        self::expectException(UseCaseRepositoryFailedException::class);
+        self::expectExceptionMessage('has no domain tags');
+
+        $this->repository->get(TestUseCase::class);
+    }
+
+    #[Test]
     public function itShouldGetUseCase(): void
     {
         $this->eventStoreRepository->events = [
@@ -231,6 +241,20 @@ final class EventSourcedUseCaseRepositoryTest extends TestCase
                 $this->clock->time,
             ),
         ], $this->eventStoreRepository->events);
+    }
+
+    #[Test]
+    public function itShouldFailSaveWhenUseCaseHasNoDomainTags(): void
+    {
+        try {
+            $this->repository->save(new TestUseCaseWithoutDomainTags());
+
+            self::fail('Expected save to fail');
+        } catch (UseCaseRepositoryFailedException $exception) {
+            self::assertStringContainsString('has no domain tags', $exception->getMessage());
+        }
+
+        self::assertSame([], $this->eventStoreRepository->events);
     }
 
     #[Test]

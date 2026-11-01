@@ -217,3 +217,10 @@ This rebuilds the index online (about 4 seconds per 1.5 million rows), without b
 DROP INDEX outbox_unprocessed;
 CREATE INDEX outbox_unprocessed ON outbox (processed_at, dead_lettered_at, claimed_until, created_at, id);
 ```
+
+### gember/event-sourcing 0.22.0: domain tags of commands and use cases are enforced
+
+The command's domain tags and the use case's domain tags must match. This is now enforced; before, a mismatch silently weakened the optimistic lock. No database change is needed, but check your commands before deploying:
+
+- A command whose domain tags differ from its use case's domain tags (in any order) now fails with an `InvalidUseCaseDomainTagsException`, and the use case is not saved.
+- A command without domain tags now fails loading the use case: a `UseCaseRepositoryFailedException`, caused by an `InvalidUseCaseDomainTagsException`. Before, it never found the use case, and with `CreationPolicy::IfMissing` created a new one every time.
