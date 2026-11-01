@@ -24,6 +24,7 @@ The `#[DomainCommandHandler]` attribute lets you bind a command directly to a us
 
 When using the `#[DomainCommandHandler]` attribute, the method must follow these rules:
 
+- **Must be public** - The method is called from outside the use case; a non-public method is not registered
 - **Must not be static** - The method needs access to `$this` to call `apply()` and other instance methods
 - **Must return void** - Return values are not used; all state changes should be made via `apply()`
 - **Must have exactly one parameter** - The parameter must have a type hint representing the command class
@@ -60,7 +61,7 @@ When you use the `#[DomainCommandHandler]` attribute:
 
 #### Framework integration
 
-When using [gember/event-sourcing-symfony-bundle](https://github.com/GemberPHP/event-sourcing-symfony-bundle) or [gember/event-sourcing-universal-service-provider](https://github.com/GemberPHP/event-sourcing-universal-service-provider), all command registrations are handled automatically. Without these, you need to manually register each command to the `UseCaseCommandHandler`.
+When using [gember/event-sourcing-symfony-bundle](https://github.com/GemberPHP/event-sourcing-symfony-bundle), all command registrations are handled automatically. With [gember/event-sourcing-universal-service-provider](https://github.com/GemberPHP/event-sourcing-universal-service-provider) or without a framework integration, route each command class to the `UseCaseCommandHandler` service (`__invoke`) in your command bus.
 
 ### Example: Attribute-based handler
 
@@ -69,6 +70,7 @@ This example shows a use case with a command handler method using the `#[DomainC
 ```php
 use Gember\EventSourcing\Common\CreationPolicy;
 use Gember\EventSourcing\UseCase\Attribute\DomainCommandHandler;
+use Gember\EventSourcing\UseCase\Attribute\DomainEventSubscriber;
 use Gember\EventSourcing\UseCase\Attribute\DomainTag;
 use Gember\EventSourcing\UseCase\EventSourcedUseCase;
 use Gember\EventSourcing\UseCase\EventSourcedUseCaseBehaviorTrait;
@@ -104,6 +106,12 @@ final class PublishCourseUseCase implements EventSourcedUseCase
         $this->apply(new CoursePublishedEvent((string) $this->courseId));
     }
 
+    #[DomainEventSubscriber]
+    private function onCourseCreatedEvent(CourseCreatedEvent $event): void
+    {
+        $this->courseId = new CourseId($event->courseId);
+        $this->name = $event->name;
+    }
 
     #[DomainEventSubscriber]
     private function onCoursePublishedEvent(CoursePublishedEvent $event): void
@@ -127,8 +135,9 @@ For more complex scenarios or when you need more control, you can write dedicate
 
 The `UseCaseRepository` is used to load and save use cases:
 
-- **`get(string $useCaseClassName, string|Stringable ...$domainTag)`** - Loads a use case by class name and domain tags
-- **`save(EventSourcedUseCase $useCase)`** - Persists all applied events to the event store
+- **`get(string $useCaseClassName, string|Stringable ...$domainTag)`** - Loads a use case by class name and domain tags; throws a `UseCaseNotFoundException` when no matching events exist
+- **`has(string $useCaseClassName, string|Stringable ...$domainTag)`** - Checks whether matching events exist (e.g. before creating a new use case)
+- **`save(EventSourcedUseCase $useCase)`** - Persists all applied events to the event store; a concurrent change is rejected, see [Handling conflicts](use-cases.md#handling-conflicts)
 
 Domain tags can be passed as strings or any objects implementing the `Stringable` interface (typically value objects like `CourseId` or `StudentId`).
 

@@ -15,6 +15,7 @@ src/
 ├── Repository/       Use case and saga persistence
 ├── Resolver/         Attribute-based metadata extraction (reflection)
 ├── Saga/             Saga event handling entry point and execution
+├── Snapshot/         Snapshot store, policies and RDBMS implementation
 ├── UseCase/          Use case interface, traits, and command handling entry point
 └── Util/             Low-level utilities (file, serialization, string, time)
 ```
@@ -25,9 +26,10 @@ src/
 | `EventStore/` | Persist and load domain events | `EventStore` | `RdbmsEventStore`, `LoggableEventStoreDecorator` |
 | `Outbox/` | Reliable message delivery via transactional outbox | `OutboxStore`, `OutboxProcessor` | `RdbmsOutboxStore`, `OutboxEventBus`, `OutboxCommandBus`, `DefaultOutboxProcessor` |
 | `Registry/` | Map commands, events, and sagas to their definitions at runtime | `CommandHandlerRegistry`, `EventRegistry`, `SagaRegistry` | `Reflector*Registry`, `Cached*RegistryDecorator` |
-| `Repository/` | Load and save use cases and sagas | `UseCaseRepository`, `SagaStore` | `EventSourcedUseCaseRepository`, `RdbmsSagaStore` |
+| `Repository/` | Load and save use cases and sagas | `UseCaseRepository`, `SagaStore` | `EventSourcedUseCaseRepository`, `SnapshotUseCaseRepositoryDecorator`, `TransactionalUseCaseRepositoryDecorator`, `RdbmsSagaStore` |
 | `Resolver/` | Extract metadata from PHP attributes via reflection | `UseCaseResolver`, `DomainEventResolver`, `DomainCommandResolver`, `SagaResolver` | `Default*Resolver`, `Cached*ResolverDecorator` |
 | `Saga/` | Route domain events to saga instances and execute saga methods | `SagaEventExecutor` | `SagaEventHandler`, `DefaultSagaEventExecutor` |
+| `Snapshot/` | Store use case snapshots and decide when to take them | `SnapshotStore`, `SnapshotPolicy` | `RdbmsSnapshotStore`, `LoggableSnapshotStoreDecorator`, `*SnapshotPolicy` |
 | `UseCase/` | Define use case contracts and handle commands | `EventSourcedUseCase`, `UseCaseCommandExecutor` | `EventSourcedUseCaseBehaviorTrait`, `UseCaseCommandHandler` |
 | `Util/` | File scanning, serialization, time, string helpers | `Finder`, `Reflector`, `Clock`, `Serializable` | `NativeFinder`, `NativeReflector`, `NativeClock`, `StackedSerializer` |
 
@@ -72,7 +74,7 @@ When multiple resolution strategies exist (e.g., attribute-based, interface-base
 foreach ($this->resolvers as $resolver) {
     try {
         return $resolver->resolve($className);
-    } catch (UnresolvableException) {
+    } catch (Unresolvable…Exception) { // each resolver throws its own exception type
         continue;
     }
 }
@@ -99,16 +101,20 @@ All resolver outputs are `readonly` Definition classes that implement the librar
 
 ```php
 /**
- * @template TPayload of array
- * @template TSerializable of self
+ * @template T of array
+ * @template S of self
  */
 interface Serializable
 {
-    /** @return TPayload */
+    /** @return T */
     public function toPayload(): array;
 
-    /** @param TPayload $payload */
-    public static function fromPayload(array $payload): static;
+    /**
+     * @param T $payload
+     *
+     * @return S
+     */
+    public static function fromPayload(array $payload): self;
 }
 ```
 
@@ -118,7 +124,8 @@ Definition types used across the library:
 
 | Definition | Produced by | Contains |
 |------------|-------------|----------|
-| `UseCaseDefinition` | `UseCaseResolver` | className, domainTags, commandHandlers, eventSubscribers |
+| `UseCaseDefinition` | `UseCaseResolver` | useCaseClassName, domainTags, commandHandlers, eventSubscribers, snapshotDefinition |
+| `SnapshotDefinition` | `SnapshotResolver` | afterEvents, afterSourcingTimeMs, onEvents |
 | `CommandHandlerDefinition` | `CommandHandlerResolver` | commandClassName, methodName, policy |
 | `EventSubscriberDefinition` | `EventSubscriberResolver` | eventClassName, methodName |
 | `DomainCommandDefinition` | `DomainCommandResolver` | commandClassName, domainTags |
@@ -138,7 +145,7 @@ Each top-level resolver takes a class name and returns a Definition DTO:
 
 | Resolver | Input | Output | Sub-resolvers |
 |----------|-------|--------|---------------|
-| `UseCaseResolver` | Use case class | `UseCaseDefinition` | DomainTagResolver, CommandHandlerResolver, EventSubscriberResolver |
+| `UseCaseResolver` | Use case class | `UseCaseDefinition` | DomainTagResolver, CommandHandlerResolver, EventSubscriberResolver, SnapshotResolver |
 | `DomainCommandResolver` | Command class | `DomainCommandDefinition` | DomainTagResolver |
 | `DomainEventResolver` | Event class | `DomainEventDefinition` | EventNameResolver, DomainTagResolver, SagaIdResolver |
 | `SagaResolver` | Saga class | `SagaDefinition` | SagaNameResolver, SagaIdResolver, SagaEventSubscriberResolver |
@@ -177,7 +184,7 @@ At runtime, `DomainTagValueHelper` extracts actual tag values from objects using
 - **`DomainTagType::Property`** — reads the property value directly (e.g., `$command->courseId`)
 - **`DomainTagType::Method`** — calls a method that returns a list of values (e.g., `$event->getDomainTags()`)
 
-The same helper is used for commands, use cases, and events.
+The same helper is used for commands and events. Use cases read their `#[DomainTag]` properties via `EventSourcedUseCaseBehaviorTrait::getDomainTags()`.
 
 #### Caching
 
@@ -281,18 +288,18 @@ flowchart TD
         DomainEventResolver, DomainTagValueHelper,
         IdentityGenerator, Clock"]
         append["EventStore::append()"]
-        lock["guardOptimisticLock()
-        compare expected event count with persisted"]
-        persist["RdbmsEventStoreRepository::saveEvents()"]
+        persist["RdbmsEventStoreRepository::saveEvents()
+        lock rows → stale snapshot guard →
+        compare expected event count → insert"]
         publish["EventBus::handle()
         for each applied event"]
-        save --> envelope --> append --> lock --> persist --> publish
+        save --> envelope --> append --> persist --> publish
     end
 
     execute --> saving
 ```
 
-**UseCaseAttributeRegistry**: A static registry that holds a `UseCaseResolver` reference. It exists because `EventSourcedUseCaseBehaviorTrait` needs to resolve domain tag definitions at runtime, but use cases are instantiated via `new self()` (no constructor injection). The registry is initialized once during application bootstrap.
+**UseCaseAttributeRegistry**: A static registry that holds a `UseCaseResolver` reference. It exists because `EventSourcedUseCaseBehaviorTrait` needs to resolve domain tag definitions at runtime, but use cases are instantiated via `new self()` (no constructor injection). The registry is initialized during application bootstrap: by a request/console listener in the Symfony bundle, and when the `UseCaseResolver` is created in the universal service provider. Without a framework integration, call `UseCaseAttributeRegistry::initialize($useCaseResolver)` yourself.
 
 ### Internal event persistence flow
 
@@ -318,10 +325,6 @@ flowchart TD
     append["RdbmsEventStore::append()"]
     envelope --> append
 
-    append --> lock["guardOptimisticLock()
-    count events matching domain tags and event names
-    Compare with expectedEventCount → OptimisticLockException if mismatch"]
-
     append --> rdbmsFactory["RdbmsEventFactory::createFromDomainEventEnvelope()
     DomainEventResolver::resolve() → eventName
     Serializer::serialize() → JSON payload"]
@@ -330,14 +333,19 @@ flowchart TD
     eventId, domainTags[], eventName, payload, metadata, appliedAt"]
     rdbmsFactory --> rdbmsEvent
 
-    rdbmsEvent --> saveEvents["RdbmsEventStoreRepository::saveEvents()"]
+    rdbmsEvent --> saveEvents["RdbmsEventStoreRepository::saveEvents()
+    1. lock the (domain tag, event type) rows read and written
+    2. stale snapshot guard (lock row versions)
+    3. count events matching domain tags and event names,
+       compare with expectedEventCount → OptimisticLockException if mismatch
+    4. insert events and domain tag relations"]
 ```
 
 #### Read path
 
 ```mermaid
 flowchart TD
-    query["RdbmsEventStoreRepository::getEvents(domainTags, eventNames)"]
+    query["RdbmsEventStoreRepository::getEvents(domainTags, eventNames, afterEventId)"]
     rdbms["RdbmsEvent (from database)"]
     query --> rdbms
 
@@ -442,6 +450,7 @@ These interfaces must be implemented by a framework integration package (e.g., [
 |----------|---------|---------|
 | `RdbmsEventStoreRepository` | Database persistence for events | `RdbmsEventStore` |
 | `RdbmsSagaStoreRepository` | Database persistence for sagas | `RdbmsSagaStore` |
+| `RdbmsSnapshotStoreRepository` | Database persistence for snapshots | `RdbmsSnapshotStore` |
 | `Serializer` | Object serialization/deserialization | `RdbmsEventFactory`, `RdbmsDomainEventEnvelopeFactory`, `RdbmsSagaStore`, `SagaFactory` |
 | `CommandBus` | Dispatch recorded commands after saga persistence | `CommandRecorder` (via `DefaultSagaEventExecutor`) |
 | `EventBus` | Publish domain events after persistence | `EventSourcedUseCaseRepository` |
@@ -453,12 +462,12 @@ These interfaces must be implemented by a framework integration package (e.g., [
 
 | Interface | Standard | Used by |
 |-----------|----------|---------|
-| `LoggerInterface` | PSR-3 (`psr/log`) | `LoggableEventStoreDecorator`, `LoggableUseCaseCommandExecutorDecorator`, `LoggableSagaEventExecutorDecorator`, `RetryingSagaEventExecutorDecorator` |
+| `LoggerInterface` | PSR-3 (`psr/log`) | `LoggableEventStoreDecorator`, `LoggableUseCaseCommandExecutorDecorator`, `LoggableSagaEventExecutorDecorator`, `LoggableSnapshotStoreDecorator`, `RetryingSagaEventExecutorDecorator`, `SnapshotUseCaseRepositoryDecorator`, `DefaultOutboxProcessor`, `RdbmsOutboxStore` |
 | `CacheInterface` | PSR-16 (`psr/simple-cache`) | All `Cached*Decorator` classes |
 
 #### Internal interfaces
 
-All other interfaces are defined and implemented within this library: `EventStore`, `UseCaseRepository`, `SagaStore`, `UseCaseCommandExecutor`, `SagaEventExecutor`, `OutboxStore`, `OutboxProcessor`, all resolvers, all registries, `Finder`, `Reflector`, `Clock`, `AttributeResolver`, and `FriendlyClassNamer`.
+All other interfaces are defined and implemented within this library: `EventStore`, `UseCaseRepository`, `SagaStore`, `UseCaseCommandExecutor`, `SagaEventExecutor`, `OutboxStore`, `OutboxProcessor`, `SnapshotStore`, `SnapshotPolicy`, all resolvers, all registries, `Finder`, `Reflector`, `Clock`, `AttributeResolver`, and `FriendlyClassNamer`.
 
 ### Extending the library
 

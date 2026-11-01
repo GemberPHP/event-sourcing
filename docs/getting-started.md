@@ -99,13 +99,27 @@ final class CreateCourse implements EventSourcedUseCase
 
 ### 5. Dispatch the command
 
-From your application layer (e.g., a controller or service), dispatch the command via the message bus:
+From your application layer (e.g., a controller or service), dispatch the command via the command bus. With Symfony Messenger:
 
 ```php
-$commandBus->handle(new CreateCourseCommand(
-    courseId: 'course-123',
-    name: 'Introduction to Event Sourcing',
-));
+use Symfony\Component\DependencyInjection\Attribute\Target;
+use Symfony\Component\Messenger\MessageBusInterface;
+
+final readonly class CreateCourseController
+{
+    public function __construct(
+        #[Target('command.bus')]
+        private MessageBusInterface $commandBus,
+    ) {}
+
+    public function __invoke(): void
+    {
+        $this->commandBus->dispatch(new CreateCourseCommand(
+            courseId: 'course-123',
+            name: 'Introduction to Event Sourcing',
+        ));
+    }
+}
 ```
 
 That's it. The library automatically:
@@ -114,7 +128,7 @@ That's it. The library automatically:
 3. Reconstitutes the use case from those events
 4. Invokes the command handler method
 5. Persists the new event to the event store
-6. Publishes the event to the event bus
+6. Publishes the event to the event bus (with the [Outbox](usage/outbox.md): writes it to the outbox, from which a background processor publishes it)
 
 ### What's next?
 

@@ -23,13 +23,7 @@ Resolver and registry classes use PHP reflection to scan attributes at runtime. 
 
 ### How caching works
 
-All Definition DTOs implement the `Serializable` interface with `toPayload()` and `fromPayload()` methods. The cache decorators:
-
-1. Check if a cache entry exists for the key
-2. If **miss**: resolve via reflection, serialize the definition to JSON using `toPayload()`, store in cache
-3. If **hit**: deserialize from JSON using `fromPayload()`, return the definition
-
-This means the cache stores plain JSON strings — compatible with any PSR-16 cache backend (Redis, Memcached, APCu, filesystem, etc.).
+On a cache miss, the decorators resolve the definition via reflection and store it as a plain string (JSON); on a hit, they restore it from the cache. Any PSR-16 cache backend works (Redis, Memcached, APCu, filesystem, etc.).
 
 ### Symfony bundle configuration
 
@@ -38,7 +32,7 @@ When using the Symfony bundle, caching is configured in `gember_event_sourcing.y
 ```yaml
 gember_event_sourcing:
     cache:
-        enabled: true       # Enable/disable all cache decorators
+        enabled: true       # Enable/disable all cache decorators (default: false)
         psr6:
             service: '@cache.app'  # PSR-6 cache pool (default)
 
@@ -51,4 +45,4 @@ Setting `enabled: true` activates all seven cache decorators at once. The bundle
 
 ### Cache invalidation
 
-The cache decorators do not implement automatic invalidation. Since resolver and registry data is derived from class attributes (which only change during deployment), the recommended approach is to **clear the cache on deployment** — for example, via `bin/console cache:clear` in Symfony.
+The cache decorators do not implement automatic invalidation. Since resolver and registry data is derived from class attributes (which only change during deployment), the recommended approach is to **clear the cache on deployment**. In Symfony, `bin/console cache:clear` only clears a filesystem pool in `var/cache`: for `cache.app` on Redis, Memcached or APCu, run `bin/console cache:pool:clear cache.app` (or the pool you configured). A stale cache can, for example, keep a new saga subscriber from receiving events.

@@ -27,7 +27,7 @@ When a use case is saved with the outbox enabled:
 ```
 TransactionalUseCaseRepositoryDecorator.save()
   └── database transaction {
-        ├── eventStore.append()             ← nested transaction (savepoint)
+        ├── eventStore.append()             ← runs inside this transaction
         ├── outboxEventBus.handle(event1)   ← writes to outbox table
         └── outboxEventBus.handle(event2)   ← writes to outbox table
       }                                     ← single atomic commit

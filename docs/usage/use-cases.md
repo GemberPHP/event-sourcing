@@ -244,27 +244,52 @@ When you retrieve a use case from the repository:
 
 When you save a use case:
 
-1. All events applied during the request (via `$this->apply()`) are persisted to the event store
-2. These events are linked to the domain tags defined in the use case
-3. An optimistic lock check is performed using a stream query built from the use case's domain tags and subscribed event types - the same query used during loading. If new events matching this query have been added since the use case was loaded, the save is rejected
+1. An optimistic lock check is performed using a stream query built from the use case's domain tags and subscribed event types - the same query used during loading. If new events matching this query have been added since the use case was loaded, the save is rejected
+2. All events applied during the request (via `$this->apply()`) are persisted to the event store, each indexed by its own `#[DomainTag]` properties
 
 ### Concurrency control
 
-When a use case is loaded from the repository, it records the number of events it was reconstituted from (`getEventCount()`). When the use case is saved, the event store counts the events matching the use case's domain tags and subscribed event types again, and compares it to that number. If another process has written a matching event in the meantime, the counts won't match and an `OptimisticLockException` is thrown. After a successful save, the use case's event count includes its own appended events that match its query.
+When a use case is loaded from the repository, it records the number of events it was reconstituted from (`getEventCount()`). When the use case is saved, the event store counts the events matching the use case's domain tags and subscribed event types again, and compares it to that number. If another process has written a matching event in the meantime, the counts won't match and the save is rejected. After a successful save, the use case's event count includes its own appended events that match its query.
 
 For a detailed explanation of the two-layer concurrency mechanism (boundary locks + optimistic lock check), see [How it works - Concurrency control](../how-it-works.md#concurrency-control).
 
-#### Handling OptimisticLockException
+#### Handling conflicts
 
-When a concurrent write conflict occurs, the event store throws an `OptimisticLockException`. This means the use case's state is stale — it was loaded before another process wrote to the same boundary.
+When a concurrent write conflict occurs, the event store throws a `Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException`. The repository wraps every failure in a `UseCaseRepositoryFailedException`, so the conflict reaches you as its previous exception (and your message bus may wrap it once more). It means the use case's state is stale — it was loaded before another process wrote to the same boundary.
 
-The typical strategy is to **retry the entire operation**: reload the use case (which now includes the other process's events), re-execute the business logic, and save again.
+The library doesn't retry use cases. **Retry the entire operation** yourself: reload the use case (which now includes the other process's events), re-execute the business logic, and save again. With Symfony Messenger, an asynchronous transport with a retry strategy does this; when dispatching synchronously, retry the command, for example:
+
+```php
+use Gember\DependencyContracts\EventStore\Rdbms\OptimisticLockException;
+
+function isConflict(Throwable $exception): bool
+{
+    for ($current = $exception; $current !== null; $current = $current->getPrevious()) {
+        if ($current instanceof OptimisticLockException) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+for ($attempt = 1; ; ++$attempt) {
+    try {
+        $commandBus->dispatch($command);
+        break;
+    } catch (Throwable $exception) {
+        if ($attempt === 3 || !isConflict($exception)) {
+            throw $exception;
+        }
+    }
+}
+```
 
 > **Note:** The retry must reload the use case — you cannot simply retry the `save()` call, because the use case's internal state is based on stale events.
 
 #### First write
 
-When a use case is created for the first time (no prior events exist), `getEventCount()` returns `0`: no prior events expected. If any matching events already exist, the write will fail with an `OptimisticLockException`, preventing duplicate creation.
+When a use case is created for the first time (no prior events exist), `getEventCount()` returns `0`: no prior events expected. If any matching events already exist, the save is rejected as a conflict, preventing duplicate creation.
 
 ### Examples
 
@@ -331,16 +356,27 @@ final class SubscribeStudentToCourse implements EventSourcedUseCase
     #[DomainEventSubscriber]
     private function onStudentSubscribedToCourseEvent(StudentSubscribedToCourseEvent $event): void
     {
-        $this->isStudentSubscribedToCourse = true;
+        if ($this->isThisSubscription($event->courseId, $event->studentId)) {
+            $this->isStudentSubscribedToCourse = true;
+        }
     }
 
     #[DomainEventSubscriber]
     private function onStudentUnsubscribedFromCourseEvent(StudentUnsubscribedFromCourseEvent $event): void
     {
-        $this->isStudentSubscribedToCourse = false;
+        if ($this->isThisSubscription($event->courseId, $event->studentId)) {
+            $this->isStudentSubscribedToCourse = false;
+        }
+    }
+
+    private function isThisSubscription(string $courseId, string $studentId): bool
+    {
+        return $courseId === (string) $this->courseId && $studentId === (string) $this->studentId;
     }
 }
 ```
+
+> **Note:** Events are loaded when they match *any* of the use case's domain tags. This use case therefore also loads subscriptions of other students to this course, and of this student to other courses. Subscribers of a use case with several domain tags must check which entities an event is about.
 
 #### Example 2: Traditional aggregate root
 
