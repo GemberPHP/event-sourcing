@@ -223,7 +223,9 @@ sequenceDiagram
     Note over Registry: store in map: key → definition
 ```
 
-The `Finder` scans a given directory for PHP files. The `Reflector` creates `ReflectionClass` instances from those files. The registry then filters for relevant classes and resolves their definitions.
+The `Finder` scans a given directory for PHP files. The `Reflector` creates `ReflectionClass` instances from those files; files without a class, interface or enum (e.g. only a trait or functions) are skipped. The registry then filters for relevant classes and resolves their definitions. The directory is scanned once per registry instance, also when nothing relevant is found.
+
+A registry refuses ambiguous definitions instead of letting the last one win: `EventRegistry` throws an `EventAlreadyRegisteredException` when two classes have the same event name, and `CommandHandlerRegistry` a `CommandHandlerAlreadyRegisteredException` when a command is handled by more than one use case method.
 
 #### Registries
 

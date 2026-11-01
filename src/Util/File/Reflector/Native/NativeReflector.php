@@ -36,7 +36,8 @@ final readonly class NativeReflector implements Reflector
             }
 
             if ($collectNamespace) {
-                if ($token->is(T_NAME_QUALIFIED)) {
+                // A namespace of one segment (e.g. `namespace App;`) is a T_STRING, of more segments a T_NAME_QUALIFIED
+                if ($token->is([T_STRING, T_NAME_QUALIFIED])) {
                     $namespace .= $token->text;
                 } elseif ($token->is(T_WHITESPACE)) {
                     continue;

@@ -9,6 +9,7 @@ use Gember\EventSourcing\Resolver\Saga\Default\EventSubscriber\SagaEventSubscrib
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaResolver;
 use Gember\EventSourcing\Util\File\Finder\Finder;
+use Gember\EventSourcing\Util\File\Reflector\ReflectionFailedException;
 use Gember\EventSourcing\Util\File\Reflector\Reflector;
 use Override;
 
@@ -18,6 +19,8 @@ final class ReflectorSagaRegistry implements SagaRegistry
      * @var array<string, list<SagaDefinition>>
      */
     private array $definitions = [];
+
+    private bool $initialized = false;
 
     public function __construct(
         private readonly Finder $finder,
@@ -41,18 +44,23 @@ final class ReflectorSagaRegistry implements SagaRegistry
 
     private function initialize(): void
     {
-        if ($this->definitions !== []) {
+        if ($this->initialized) {
             return;
         }
 
-        $files = $this->finder->getFiles($this->path);
+        $definitions = [];
 
-        foreach ($files as $file) {
+        foreach ($this->finder->getFiles($this->path) as $file) {
             if ($file === '') {
                 continue;
             }
 
-            $reflectionClass = $this->reflector->reflectClassFromFile($file);
+            try {
+                $reflectionClass = $this->reflector->reflectClassFromFile($file);
+            } catch (ReflectionFailedException) {
+                // No class in this file (e.g. only a trait or functions)
+                continue;
+            }
 
             // A saga must have subscribers
             $subscribers = $this->sagaEventSubscriberResolver->resolve($reflectionClass->getName());
@@ -64,8 +72,11 @@ final class ReflectorSagaRegistry implements SagaRegistry
             $definition = $this->sagaResolver->resolve($reflectionClass->getName());
 
             foreach ($definition->sagaIds as $sagaIdDefinition) {
-                $this->definitions[$sagaIdDefinition->sagaIdName][] = $definition;
+                $definitions[$sagaIdDefinition->sagaIdName][] = $definition;
             }
         }
+
+        $this->definitions = $definitions;
+        $this->initialized = true;
     }
 }

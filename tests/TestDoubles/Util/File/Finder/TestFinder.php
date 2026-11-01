@@ -13,8 +13,12 @@ final class TestFinder implements Finder
      */
     public array $files = [];
 
+    public int $calls = 0;
+
     public function getFiles(string $path): array
     {
+        ++$this->calls;
+
         return $this->files;
     }
 }

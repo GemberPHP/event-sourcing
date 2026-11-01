@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Registry\CommandHandler\Reflector;
 
+use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerAlreadyRegisteredException;
 use Gember\EventSourcing\Registry\CommandHandler\CommandHandlerNotRegisteredException;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
 use Gember\EventSourcing\Resolver\UseCase\CommandHandlerDefinition;
@@ -11,6 +12,7 @@ use Gember\EventSourcing\Resolver\UseCase\Default\CommandHandler\Attribute\Attri
 use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestFullUseCase;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommand;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseWithCommandHandler;
@@ -97,5 +99,59 @@ final class ReflectorCommandHandlerRegistryTest extends TestCase
         self::expectException(CommandHandlerNotRegisteredException::class);
 
         $this->registry->retrieve(TestUseCaseCreatedEvent::class);
+    }
+
+    #[Test]
+    public function itShouldSkipFilesWithoutClass(): void
+    {
+        $this->finder->files = [
+            'path/to/trait.php',
+            'path/to/use-case.php',
+        ];
+
+        $this->reflector->files = [
+            'path/to/use-case.php' => TestUseCaseWithCommandHandler::class,
+        ];
+
+        [$useCaseClassName] = $this->registry->retrieve(TestUseCaseWithCommand::class);
+
+        self::assertSame(TestUseCaseWithCommandHandler::class, $useCaseClassName);
+    }
+
+    #[Test]
+    public function itShouldThrowExceptionWhenCommandIsHandledByTwoUseCases(): void
+    {
+        $this->finder->files = [
+            'path/to/use-case.php',
+            'path/to/full-use-case.php',
+        ];
+
+        $this->reflector->files = [
+            'path/to/use-case.php' => TestUseCaseWithCommandHandler::class,
+            'path/to/full-use-case.php' => TestFullUseCase::class,
+        ];
+
+        self::expectException(CommandHandlerAlreadyRegisteredException::class);
+        self::expectExceptionMessage(sprintf(
+            'Command `%s` is already handled by %s::__invoke, and can\'t be handled by %s::__invoke too',
+            TestUseCaseWithCommand::class,
+            TestUseCaseWithCommandHandler::class,
+            TestFullUseCase::class,
+        ));
+
+        $this->registry->retrieve(TestUseCaseWithCommand::class);
+    }
+
+    #[Test]
+    public function itShouldScanFilesOnceWhenNoCommandHandlersAreFound(): void
+    {
+        foreach ([stdClass::class, TestUseCaseWithCommand::class] as $commandName) {
+            try {
+                $this->registry->retrieve($commandName);
+            } catch (CommandHandlerNotRegisteredException) {
+            }
+        }
+
+        self::assertSame(1, $this->finder->calls);
     }
 }

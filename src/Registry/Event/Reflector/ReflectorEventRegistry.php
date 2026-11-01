@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Registry\Event\Reflector;
 
+use Gember\EventSourcing\Registry\Event\EventAlreadyRegisteredException;
 use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Event\EventRegistry;
 use Gember\EventSourcing\Resolver\DomainEvent\DomainEventResolver;
@@ -19,6 +20,8 @@ final class ReflectorEventRegistry implements EventRegistry
      */
     private array $events = [];
 
+    private bool $initialized = false;
+
     public function __construct(
         private readonly Finder $finder,
         private readonly Reflector $reflector,
@@ -27,8 +30,8 @@ final class ReflectorEventRegistry implements EventRegistry
     ) {}
 
     /**
+     * @throws EventAlreadyRegisteredException
      * @throws EventNotRegisteredException
-     * @throws ReflectionFailedException
      */
     #[Override]
     public function retrieve(string $eventName): string
@@ -43,26 +46,39 @@ final class ReflectorEventRegistry implements EventRegistry
     }
 
     /**
-     * @throws ReflectionFailedException
+     * @throws EventAlreadyRegisteredException
      */
     private function initialize(): void
     {
-        if ($this->events !== []) {
+        if ($this->initialized) {
             return;
         }
 
-        $files = $this->finder->getFiles($this->path);
+        $events = [];
 
-        foreach ($files as $file) {
+        foreach ($this->finder->getFiles($this->path) as $file) {
             if ($file === '') {
                 continue;
             }
 
-            $reflectionClass = $this->reflector->reflectClassFromFile($file);
+            try {
+                $reflectionClass = $this->reflector->reflectClassFromFile($file);
+            } catch (ReflectionFailedException) {
+                // No class in this file (e.g. only a trait or functions)
+                continue;
+            }
 
-            $eventName = $this->domainEventResolver->resolve($reflectionClass->getName())->eventName;
+            $eventClassName = $reflectionClass->getName();
+            $eventName = $this->domainEventResolver->resolve($eventClassName)->eventName;
 
-            $this->events[$eventName] = $reflectionClass->getName();
+            if (array_key_exists($eventName, $events) && $events[$eventName] !== $eventClassName) {
+                throw EventAlreadyRegisteredException::withEventName($eventName, $events[$eventName], $eventClassName);
+            }
+
+            $events[$eventName] = $eventClassName;
         }
+
+        $this->events = $events;
+        $this->initialized = true;
     }
 }

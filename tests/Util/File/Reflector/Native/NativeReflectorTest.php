@@ -35,6 +35,26 @@ final class NativeReflectorTest extends TestCase
     }
 
     #[Test]
+    public function itShouldReflectClassInNamespaceOfOneSegment(): void
+    {
+        $file = __DIR__ . '/../../../../TestDoubles/Util/File/Reflector/SingleSegmentNamespaceClass.php';
+
+        require_once $file;
+
+        $reflectionClass = $this->reflector->reflectClassFromFile($file);
+
+        self::assertSame('GemberReflectorTest\SingleSegmentNamespaceClass', $reflectionClass->getName());
+    }
+
+    #[Test]
+    public function itShouldThrowExceptionWhenFileOnlyHasATrait(): void
+    {
+        self::expectException(ReflectionFailedException::class);
+
+        $this->reflector->reflectClassFromFile(__DIR__ . '/../../../../TestDoubles/Util/File/Reflector/OnlyTrait.php');
+    }
+
+    #[Test]
     public function itShouldThrowExceptionWhenClassNotFound(): void
     {
         self::expectException(ReflectionFailedException::class);
