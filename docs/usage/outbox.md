@@ -88,18 +88,37 @@ bin/console gember:outbox:process --watch --limit=100 --memory-limit=128M --time
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--limit`, `-l` | Max messages to process per batch | `100` |
-| `--watch`, `-w` | Continuously poll with interval in milliseconds | disabled |
-| `--memory-limit` | Exit when memory usage exceeds this limit (e.g., `128M`) | unlimited |
-| `--time-limit` | Exit after this many seconds | unlimited |
+| `--watch`, `-w` | Continuously poll, waiting this many milliseconds after an empty batch (`--watch=500`; minimum 10) | disabled; `100` when given without a value |
+| `--memory-limit` | With `--watch`: exit when memory usage exceeds this limit (e.g., `128M`) | unlimited |
+| `--time-limit` | With `--watch`: exit after this many seconds | unlimited |
 
-The command handles `SIGTERM` and `SIGINT` gracefully — it finishes the current batch before exiting. Use a process manager like supervisor or systemd to restart it automatically:
+The command handles `SIGTERM` and `SIGINT` gracefully (via `ext-pcntl`) — it finishes the current batch before exiting. Use a process manager like supervisor or systemd to restart it automatically, and give it enough time to finish a batch when stopping: a killed batch is only dispatched again after its lease (5 minutes by default).
 
 ```ini
 # /etc/supervisor/conf.d/gember-outbox.conf
 [program:gember-outbox]
-command=bin/console gember:outbox:process --watch --memory-limit=128M --time-limit=3600
+command=/path/to/project/bin/console gember:outbox:process --watch --memory-limit=128M --time-limit=3600
 autostart=true
 autorestart=true
+stopwaitsecs=60
+```
+
+#### Without Symfony
+
+With the universal service provider (`dispatch.strategy: outbox`), there is no console command: run the processor in your own loop, cron job or worker, outside any transaction:
+
+```php
+use Gember\EventSourcing\Outbox\Processor\OutboxProcessor;
+
+$processor = $container->get(OutboxProcessor::class);
+
+while (true) {
+    $processed = $processor->process(limit: 100); // returns the number of messages handled
+
+    if ($processed === 0) {
+        usleep(100_000);
+    }
+}
 ```
 
 ### Outbox table
@@ -151,7 +170,7 @@ Dead-lettered messages remain in the outbox table for manual inspection:
 
 ```sql
 SELECT * FROM outbox
-WHERE dead_lettered_at IS NOT NULL;
+WHERE processed_at IS NULL AND dead_lettered_at IS NOT NULL;
 ```
 
 After investigating and fixing the root cause, you can reset a message for reprocessing:
@@ -160,6 +179,15 @@ After investigating and fixing the root cause, you can reset a message for repro
 UPDATE outbox
 SET dead_lettered_at = NULL, retry_count = 0, claimed_until = NULL
 WHERE id = 'message-id';
+```
+
+#### Monitoring the backlog
+
+```sql
+-- Messages not dispatched yet, and the age of the oldest one
+SELECT COUNT(*) AS pending, MIN(created_at) AS oldest
+FROM outbox
+WHERE processed_at IS NULL AND dead_lettered_at IS NULL;
 ```
 
 #### Messages waiting for a retry
@@ -175,11 +203,41 @@ UPDATE outbox SET claimed_until = NULL
 WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND claimed_by IS NULL;
 ```
 
+#### Removing processed messages
+
+Processed messages stay in the outbox table; nothing deletes them. Remove them periodically, in batches, for example processed messages older than 7 days:
+
+```sql
+DELETE FROM outbox
+WHERE processed_at IS NOT NULL AND processed_at < NOW() - INTERVAL 7 DAY
+LIMIT 10000;
+```
+
+Repeat until no rows are deleted. Keep dead-lettered messages until you've handled them.
+
+#### Changing the lease and backoff
+
+The lease (`$leaseSeconds`, default 300) and the backoff (`$retryDelaySeconds`, default 5, and `$maxRetryDelaySeconds`, default 300) are constructor arguments of `DoctrineDbalRdbmsOutboxRepository`, not bundle options. With the Symfony bundle, override the service:
+
+```yaml
+# config/services.yaml
+services:
+    gember.event_sourcing.outbox.rdbms.rdbms_outbox_repository:
+        class: Gember\RdbmsEventStoreDoctrineDbal\Outbox\DoctrineDbalRdbmsOutboxRepository
+        arguments:
+            $connection: '@gember.doctrine.dbal.connection'
+            $tableSchema: '@gember.event_sourcing.outbox.table_schema.outbox_table_schema'
+            $outboxFactory: '@gember.event_sourcing.outbox.doctrine_dbal_rdbms_outbox_factory'
+            $leaseSeconds: 600
+```
+
+With the universal service provider, register your own `OutboxStore::class` entry: an `RdbmsOutboxStore` with a `DoctrineDbalRdbmsOutboxRepository` constructed with these arguments.
+
 ### Delivery guarantees
 
 The outbox provides **at-least-once delivery**. This means:
 
-- Every message will be dispatched at least once
+- Every message will be dispatched at least once, unless it is dead-lettered
 - In rare failure scenarios, a message may be dispatched more than once: a processor crashing after dispatch but before marking the message as processed, or a batch taking longer to dispatch than the lease (see below)
 - Event handlers and command handlers **must be idempotent** — processing the same message twice should produce the same result
 
@@ -187,7 +245,7 @@ The outbox provides **at-least-once delivery**. This means:
 
 Multiple processor instances can run in parallel, without coordination. Each processor **claims** the batch of messages it takes: the messages are marked with the processor (`claimed_by`) and a lease (`claimed_until`, 300 seconds by default). Other processors skip claimed messages, so every message is dispatched by one processor at a time. Dispatching happens after the claim is committed, outside any transaction: run the processor outside any transaction (not inside e.g. a `doctrine_transaction` middleware), otherwise the claim and its locks stay in your transaction while the batch is dispatched.
 
-- **Lease:** a claim expires after the lease, measured in UTC with the database clock (all processors share it, whatever their PHP or database session time zone). When a processor crashes or hangs, other processors take its messages over after that time. The lease must exceed the time to dispatch one batch (`--limit`, 100 by default): otherwise other processors take over the rest of a batch that is still being dispatched, and dispatch those messages again. Lower `--limit` for slow handlers. The lease is a constructor argument of `DoctrineDbalRdbmsOutboxRepository` (`$leaseSeconds`).
+- **Lease:** a claim expires after the lease, measured in UTC with the database clock (all processors share it, whatever their PHP or database session time zone). When a processor crashes or hangs, other processors take its messages over after that time. The lease must exceed the time to dispatch one batch (`--limit`, 100 by default): otherwise other processors take over the rest of a batch that is still being dispatched, and dispatch those messages again. Lower `--limit` for slow handlers. The lease is a constructor argument of `DoctrineDbalRdbmsOutboxRepository` (`$leaseSeconds`, see [Changing the lease and backoff](#changing-the-lease-and-backoff)).
 - **Failures:** a failed dispatch is counted only by the processor holding the claim, which releases the message for a retry after the backoff (see [Failure handling](#failure-handling)).
 - **No ordering across processors:** with one processor, messages are dispatched oldest first (apart from retries after a failure). With several processors, messages are dispatched in parallel, so two events for the same use case or saga can be handled at the same time and in any order. Use several processors when your handlers don't depend on the order of events; keep one processor when they do.
 - **Databases without `SKIP LOCKED`** (SQLite, MySQL 5.7, MariaDB < 10.6): claiming stays correct, but concurrent processors compete for the same messages more often, so adding processors helps less.

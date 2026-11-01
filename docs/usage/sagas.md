@@ -31,7 +31,9 @@ A property on a domain event can have both `#[DomainTag]` and `#[SagaId]`, one, 
 
 ### Defining a saga
 
-A saga is a simple PHP class that can be configured in two ways:
+A saga is a simple PHP class with a constructor without required arguments (the framework creates new instances with `new`). Its saga name is resolved in one of three ways: the `#[Saga]` attribute, the `NamedSaga` interface, or, without either, the class name.
+
+The saga name is stored with every saga instance and its Saga IDs: renaming it (or the class, when the name is derived from it) detaches the existing instances, which are no longer found.
 
 #### Option 1: Using the #[Saga] attribute
 
@@ -56,7 +58,7 @@ final class OrderFulfillmentSaga
 
 #### Option 2: Implementing the NamedSaga interface
 
-For dynamic saga naming or when you need more control, implement the `NamedSaga` interface:
+Alternatively, return the name from the static `getName()` method of the `NamedSaga` interface:
 
 ```php
 use Gember\EventSourcing\Saga\Attribute\SagaId;
@@ -295,7 +297,13 @@ Unlike event-sourced use cases, sagas are persisted directly. The saga store sav
 
 When a saga instance is saved, all current Saga ID values are persisted as relations. On subsequent saves, relations of removed Saga ID values are deleted and relations of added ones are inserted, allowing Saga ID values to change over the saga's lifetime. A Saga ID value belongs to at most one saga instance per saga name (see [Saga IDs](#saga-ids)).
 
-Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga (up to 5 attempts). See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
+Concurrent events for the same saga instance are handled safely: each save checks the revision the saga was loaded with, and a save that conflicts with a concurrent one is retried with the reloaded saga (up to 5 attempts). The retry is skipped inside a transaction you opened yourself (e.g. a `doctrine_transaction` middleware): roll back and retry the whole unit of work. See [How it works - Saga concurrency](../how-it-works.md#saga-concurrency).
+
+#### Reliability
+
+- **Subscribers must be idempotent.** An event can be handled again, for example when its dispatch is retried, so a subscriber may see an event it handled before. Keep track of what the saga already did in its state (as in the examples below).
+- **Commands are dispatched after the save.** Without the [Outbox](outbox.md), a command handler that fails after the saga was saved leaves the saga's state advanced while the remaining recorded commands aren't dispatched; the failure is rethrown to the event's dispatcher. Use the outbox when recorded commands must be delivered: the saga's state and its commands are then stored in one transaction and dispatched by the processor, with retries.
+- **`SagaCommandDispatchFailedException`**: when a recorded command, handled synchronously, causes another saga that runs out of retries, the exception is wrapped in a `SagaCommandDispatchFailedException`. It isn't retried, because this saga is saved already and a retry would dispatch its commands again.
 
 #### Upgrading the saga store
 

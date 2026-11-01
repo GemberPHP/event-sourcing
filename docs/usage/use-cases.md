@@ -58,6 +58,12 @@ See [Commands](commands.md) for more detail on command domain tags.
 
 Use as few domain tags as possible. Each tag widens the optimistic lock scope - more tags mean more events are loaded and more potential for concurrency conflicts. Only add a tag when the use case genuinely needs events from that scope for validation.
 
+#### Domain tag rules
+
+- Domain tag properties of a use case are read with `#[DomainTag]` only (the `SpecifiedDomainTags` interface is for events and commands)
+- Their values must be a `string` or `Stringable` (e.g. a value object with `__toString()`), and are compared case-sensitively; tag values are stored in a column of 100 characters
+- They must be set before the use case is saved: an uninitialized property fails. Make sure an event subscriber sets them, or that the handler refuses to act when the entity doesn't exist
+
 #### Documenting domain tag choices
 
 It is recommended to add a class-level docblock to each use case explaining what it does and why each domain tag was chosen:
@@ -122,6 +128,7 @@ When the use case is loaded from the repository, events matching the domain tags
 - The use case doesn't have to be the one that applied the event - it just needs to be related to at least one of the use case's domain tags
 - The use case doesn't need an event subscriber for each applied event - only for events required to maintain decision-making state
 - Event subscriber method names can be anything; the event type itself is used for matching (unlike some libraries that rely on method naming conventions)
+- The first parameter must be the exact event class: an interface, parent class or union type never matches
 
 ```php
 final class SomeBusinessUseCase implements EventSourcedUseCase
