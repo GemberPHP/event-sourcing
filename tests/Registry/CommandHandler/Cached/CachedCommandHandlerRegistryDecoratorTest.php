@@ -24,6 +24,7 @@ use Gember\EventSourcing\Util\String\Inflector\Native\NativeInflector;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Override;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -70,7 +71,7 @@ final class CachedCommandHandlerRegistryDecoratorTest extends TestCase
     public function itShouldResolveFromCache(): void
     {
         $this->cache->set(
-            'gember.registry.command_handler.gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command',
+            CacheKey::create('registry.command_handler', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command'),
             '{"useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","commandHandlerDefinition":{"commandClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","methodName":"another","policy":"never"}}',
         );
 
@@ -100,7 +101,7 @@ final class CachedCommandHandlerRegistryDecoratorTest extends TestCase
 
         self::assertSame(
             '{"useCaseClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommandHandler","commandHandlerDefinition":{"commandClassName":"Gember\\\EventSourcing\\\Test\\\TestDoubles\\\UseCase\\\TestUseCaseWithCommand","methodName":"__invoke","policy":"never"}}',
-            $this->cache->get('gember.registry.command_handler.gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command'),
+            $this->cache->get(CacheKey::create('registry.command_handler', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command')),
         );
     }
 }

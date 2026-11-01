@@ -2,12 +2,6 @@
 
 $ignoreErrors = [];
 $ignoreErrors[] = [
-	'message' => '#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#',
-	'identifier' => 'argument.type',
-	'count' => 1,
-	'path' => __DIR__ . '/src/Registry/Saga/Cached/CachedSagaRegistryDecorator.php',
-];
-$ignoreErrors[] = [
 	'message' => '#^Method Gember\\\\EventSourcing\\\\Repository\\\\Snapshot\\\\SnapshotUseCaseRepositoryDecorator\\:\\:get\\(\\) should return T of Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase but returns Gember\\\\EventSourcing\\\\UseCase\\\\EventSourcedUseCase\\.$#',
 	'identifier' => 'return.type',
 	'count' => 1,

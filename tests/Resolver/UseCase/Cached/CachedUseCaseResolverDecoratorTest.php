@@ -29,6 +29,7 @@ use Gember\EventSourcing\Resolver\UseCase\Cached\CachedUseCaseResolverDecorator;
 use PHPUnit\Framework\Attributes\Test;
 use Override;
 use stdClass;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -82,7 +83,7 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set('gember.resolver.use_case.std-class', json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.use_case', 'std-class'), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -94,8 +95,21 @@ final class CachedUseCaseResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestUseCase::class);
 
-        $cachedDefinition = $this->cache->get('gember.resolver.use_case.gember.event-sourcing.test.test-doubles.use-case.test-use-case');
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.use_case', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case'));
 
         self::assertEquals(UseCaseDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
+    }
+
+    #[Test]
+    public function itShouldResolveAgainWhenCachedEntryIsUnreadable(): void
+    {
+        $cacheKey = CacheKey::create('resolver.use_case', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case');
+
+        $this->cache->set($cacheKey, 'not json');
+
+        $definition = $this->decorator->resolve(TestUseCase::class);
+
+        self::assertSame(TestUseCase::class, $definition->useCaseClassName);
+        self::assertSame(json_encode($definition->toPayload()), $this->cache->get($cacheKey));
     }
 }

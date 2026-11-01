@@ -29,6 +29,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Registry\Saga\Cached\CachedSagaRegistryDecorator;
 use Override;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -90,7 +91,7 @@ final class CachedSagaRegistryDecoratorTest extends TestCase
             ),
         ];
 
-        $this->cache->set('gember.registry.saga.some', json_encode([
+        $this->cache->set(CacheKey::create('registry.saga', 'some'), json_encode([
             [
                 'sagaClassName' => TestSaga::class,
                 'sagaName' => 'saga.test',
@@ -125,7 +126,7 @@ final class CachedSagaRegistryDecoratorTest extends TestCase
     {
         $this->decorator->retrieve('anotherName');
 
-        $cachedDefinition = $this->cache->get('gember.registry.saga.anotherName');
+        $cachedDefinition = $this->cache->get(CacheKey::create('registry.saga', 'anotherName'));
 
         self::assertSame(json_encode([
             [

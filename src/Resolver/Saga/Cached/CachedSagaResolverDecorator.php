@@ -6,10 +6,12 @@ namespace Gember\EventSourcing\Resolver\Saga\Cached;
 
 use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaResolver;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Override;
 use Psr\SimpleCache\CacheInterface;
 use JsonException;
+use TypeError;
 use Psr\SimpleCache\InvalidArgumentException;
 
 /**
@@ -17,7 +19,7 @@ use Psr\SimpleCache\InvalidArgumentException;
  */
 final readonly class CachedSagaResolverDecorator implements SagaResolver
 {
-    private const string CACHE_KEY = 'gember.resolver.saga.%s';
+    private const string CACHE_TYPE = 'resolver.saga';
 
     public function __construct(
         private SagaResolver $sagaResolver,
@@ -33,29 +35,31 @@ final readonly class CachedSagaResolverDecorator implements SagaResolver
     public function resolve(string $sagaClassName): SagaDefinition
     {
         $cacheKey = $this->createCacheKey($sagaClassName);
-
-        if (!$this->cache->has($cacheKey)) {
-            $definition = $this->sagaResolver->resolve($sagaClassName);
-
-            $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
-
-            return $definition;
-        }
-
-        /** @var string $cachedDefinition */
         $cachedDefinition = $this->cache->get($cacheKey);
 
-        /** @var SagaDefinitionPayload $payload */
-        $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
+        if (is_string($cachedDefinition)) {
+            try {
+                /** @var SagaDefinitionPayload $payload */
+                $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
 
-        return SagaDefinition::fromPayload($payload);
+                return SagaDefinition::fromPayload($payload);
+            } catch (JsonException|TypeError) {
+                // Unreadable entry: resolve it again and overwrite it
+            }
+        }
+
+        $definition = $this->sagaResolver->resolve($sagaClassName);
+
+        $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
+
+        return $definition;
     }
 
     /**
-     * @param class-string $eventClassName
+     * @param class-string $className
      */
-    private function createCacheKey(string $eventClassName): string
+    private function createCacheKey(string $className): string
     {
-        return sprintf(self::CACHE_KEY, $this->friendlyClassNamer->createFriendlyClassName($eventClassName));
+        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
     }
 }

@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Override;
 use stdClass;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -53,7 +54,7 @@ final class CachedDomainCommandResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set('gember.resolver.domain_command.std-class', json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.domain_command', 'std-class'), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -65,7 +66,7 @@ final class CachedDomainCommandResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestUseCaseWithCommand::class);
 
-        $cachedDefinition = $this->cache->get('gember.resolver.domain_command.gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command');
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.domain_command', 'gember.event-sourcing.test.test-doubles.use-case.test-use-case-with-command'));
 
         self::assertEquals(DomainCommandDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }
