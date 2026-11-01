@@ -8,7 +8,7 @@ This guide walks you through building a minimal working example: a course that c
 composer require gember/event-sourcing-symfony-bundle
 ```
 
-See [Installation](installation.md) for framework-specific details and configuration.
+Then follow the [setup steps](installation.md#setup): message buses and database tables.
 
 ### 2. Define a domain event
 

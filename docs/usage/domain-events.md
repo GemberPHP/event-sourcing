@@ -157,6 +157,17 @@ For example: `App\Domain\Course\CourseCreatedEvent` might become `app.domain.cou
 
 > **Best practice:** Always use explicit naming (attribute or interface) to maintain control over event names, especially when refactoring or reorganizing code.
 
+Event classes must be located under the configured event registry path (`registry.event.reflector.path`, `src/` by default): the registry finds the class of a stored event by its name there. Events without domain tags are stored, but no use case can load them.
+
+### Changing events
+
+Stored events are never rewritten, so every version of an event that was ever stored must stay readable (there is no upcasting yet):
+
+- **Keep the event name** when renaming or moving the class (use the attribute or interface, not the FQCN fallback)
+- **Add new properties as nullable or with a default value**, so older payloads without them still deserialize
+- **Handle older payload shapes in `fromPayload()`** when the event implements `Serializable`
+- **Introduce a new event** for a change in meaning, and let subscribers handle both events
+
 ### Serialization
 
 Events must be serializable to be stored in the event store. _Gember Event Sourcing_ uses a configurable `Serializer` to convert events to and from their stored representation (typically JSON).
