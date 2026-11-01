@@ -24,7 +24,8 @@ interface OutboxStore
     public function markAsProcessed(string ...$messageIds): void;
 
     /**
-     * Increment retry count and dead-letter the message if maxRetries is reached.
+     * Count a failed dispatch: the message is retried after a backoff, and dead-lettered after the first attempt and
+     * maxRetries retries.
      *
      * @throws OutboxStoreFailedException
      */

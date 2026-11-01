@@ -117,7 +117,7 @@ The outbox uses a single table for both events and commands:
 | `processed_at` | timestamp(6), nullable | Set when successfully dispatched |
 | `dead_lettered_at` | timestamp(6), nullable | Set when `retry_count` exceeds `max_retries`, or right away for a message that can't be deserialized |
 | `claimed_by` | varchar(100), nullable | The processor that claimed the message (`host:pid:random`) |
-| `claimed_until` | datetime(6), nullable | Until when the claim holds (its lease), in UTC by the database clock |
+| `claimed_until` | datetime(6), nullable | In UTC by the database clock: until when the claim holds (its lease) or, for a failed message (`claimed_by` empty), when it's retried |
 
 The table is created by a migration shipped with the [rdbms-event-store-doctrine-dbal](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal) package (both Doctrine Migrations and Phinx migrations are provided).
 
@@ -129,7 +129,17 @@ When a message fails to dispatch, the processor:
 2. Increments `retry_count` on the outbox row and schedules a retry after a backoff (in `claimed_until`)
 3. Continues processing the remaining messages in the batch
 
-The backoff starts at 5 seconds and doubles per failed attempt, up to 5 minutes (the `$retryDelaySeconds` and `$maxRetryDelaySeconds` arguments of `DoctrineDbalRdbmsOutboxRepository`), so a short outage of a dependency doesn't use up the retries: with `max_retries: 5`, a message is retried for about 2.5 minutes. After the first attempt and `max_retries` retries (`retry_count` exceeds `max_retries`), the `dead_lettered_at` timestamp is set and the message is permanently excluded from processing.
+The backoff starts at 5 seconds and doubles per failed attempt, up to 5 minutes (the `$retryDelaySeconds` and `$maxRetryDelaySeconds` arguments of `DoctrineDbalRdbmsOutboxRepository`), so a short outage of a dependency doesn't use up the retries. After the first attempt and `max_retries` retries (`retry_count` exceeds `max_retries`), the `dead_lettered_at` timestamp is set and the message is permanently excluded from processing. How long a message is retried:
+
+| `max_retries` | Retried for |
+|---|---|
+| 1 | 5 s |
+| 3 | 35 s |
+| 5 | ~2.5 min |
+| 7 | ~10 min |
+| 10 | ~25 min |
+
+From the 7th retry on, each retry waits 5 minutes. An outage that lasts longer still ends in dead-lettered messages: reset them after the outage (see below). The last failure is logged like the others, so alert on dead-lettered messages (`dead_lettered_at`) rather than on the log.
 
 Retried messages are dispatched after messages that were written later: messages aren't dispatched in order after a failure. Event handlers shouldn't depend on the order of events across failures.
 
@@ -150,6 +160,19 @@ After investigating and fixing the root cause, you can reset a message for repro
 UPDATE outbox
 SET dead_lettered_at = NULL, retry_count = 0, claimed_until = NULL
 WHERE id = 'message-id';
+```
+
+#### Messages waiting for a retry
+
+```sql
+-- Messages waiting for a retry, and when they're retried (UTC)
+SELECT id, message_name, retry_count, claimed_until
+FROM outbox
+WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND claimed_by IS NULL AND claimed_until IS NOT NULL;
+
+-- Retry them now (e.g. after an outage was resolved)
+UPDATE outbox SET claimed_until = NULL
+WHERE processed_at IS NULL AND dead_lettered_at IS NULL AND claimed_by IS NULL;
 ```
 
 ### Delivery guarantees
@@ -205,6 +228,25 @@ WHERE claimed_by = '<claimed_by>' AND processed_at IS NULL;
     ```sql
     ALTER TABLE outbox ADD COLUMN claimed_by varchar(100) NULL DEFAULT NULL;
     ALTER TABLE outbox ADD COLUMN claimed_until datetime(6) NULL DEFAULT NULL;
+    ```
+
+!!! note "Upgrading to retries with a backoff"
+    Since `gember/rdbms-event-store-doctrine-dbal` 0.22.0, a failed message is retried after a backoff instead of on the next poll, and on MySQL and MariaDB it gets one more attempt than before: dead-lettering now happens after the first attempt and `max_retries` retries on every database. Messages waiting for a retry are skipped through the `outbox_unprocessed` index, which now includes `claimed_until` (changed in place in the released migrations). Existing databases:
+
+    ```sql
+    SET SESSION lock_wait_timeout = 5;
+
+    ALTER TABLE outbox
+      DROP INDEX outbox_unprocessed,
+      ADD INDEX outbox_unprocessed (processed_at, dead_lettered_at, claimed_until, created_at, id),
+      ALGORITHM=INPLACE, LOCK=NONE;
+    ```
+
+    This rebuilds the index online (about 4 seconds per 1.5 million rows), without blocking writes. Version 0.21 works with either index, so run it before or after deploying. SQLite (when the index exists):
+
+    ```sql
+    DROP INDEX outbox_unprocessed;
+    CREATE INDEX outbox_unprocessed ON outbox (processed_at, dead_lettered_at, claimed_until, created_at, id);
     ```
 
 ### Architecture
