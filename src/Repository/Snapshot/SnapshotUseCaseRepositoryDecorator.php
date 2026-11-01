@@ -12,6 +12,7 @@ use Gember\EventSourcing\Repository\InvalidUseCaseDomainTagsException;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
+use Gember\EventSourcing\Resolver\UseCase\SnapshotDefinition;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
 use Gember\EventSourcing\Snapshot\Policy\SnapshotContext;
 use Gember\EventSourcing\Snapshot\Policy\SnapshotPolicy;
@@ -82,11 +83,12 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
             fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,
             $useCaseDefinition->eventSubscribers,
         );
+        $snapshotNames = $this->createSnapshotNames($useCaseClassName, $snapshotDefinition, $eventClassNames);
 
         try {
             $startTime = microtime(true);
 
-            $result = $this->reconstituteWithSnapshot($useCaseClassName, $domainTags, $domainTagStrings, $eventClassNames);
+            $result = $this->reconstituteWithSnapshot($useCaseClassName, $domainTags, $domainTagStrings, $eventClassNames, $snapshotNames);
 
             $sourcingDurationMs = (microtime(true) - $startTime) * 1000;
 
@@ -96,7 +98,7 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
                 $result->eventCountAtLastSnapshot,
                 $snapshotDefinition,
                 $domainTagStrings,
-                $eventClassNames,
+                $snapshotNames,
             );
 
             return $result->useCase;
@@ -133,15 +135,17 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
      * @param list<string|Stringable> $domainTags
      * @param list<string> $domainTagStrings
      * @param list<class-string> $eventClassNames
+     * @param list<string> $snapshotNames
      */
     private function reconstituteWithSnapshot(
         string $useCaseClassName,
         array $domainTags,
         array $domainTagStrings,
         array $eventClassNames,
+        array $snapshotNames,
     ): ReconstitutionResult {
         try {
-            $snapshot = $this->snapshotStore->load($domainTagStrings, $eventClassNames);
+            $snapshot = $this->snapshotStore->load($domainTagStrings, $snapshotNames);
         } catch (Throwable $exception) {
             $this->logger->warning('[Snapshot] Failed loading snapshot, falling back to full replay', [
                 'exception' => $exception->getMessage(),
@@ -342,5 +346,27 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
                 return;
             }
         }
+    }
+
+    /**
+     * The names a snapshot is stored and loaded by, together with the domain tags: the subscribed event classes,
+     * plus the use case class and snapshot version. Without them, use cases with the same domain tags and
+     * subscribed events would share snapshots, and a changed use case would keep using snapshots of its previous
+     * logic. A class name can't contain `:` or `@`, so this entry never equals an event class name.
+     *
+     * @param class-string<EventSourcedUseCase> $useCaseClassName
+     * @param list<class-string> $eventClassNames
+     *
+     * @return list<string>
+     */
+    private function createSnapshotNames(
+        string $useCaseClassName,
+        SnapshotDefinition $snapshotDefinition,
+        array $eventClassNames,
+    ): array {
+        return [
+            ...$eventClassNames,
+            sprintf('use-case:%s@v%d', $useCaseClassName, $snapshotDefinition->version),
+        ];
     }
 }

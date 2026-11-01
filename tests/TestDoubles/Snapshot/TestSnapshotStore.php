@@ -16,6 +16,11 @@ final class TestSnapshotStore implements SnapshotStore
     public ?SnapshotEnvelope $storedSnapshot = null;
     public ?SnapshotEnvelope $snapshotToReturn = null;
     public bool $loadWasCalled = false;
+
+    /**
+     * @var list<string>
+     */
+    public array $lastLoadEventNames = [];
     public bool $saveWasCalled = false;
     public ?Exception $loadShouldThrow = null;
     public ?Exception $saveShouldThrow = null;
@@ -23,6 +28,7 @@ final class TestSnapshotStore implements SnapshotStore
     public function load(array $domainTags, array $eventNames): ?SnapshotEnvelope
     {
         $this->loadWasCalled = true;
+        $this->lastLoadEventNames = $eventNames;
 
         if ($this->loadShouldThrow !== null) {
             throw $this->loadShouldThrow;

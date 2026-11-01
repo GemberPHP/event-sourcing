@@ -68,6 +68,12 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
 ];
 $ignoreErrors[] = [
+	'message' => '#^Method Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\VersionedSnapshotTestUseCase\\:\\:getDomainTags\\(\\) should return list\\<string\\|Stringable\\> but returns list\\.$#',
+	'identifier' => 'return.type',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
+];
+$ignoreErrors[] = [
 	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\MultiplePolicyMatchTestUseCase\\:\\:\\$id \\(string\\) does not accept string\\|null\\.$#',
 	'identifier' => 'assign.propertyType',
 	'count' => 1,
@@ -93,6 +99,12 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
 	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\SourcingTimeSnapshotTestUseCase\\:\\:\\$id \\(string\\) does not accept string\\|null\\.$#',
+	'identifier' => 'assign.propertyType',
+	'count' => 1,
+	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
+];
+$ignoreErrors[] = [
+	'message' => '#^Property Gember\\\\EventSourcing\\\\Test\\\\Repository\\\\Snapshot\\\\VersionedSnapshotTestUseCase\\:\\:\\$id \\(string\\) does not accept string\\|null\\.$#',
 	'identifier' => 'assign.propertyType',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/Repository/Snapshot/SnapshotUseCaseRepositoryDecoratorTest.php',
@@ -140,7 +152,7 @@ $ignoreErrors[] = [
 	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',
 ];
 $ignoreErrors[] = [
-	'message' => '#^Parameter \\#1 \\$payload of static method Gember\\\\EventSourcing\\\\Resolver\\\\UseCase\\\\UseCaseDefinition\\:\\:fromPayload\\(\\) expects array\\{useCaseClassName\\: class\\-string, domainTags\\: list\\<array\\{domainTagName\\: string, type\\: string\\}\\>, commandHandlers\\: list\\<array\\{commandClassName\\: class\\-string, methodName\\: string, policy\\: string\\}\\>, eventSubscribers\\: list\\<array\\{eventClassName\\: class\\-string, methodName\\: string\\}\\>, snapshotDefinition\\: array\\{afterEvents\\: int\\|null, afterSourcingTimeMs\\: int\\|null, onEvents\\: list\\<class\\-string\\>\\|null\\}\\|null\\}, mixed given\\.$#',
+	'message' => '#^Parameter \\#1 \\$payload of static method Gember\\\\EventSourcing\\\\Resolver\\\\UseCase\\\\UseCaseDefinition\\:\\:fromPayload\\(\\) expects array\\{useCaseClassName\\: class\\-string, domainTags\\: list\\<array\\{domainTagName\\: string, type\\: string\\}\\>, commandHandlers\\: list\\<array\\{commandClassName\\: class\\-string, methodName\\: string, policy\\: string\\}\\>, eventSubscribers\\: list\\<array\\{eventClassName\\: class\\-string, methodName\\: string\\}\\>, snapshotDefinition\\: array\\{afterEvents\\: int\\|null, afterSourcingTimeMs\\: int\\|null, onEvents\\: list\\<class\\-string\\>\\|null, version\\?\\: int\\}\\|null\\}, mixed given\\.$#',
 	'identifier' => 'argument.type',
 	'count' => 1,
 	'path' => __DIR__ . '/tests/Resolver/UseCase/Cached/CachedUseCaseResolverDecoratorTest.php',

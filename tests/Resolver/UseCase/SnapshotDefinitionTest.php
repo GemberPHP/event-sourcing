@@ -21,12 +21,14 @@ final class SnapshotDefinitionTest extends TestCase
             afterEvents: 100,
             afterSourcingTimeMs: 5000,
             onEvents: [stdClass::class],
+            version: 2,
         );
 
         self::assertSame([
             'afterEvents' => 100,
             'afterSourcingTimeMs' => 5000,
             'onEvents' => [stdClass::class],
+            'version' => 2,
         ], $definition->toPayload());
     }
 
@@ -44,6 +46,7 @@ final class SnapshotDefinitionTest extends TestCase
         self::assertSame(100, $definition->afterEvents);
         self::assertSame(5000, $definition->afterSourcingTimeMs);
         self::assertSame([stdClass::class], $definition->onEvents);
+        self::assertSame(1, $definition->version);
     }
 
     #[Test]
@@ -69,6 +72,7 @@ final class SnapshotDefinitionTest extends TestCase
             'afterEvents' => null,
             'afterSourcingTimeMs' => null,
             'onEvents' => null,
+            'version' => 1,
         ], $definition->toPayload());
 
         $restored = SnapshotDefinition::fromPayload($definition->toPayload());

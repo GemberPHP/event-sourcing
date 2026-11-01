@@ -117,6 +117,7 @@ final class UseCaseDefinitionTest extends TestCase
                 'afterEvents' => 500,
                 'afterSourcingTimeMs' => 1000,
                 'onEvents' => [TestUseCaseCreatedEvent::class],
+                'version' => 1,
             ],
         ], $serialized);
 
