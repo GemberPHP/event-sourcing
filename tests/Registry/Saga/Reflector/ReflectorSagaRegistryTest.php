@@ -17,6 +17,8 @@ use Gember\EventSourcing\Resolver\Saga\SagaDefinition;
 use Gember\EventSourcing\Resolver\Saga\SagaEventSubscriberDefinition;
 use Gember\EventSourcing\Test\TestDoubles\Saga\TestSaga;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
+use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseModifiedEvent;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
 use Gember\EventSourcing\Util\File\Finder\Native\NativeFinder;
@@ -34,6 +36,8 @@ use Override;
 final class ReflectorSagaRegistryTest extends TestCase
 {
     private ReflectorSagaRegistry $registry;
+    private DefaultSagaResolver $sagaResolver;
+    private AttributeSagaEventSubscriberResolver $sagaEventSubscriberResolver;
 
     #[Override]
     protected function setUp(): void
@@ -43,7 +47,7 @@ final class ReflectorSagaRegistryTest extends TestCase
         $this->registry = new ReflectorSagaRegistry(
             new NativeFinder(),
             new NativeReflector(),
-            new DefaultSagaResolver(
+            $this->sagaResolver = new DefaultSagaResolver(
                 new StackedSagaNameResolver(
                     [
                         new AttributeSagaNameResolver($attributeResolver = new ReflectorAttributeResolver()),
@@ -52,9 +56,9 @@ final class ReflectorSagaRegistryTest extends TestCase
                     new ClassNameSagaNameResolver(new NativeFriendlyClassNamer(new NativeInflector())),
                 ),
                 new AttributeSagaIdResolver($attributeResolver),
-                $eventSubscriberResolver = new AttributeSagaEventSubscriberResolver($attributeResolver),
+                $this->sagaEventSubscriberResolver = new AttributeSagaEventSubscriberResolver($attributeResolver),
             ),
-            $eventSubscriberResolver,
+            $this->sagaEventSubscriberResolver,
             __DIR__ . '/../../../TestDoubles/Saga',
         );
     }
@@ -92,5 +96,37 @@ final class ReflectorSagaRegistryTest extends TestCase
                 ],
             ),
         ], $definitions);
+    }
+
+    #[Test]
+    public function itShouldSkipFilesWithoutClass(): void
+    {
+        $finder = new TestFinder();
+        $finder->files = [
+            'path/to/trait.php',
+            'path/to/saga.php',
+        ];
+
+        $reflector = new TestReflector();
+        $reflector->files = [
+            'path/to/saga.php' => TestSaga::class,
+        ];
+
+        $registry = new ReflectorSagaRegistry($finder, $reflector, $this->sagaResolver, $this->sagaEventSubscriberResolver, 'path');
+
+        self::assertCount(1, $registry->retrieve('anotherName'));
+    }
+
+    #[Test]
+    public function itShouldScanFilesOnceWhenNoSagasAreFound(): void
+    {
+        $finder = new TestFinder();
+
+        $registry = new ReflectorSagaRegistry($finder, new TestReflector(), $this->sagaResolver, $this->sagaEventSubscriberResolver, 'path');
+
+        $registry->retrieve('someId');
+        $registry->retrieve('anotherId');
+
+        self::assertSame(1, $finder->calls);
     }
 }

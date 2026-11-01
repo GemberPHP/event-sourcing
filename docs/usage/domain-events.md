@@ -91,7 +91,7 @@ For most events where domain tags map directly to constructor properties, the `#
 
 ### Event naming
 
-The event name is a unique identifier used to match stored events with their corresponding PHP classes during deserialization. _Gember Event Sourcing_ provides three ways to define event names, checked in this order:
+The event name is a unique identifier used to match stored events with their corresponding PHP classes during deserialization. Two event classes with the same name fail with an `EventAlreadyRegisteredException`. _Gember Event Sourcing_ provides three ways to define event names, checked in this order:
 
 #### 1. Using the #[DomainEvent] attribute
 

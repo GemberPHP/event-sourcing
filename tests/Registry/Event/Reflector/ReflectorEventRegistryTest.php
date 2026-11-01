@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Gember\EventSourcing\Test\Registry\Event\Reflector;
 
+use Gember\EventSourcing\Registry\Event\EventAlreadyRegisteredException;
 use Gember\EventSourcing\Registry\Event\EventNotRegisteredException;
 use Gember\EventSourcing\Registry\Event\Reflector\ReflectorEventRegistry;
 use Gember\EventSourcing\Resolver\Common\DomainTag\Attribute\AttributeDomainTagResolver;
 use Gember\EventSourcing\Resolver\Common\SagaId\Attribute\AttributeSagaIdResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\DefaultDomainEventResolver;
 use Gember\EventSourcing\Resolver\DomainEvent\Default\EventName\Attribute\AttributeEventNameResolver;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\TestSameNamedEvent;
 use Gember\EventSourcing\Test\TestDoubles\UseCase\TestUseCaseCreatedEvent;
+use Gember\EventSourcing\Test\TestDoubles\UseCase\UseCaseWithCommandTestedEvent;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Finder\TestFinder;
 use Gember\EventSourcing\Test\TestDoubles\Util\File\Reflector\TestReflector;
 use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeResolver;
@@ -67,5 +70,52 @@ final class ReflectorEventRegistryTest extends TestCase
         $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
         self::assertSame(TestUseCaseCreatedEvent::class, $eventFqcn);
+    }
+
+    #[Test]
+    public function itShouldSkipFilesWithoutClass(): void
+    {
+        $this->finder->files = [
+            'path/to/trait.php',
+            'path/to/event.php',
+        ];
+
+        $this->reflector->files = [
+            'path/to/event.php' => TestUseCaseCreatedEvent::class,
+        ];
+
+        self::assertSame(TestUseCaseCreatedEvent::class, $this->registry->retrieve('test.use-case.created'));
+    }
+
+    #[Test]
+    public function itShouldThrowExceptionWhenEventNameIsRegisteredForTwoClasses(): void
+    {
+        $this->finder->files = [
+            'path/to/event.php',
+            'path/to/same-named-event.php',
+        ];
+
+        $this->reflector->files = [
+            'path/to/event.php' => UseCaseWithCommandTestedEvent::class,
+            'path/to/same-named-event.php' => TestSameNamedEvent::class,
+        ];
+
+        self::expectException(EventAlreadyRegisteredException::class);
+        self::expectExceptionMessage('Event `test.use-case-with-command.tested` is already registered');
+
+        $this->registry->retrieve('test.use-case-with-command.tested');
+    }
+
+    #[Test]
+    public function itShouldScanFilesOnceWhenNoEventsAreFound(): void
+    {
+        foreach (['some-event', 'another-event'] as $eventName) {
+            try {
+                $this->registry->retrieve($eventName);
+            } catch (EventNotRegisteredException) {
+            }
+        }
+
+        self::assertSame(1, $this->finder->calls);
     }
 }
