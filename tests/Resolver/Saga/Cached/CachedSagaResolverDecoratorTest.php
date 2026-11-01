@@ -27,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 use Gember\EventSourcing\Resolver\Saga\Cached\CachedSagaResolverDecorator;
 use Override;
 use stdClass;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -81,7 +82,7 @@ final class CachedSagaResolverDecoratorTest extends TestCase
             ],
         );
 
-        $this->cache->set('gember.resolver.saga.std-class', json_encode($expectedDefinition->toPayload()));
+        $this->cache->set(CacheKey::create('resolver.saga', 'std-class'), json_encode($expectedDefinition->toPayload()));
 
         $definition = $this->decorator->resolve(stdClass::class);
 
@@ -93,7 +94,7 @@ final class CachedSagaResolverDecoratorTest extends TestCase
     {
         $definition = $this->decorator->resolve(TestSaga::class);
 
-        $cachedDefinition = $this->cache->get('gember.resolver.saga.gember.event-sourcing.test.test-doubles.saga.test-saga');
+        $cachedDefinition = $this->cache->get(CacheKey::create('resolver.saga', 'gember.event-sourcing.test.test-doubles.saga.test-saga'));
 
         self::assertEquals(SagaDefinition::fromPayload(json_decode($cachedDefinition, true)), $definition);
     }

@@ -6,10 +6,12 @@ namespace Gember\EventSourcing\Resolver\DomainCommand\Cached;
 
 use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandDefinition;
 use Gember\EventSourcing\Resolver\DomainCommand\DomainCommandResolver;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Psr\SimpleCache\CacheInterface;
 use Override;
 use JsonException;
+use TypeError;
 use Psr\SimpleCache\InvalidArgumentException;
 
 /**
@@ -17,7 +19,7 @@ use Psr\SimpleCache\InvalidArgumentException;
  */
 final readonly class CachedDomainCommandResolverDecorator implements DomainCommandResolver
 {
-    private const string CACHE_KEY = 'gember.resolver.domain_command.%s';
+    private const string CACHE_TYPE = 'resolver.domain_command';
 
     public function __construct(
         private DomainCommandResolver $domainCommandResolver,
@@ -33,29 +35,31 @@ final readonly class CachedDomainCommandResolverDecorator implements DomainComma
     public function resolve(string $commandClassName): DomainCommandDefinition
     {
         $cacheKey = $this->createCacheKey($commandClassName);
-
-        if (!$this->cache->has($cacheKey)) {
-            $definition = $this->domainCommandResolver->resolve($commandClassName);
-
-            $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
-
-            return $definition;
-        }
-
-        /** @var string $cachedDefinition */
         $cachedDefinition = $this->cache->get($cacheKey);
 
-        /** @var DomainCommandDefinitionPayload $payload */
-        $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
+        if (is_string($cachedDefinition)) {
+            try {
+                /** @var DomainCommandDefinitionPayload $payload */
+                $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
 
-        return DomainCommandDefinition::fromPayload($payload);
+                return DomainCommandDefinition::fromPayload($payload);
+            } catch (JsonException|TypeError) {
+                // Unreadable entry: resolve it again and overwrite it
+            }
+        }
+
+        $definition = $this->domainCommandResolver->resolve($commandClassName);
+
+        $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
+
+        return $definition;
     }
 
     /**
-     * @param class-string $eventClassName
+     * @param class-string $className
      */
-    private function createCacheKey(string $eventClassName): string
+    private function createCacheKey(string $className): string
     {
-        return sprintf(self::CACHE_KEY, $this->friendlyClassNamer->createFriendlyClassName($eventClassName));
+        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
     }
 }

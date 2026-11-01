@@ -6,10 +6,12 @@ namespace Gember\EventSourcing\Resolver\UseCase\Cached;
 
 use Gember\EventSourcing\Resolver\UseCase\UseCaseDefinition;
 use Gember\EventSourcing\Resolver\UseCase\UseCaseResolver;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 use Gember\EventSourcing\Util\String\FriendlyClassNamer\FriendlyClassNamer;
 use Psr\SimpleCache\CacheInterface;
 use Override;
 use JsonException;
+use TypeError;
 use Psr\SimpleCache\InvalidArgumentException;
 
 /**
@@ -17,7 +19,7 @@ use Psr\SimpleCache\InvalidArgumentException;
  */
 final readonly class CachedUseCaseResolverDecorator implements UseCaseResolver
 {
-    private const string CACHE_KEY = 'gember.resolver.use_case.%s';
+    private const string CACHE_TYPE = 'resolver.use_case';
 
     public function __construct(
         private UseCaseResolver $useCaseResolver,
@@ -33,29 +35,31 @@ final readonly class CachedUseCaseResolverDecorator implements UseCaseResolver
     public function resolve(string $useCaseClassName): UseCaseDefinition
     {
         $cacheKey = $this->createCacheKey($useCaseClassName);
-
-        if (!$this->cache->has($cacheKey)) {
-            $definition = $this->useCaseResolver->resolve($useCaseClassName);
-
-            $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
-
-            return $definition;
-        }
-
-        /** @var string $cachedDefinition */
         $cachedDefinition = $this->cache->get($cacheKey);
 
-        /** @var UseCaseDefinitionPayload $payload */
-        $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
+        if (is_string($cachedDefinition)) {
+            try {
+                /** @var UseCaseDefinitionPayload $payload */
+                $payload = json_decode($cachedDefinition, true, flags: JSON_THROW_ON_ERROR);
 
-        return UseCaseDefinition::fromPayload($payload);
+                return UseCaseDefinition::fromPayload($payload);
+            } catch (JsonException|TypeError) {
+                // Unreadable entry: resolve it again and overwrite it
+            }
+        }
+
+        $definition = $this->useCaseResolver->resolve($useCaseClassName);
+
+        $this->cache->set($cacheKey, json_encode($definition->toPayload(), JSON_THROW_ON_ERROR));
+
+        return $definition;
     }
 
     /**
-     * @param class-string $eventClassName
+     * @param class-string $className
      */
-    private function createCacheKey(string $eventClassName): string
+    private function createCacheKey(string $className): string
     {
-        return sprintf(self::CACHE_KEY, $this->friendlyClassNamer->createFriendlyClassName($eventClassName));
+        return CacheKey::create(self::CACHE_TYPE, $this->friendlyClassNamer->createFriendlyClassName($className));
     }
 }

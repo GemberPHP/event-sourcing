@@ -19,6 +19,7 @@ use Gember\EventSourcing\Util\Attribute\Resolver\Reflector\ReflectorAttributeRes
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
+use Gember\EventSourcing\Util\Cache\CacheKey;
 
 /**
  * @internal
@@ -62,7 +63,7 @@ final class CachedEventRegistryDecoratorTest extends TestCase
     #[Test]
     public function itShouldResolveFromCache(): void
     {
-        $this->cache->set('gember.registry.event.test.use-case.created', TestUseCaseModifiedEvent::class);
+        $this->cache->set(CacheKey::create('registry.event', 'test.use-case.created'), TestUseCaseModifiedEvent::class);
 
         $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
@@ -75,6 +76,17 @@ final class CachedEventRegistryDecoratorTest extends TestCase
         $eventFqcn = $this->registry->retrieve('test.use-case.created');
 
         self::assertSame(TestUseCaseCreatedEvent::class, $eventFqcn);
-        self::assertSame(TestUseCaseCreatedEvent::class, $this->cache->get('gember.registry.event.test.use-case.created'));
+        self::assertSame(TestUseCaseCreatedEvent::class, $this->cache->get(CacheKey::create('registry.event', 'test.use-case.created')));
+    }
+
+    #[Test]
+    public function itShouldRetrieveAgainWhenCachedClassNoLongerExists(): void
+    {
+        $this->cache->set(CacheKey::create('registry.event', 'test.use-case.created'), 'App\RenamedEvent');
+
+        $eventFqcn = $this->registry->retrieve('test.use-case.created');
+
+        self::assertSame(TestUseCaseCreatedEvent::class, $eventFqcn);
+        self::assertSame(TestUseCaseCreatedEvent::class, $this->cache->get(CacheKey::create('registry.event', 'test.use-case.created')));
     }
 }
