@@ -8,6 +8,7 @@ use Gember\DependencyContracts\Util\Serialization\Serializer\Serializer;
 use Gember\EventSourcing\EventStore\EventStore;
 use Gember\EventSourcing\EventStore\NoEventsForDomainTagsException;
 use Gember\EventSourcing\EventStore\StreamQuery;
+use Gember\EventSourcing\Repository\InvalidUseCaseDomainTagsException;
 use Gember\EventSourcing\Repository\UseCaseNotFoundException;
 use Gember\EventSourcing\Repository\UseCaseRepository;
 use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
@@ -69,6 +70,13 @@ final class SnapshotUseCaseRepositoryDecorator implements UseCaseRepository
         }
 
         $domainTags = array_values($domainTag);
+
+        if ($domainTags === []) {
+            throw UseCaseRepositoryFailedException::withException(
+                InvalidUseCaseDomainTagsException::noDomainTags($useCaseClassName),
+            );
+        }
+
         $domainTagStrings = array_map(strval(...), $domainTags);
         $eventClassNames = array_map(
             fn($eventSubscriberDefinition) => $eventSubscriberDefinition->eventClassName,

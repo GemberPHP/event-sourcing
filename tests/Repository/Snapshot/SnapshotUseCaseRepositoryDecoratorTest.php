@@ -12,6 +12,7 @@ use Gember\EventSourcing\Resolver\UseCase\Default\DefaultUseCaseResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\EventSubscriber\Attribute\AttributeEventSubscriberResolver;
 use Gember\EventSourcing\Resolver\UseCase\Default\Snapshot\Attribute\AttributeSnapshotResolver;
 use Gember\EventSourcing\Repository\Snapshot\SnapshotUseCaseRepositoryDecorator;
+use Gember\EventSourcing\Repository\UseCaseRepositoryFailedException;
 use Gember\EventSourcing\Snapshot\Policy\AfterEventsSnapshotPolicy;
 use Gember\EventSourcing\Snapshot\Policy\AfterSourcingTimeSnapshotPolicy;
 use Gember\EventSourcing\Snapshot\Policy\OnEventsSnapshotPolicy;
@@ -204,6 +205,15 @@ final class SnapshotUseCaseRepositoryDecoratorTest extends TestCase
 
         self::assertInstanceOf(NoSnapshotTestUseCase::class, $result);
         self::assertFalse($this->snapshotStore->loadWasCalled);
+    }
+
+    #[Test]
+    public function itShouldFailGetWhenNoDomainTagsAreGiven(): void
+    {
+        self::expectException(UseCaseRepositoryFailedException::class);
+        self::expectExceptionMessage('has no domain tags');
+
+        $this->decorator->get(SnapshotTestUseCase::class);
     }
 
     #[Test]

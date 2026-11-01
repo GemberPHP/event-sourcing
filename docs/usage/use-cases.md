@@ -40,10 +40,11 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
-> **Important:** The use case's domain tags **must match the command's domain tags exactly**: the command's tags determine which events are loaded, the use case's tags the optimistic lock scope. See [Commands - Choosing domain tags](commands.md#choosing-domain-tags) and [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components).
+> **Important:** The use case's domain tags **must match the command's domain tags exactly** (in any order): the command's tags determine which events are loaded, the use case's tags the optimistic lock scope. The command handler enforces this: when they differ after handling the command, it throws an `InvalidUseCaseDomainTagsException` and the use case is not saved. When you load and save a use case with the `UseCaseRepository` yourself, you are responsible for loading it with the same domain tags. See [Commands - Choosing domain tags](commands.md#choosing-domain-tags) and [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components).
 
 #### Domain tag rules
 
+- A use case needs at least one domain tag: without it there is no consistency boundary, and saving it fails
 - Domain tag properties of a use case are read with `#[DomainTag]` only (the `SpecifiedDomainTags` interface is for events and commands)
 - Their values must be a `string` or `Stringable` (e.g. a value object with `__toString()`), and are compared case-sensitively; tag values are stored in a column of 100 characters
 - They must be set before the use case is saved: an uninitialized property fails. Make sure an event subscriber sets them, or that the handler refuses to act when the entity doesn't exist
