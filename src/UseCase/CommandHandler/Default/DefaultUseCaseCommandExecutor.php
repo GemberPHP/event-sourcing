@@ -46,6 +46,11 @@ final readonly class DefaultUseCaseCommandExecutor implements UseCaseCommandExec
 
         $useCase->{$methodName}($command);
 
+        // Nothing decided, so nothing to append: its domain tags can still be partially loaded (e.g. a discard)
+        if ($useCase->getAppliedEvents() === []) {
+            return;
+        }
+
         $this->guardMatchingDomainTags($useCase, $useCaseClassName, $domainTags);
 
         $this->repository->save($useCase);
