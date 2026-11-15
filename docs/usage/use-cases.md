@@ -40,7 +40,7 @@ final class SomeBusinessUseCase implements EventSourcedUseCase
 }
 ```
 
-> **Important:** The use case's domain tags **must match the command's domain tags exactly** (in any order): the command's tags determine which events are loaded, the use case's tags the optimistic lock scope. The command handler enforces this: when they differ after handling the command, it throws an `InvalidUseCaseDomainTagsException` and the use case is not saved. When you load and save a use case with the `UseCaseRepository` yourself, you are responsible for loading it with the same domain tags. See [Commands - Choosing domain tags](commands.md#choosing-domain-tags) and [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components).
+> **Important:** The use case's domain tags **must match the command's domain tags exactly** (in any order): the command's tags determine which events are loaded, the use case's tags the optimistic lock scope. The command handler enforces this: when they differ after handling the command, it throws an `InvalidUseCaseDomainTagsException` and the use case is not saved. When the use case applied no events, nothing is saved and the tags are not compared. When you load and save a use case with the `UseCaseRepository` yourself, you are responsible for loading it with the same domain tags. See [Commands - Choosing domain tags](commands.md#choosing-domain-tags) and [How it works - Domain tags across components](../how-it-works.md#domain-tags-across-components).
 
 #### Domain tag rules
 

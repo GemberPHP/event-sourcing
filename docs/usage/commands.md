@@ -29,7 +29,7 @@ The `#[DomainTag]` attribute on command properties determines **which events are
 
 The event store returns only events that match at least one of the domain tags **and** are of a type the use case subscribes to. This avoids loading events the use case has no interest in.
 
-> **Important:** The command's domain tags **must match the use case's domain tags exactly** (in any order). The command tags determine which events are loaded; the use case tags determine the optimistic lock scope. If they differ, the lock scope won't match what was loaded, leading to incorrect concurrency behavior. Therefore the command handler compares them after the use case has handled the command, and refuses to save it when they differ by throwing an `InvalidUseCaseDomainTagsException`.
+> **Important:** The command's domain tags **must match the use case's domain tags exactly** (in any order). The command tags determine which events are loaded; the use case tags determine the optimistic lock scope. If they differ, the lock scope won't match what was loaded, leading to incorrect concurrency behavior. Therefore the command handler compares them after the use case has handled the command, and refuses to save it when they differ by throwing an `InvalidUseCaseDomainTagsException`. When the use case applied no events (e.g. it discarded the command), there is nothing to save: the command handler neither compares the tags nor saves the use case, so its tags may still be partially loaded.
 >
 > A command needs at least one domain tag: without it, the use case has no consistency boundary and loading it fails.
 

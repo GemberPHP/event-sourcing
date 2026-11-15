@@ -23,7 +23,13 @@ final class TestUseCaseWithMultipleDomainTags implements EventSourcedUseCase
     #[DomainCommandHandler(policy: CreationPolicy::IfMissing)]
     public function __invoke(TestMultipleDomainTagsCommand $command): void
     {
+        if ($command->discard) {
+            return;
+        }
+
         $this->firstTag = $command->firstTag;
         $this->secondTag = $command->secondTag;
+
+        $this->apply(new TestUseCaseModifiedEvent());
     }
 }

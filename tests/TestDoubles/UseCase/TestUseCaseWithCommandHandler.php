@@ -36,6 +36,8 @@ final class TestUseCaseWithCommandHandler implements EventSourcedUseCase
     {
         $this->domainTag = $command->domainTag;
         $this->isCalled[] = __METHOD__;
+
+        $this->apply(new UseCaseWithCommandTestedEvent($command->domainTag));
     }
 
     #[DomainCommandHandler]

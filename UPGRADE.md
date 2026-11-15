@@ -4,6 +4,10 @@ While in 0.x, a minor version (0.x.0) can contain breaking changes, and a patch 
 
 This file lists what you need to do or know when upgrading this package. For every change, see the [release notes](https://github.com/GemberPHP/event-sourcing/releases). Changes to the database migrations of `gember/rdbms-event-store-doctrine-dbal` are in its [UPGRADE.md](https://github.com/GemberPHP/rdbms-event-store-doctrine-dbal/blob/main/UPGRADE.md).
 
+## 0.22.1
+
+- **A use case that applies no events is no longer checked nor saved.** The `InvalidUseCaseDomainTagsException` from 0.21.1 is only thrown when the use case applied events, so a handler that discards a command can keep partially loaded domain tags. If a handler sets a domain tag only to pass that check, you can remove it.
+
 ## 0.22.0
 
 - **Cached resolvers and the cached command handler registry no longer take a `FriendlyClassNamer`.** If you wire them yourself (not through the Symfony bundle or the universal service provider), remove that argument from:

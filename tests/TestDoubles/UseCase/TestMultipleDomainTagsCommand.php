@@ -13,5 +13,6 @@ final readonly class TestMultipleDomainTagsCommand
         public string $firstTag,
         #[DomainTag]
         public string $secondTag,
+        public bool $discard = false,
     ) {}
 }

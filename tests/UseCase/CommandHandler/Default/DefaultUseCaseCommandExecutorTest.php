@@ -118,4 +118,28 @@ final class DefaultUseCaseCommandExecutorTest extends TestCase
 
         self::assertFalse($this->useCaseRepository->has(TestUseCaseWithMultipleDomainTags::class, 'tag-a', 'tag-c'));
     }
+
+    #[Test]
+    public function itShouldNotGuardNorSaveUseCaseWhenNoEventsWereApplied(): void
+    {
+        $useCase = new TestUseCaseWithMultipleDomainTags();
+        $useCase->firstTag = 'tag-a';
+        $useCase->secondTag = 'tag-b';
+
+        $this->useCaseRepository->save($useCase);
+
+        // Loaded with tags that differ from the command's, like a use case whose tags are only partially loaded
+        $useCase->secondTag = 'tag-c';
+
+        $this->executor->execute(
+            new TestMultipleDomainTagsCommand('tag-a', 'tag-b', true),
+            new CommandHandlerDefinition(TestMultipleDomainTagsCommand::class, '__invoke', CreationPolicy::Never),
+            TestUseCaseWithMultipleDomainTags::class,
+            '__invoke',
+            'tag-a',
+            'tag-b',
+        );
+
+        self::assertFalse($this->useCaseRepository->has(TestUseCaseWithMultipleDomainTags::class, 'tag-a', 'tag-c'));
+    }
 }
